@@ -26,6 +26,8 @@ import { creerDefis } from './stands/defis.ts';
 import { creerHorloge } from './stands/horloge.ts';
 import { demanderPrenom } from './ui/prenom.ts';
 import { exerciceDuJour, jouerPause, pauseDue } from './detente/pause.ts';
+import { chargerFeuilleton, episodeDuJour, type Episode } from './histoire/feuilleton.ts';
+import { lireEpisode } from './histoire/episode.ts';
 import { ajusterNiveau } from './exercices/generateur.ts';
 import {
   BONUS_SEANCE,
@@ -41,6 +43,7 @@ import {
   PRIX_PIECE,
   semaineDe,
   TICKETS_PAR_MANCHE,
+  TICKETS_HISTOIRE,
   type Garderobe,
   type Journee,
 } from './recompenses/recompenses.ts';
@@ -86,6 +89,7 @@ const ui = {
   tickets: el<HTMLParagraphElement>('tickets'),
   calendrier: el<HTMLOListElement>('calendrier'),
   garderobe: el<HTMLButtonElement>('garderobe'),
+  histoire: el<HTMLButtonElement>('histoire'),
   construction: el<HTMLDivElement>('construction'),
   constructionTexte: el<HTMLParagraphElement>('construction-texte'),
   constructionPieces: el<HTMLOListElement>('construction-pieces'),
@@ -145,6 +149,21 @@ function restants(jeu: JeuDeStand): number | null {
   if (jeu.type === 'defi') return Math.max(0, DEFIS_PAR_SEANCE - journee().defis);
   if (jeu.type === 'heure') return Math.max(0, HEURES_PAR_SEANCE - (journee().heures ?? 0));
   return null;
+}
+
+// --- Le feuilleton --------------------------------------------------------------------------
+// Seules les semaines validées par le parent arrivent ; « ?feuilleton-essai » montre aussi
+// celles qui attendent (pour que le parent les lise sur la tablette avant de valider).
+const feuilleton = chargerFeuilleton().map((s) =>
+  new URLSearchParams(location.search).has('feuilleton-essai') ? { ...s, valide: true } : s,
+);
+const episodesValides = feuilleton.filter((s) => s.valide).flatMap((s) => s.episodes);
+
+/** L'épisode à lire aujourd'hui, ou null s'il a déjà été lu (ou s'il n'y en a plus). */
+function histoireDuJour(): Episode | null {
+  if (journee().histoire) return null;
+  const lus = new Set(Object.entries(sauvegarde.lectures).filter(([, s]) => s.reussie).map(([id]) => id));
+  return episodeDuJour(feuilleton, lus);
 }
 
 const standHorloge = creerHorloge({ niveau: () => sauvegarde.niveauHorloge.niveau });
@@ -280,6 +299,7 @@ const LIEU: Record<IdStand, string> = {
 function messageDeLaPlace(): string {
   const allumes = JEUX.filter(aReviser).map((j) => j.id);
   const [premier] = allumes;
+  if (!premier && histoireDuJour()) return 'Ton histoire du jour t’attend : touche le livre en bas !';
   if (!premier) return 'Séance finie pour aujourd’hui. Tu peux jouer librement !';
   if (allumes.length === 1) return `Va ${LIEU[premier]}, ${nom(premier)} t’attend !`;
   const noms = allumes.map(nom);
@@ -292,22 +312,51 @@ function mettreAJourPlace(): void {
   // Le travail du jour est compté une fois, à la première ouverture : il fixe la pause calme.
   const j = journee();
   if (j.total === undefined) {
-    j.total = JEUX.reduce((somme, jeu) => {
-      const reste = restants(jeu);
-      if (reste !== null) return somme + reste;
-      const r = revisions(jeu);
-      return somme + r.semaine.length + r.memoire.length;
-    }, 0);
+    j.total = JEUX.reduce(
+      (somme, jeu) => {
+        const reste = restants(jeu);
+        if (reste !== null) return somme + reste;
+        const r = revisions(jeu);
+        return somme + r.semaine.length + r.memoire.length;
+      },
+      histoireDuJour() ? 1 : 0,
+    );
     sauver();
   }
   majHud();
 }
+
+ui.histoire.addEventListener('click', async () => {
+  if (dansUnStand || enCinema || enMarche) return;
+  bruitage.touche();
+  const episode = histoireDuJour();
+  if (!episode) {
+    parler('Pas de nouvel épisode aujourd’hui. La suite demain !');
+    return;
+  }
+  ui.bulle.hidden = true;
+  enCinema = true;
+  const numero = episodesValides.findIndex((e) => e.id === episode.id) + 1;
+  const { erreurs } = await lireEpisode(episode, numero, sauvegarde.forains, `Tu gagnes ${TICKETS_HISTOIRE} tickets.`);
+  enCinema = false;
+  sauvegarde.lectures[episode.id] = { lectures: 1, questions: 1 + erreurs, justes: erreurs === 0 ? 1 : 0, posees: [], reussie: true };
+  const j = journee();
+  j.histoire = episode.id;
+  j.faites = (j.faites ?? 0) + 1;
+  gagnerTickets(TICKETS_HISTOIRE);
+  mettreAJourPlace();
+  await finDeSeance();
+  parler(messageDeLaPlace());
+});
 
 // --- Tickets, calendrier, lots ---------------------------------------------------------------
 const JOURS_COURTS = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
 
 function majHud(): void {
   ui.ticketsNombre.textContent = String(sauvegarde.tickets);
+  // Le livre n'apparaît qu'une fois des épisodes validés ; il clignote tant que celui du jour attend.
+  ui.histoire.hidden = episodesValides.length === 0;
+  ui.histoire.classList.toggle('a-lire', histoireDuJour() !== null);
   const jour = aujourdhui();
   ui.calendrier.replaceChildren(
     ...semaineDe(jour).map((j, i) => {
@@ -339,7 +388,7 @@ function habiller(g: Garderobe): void {
 /** Toutes les révisions et les défis du jour sont faits : bonus, puis un lot dans la vitrine. */
 async function finDeSeance(): Promise<boolean> {
   const j = journee();
-  if (j.finie || JEUX.some(aReviser)) return false;
+  if (j.finie || JEUX.some(aReviser) || histoireDuJour()) return false;
   j.finie = true;
   gagnerTickets(BONUS_SEANCE);
   bruitage.finDeManche();

@@ -4,6 +4,7 @@
 import { ajouterJours, jourDeSemaine, type Jour } from '../memoire/jours.ts';
 
 export const TICKETS_PAR_MANCHE = 3;
+export const TICKETS_HISTOIRE = 2;
 export const BONUS_SEANCE = 2;
 export const PRIX_PIECE = 8;
 export const PIECES_ROUE = 10;
@@ -21,6 +22,8 @@ export interface Journee {
   faites?: number;
   /** La pause calme du jour a été prise. */
   pause?: boolean;
+  /** L'épisode du feuilleton lu aujourd'hui (un seul par jour). */
+  histoire?: string;
   ticketsGagnes: number;
   /** La séance du jour est finie (le bonus est donné une fois). */
   finie: boolean;

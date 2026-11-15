@@ -1,0 +1,92 @@
+{
+  "id": "semaine-01",
+  "titre": "Le mystère du boulon doré",
+  "valide": true,
+  "episodes": [
+    {
+      "titre": "Le boulon a disparu",
+      "phrases": [
+        "Ce matin, {chantier} prépare la grande roue.",
+        "Il ouvre sa caisse à outils.",
+        "Le gros boulon doré a disparu !",
+        "Sans lui, la roue ne peut pas tourner.",
+        "« Qui l’a vu ? » demande {chantier}."
+      ],
+      "question": "Qu’est-ce qui a disparu ?",
+      "choix": ["Le gros boulon doré", "Le marteau", "La caisse à outils"],
+      "reponse": 3
+    },
+    {
+      "titre": "Quelque chose qui brille",
+      "phrases": [
+        "{chantier} va voir {chamboule} au chamboule-tout.",
+        "{chamboule} lisse sa moustache et réfléchit.",
+        "« Hier soir, j’ai vu briller quelque chose près de la confiserie », dit-il.",
+        "{chantier} le remercie et part tout de suite."
+      ],
+      "question": "Où {chamboule} a-t-il vu briller quelque chose ?",
+      "choix": ["Près de la confiserie", "Près du chantier", "Sous le chamboule-tout"],
+      "reponse": 3
+    },
+    {
+      "titre": "Des traces sur le sol",
+      "phrases": [
+        "À la confiserie, {confiserie} fait cuire du caramel.",
+        "Elle n’a pas vu de boulon.",
+        "Mais elle a trouvé de petites traces de pattes sur le sol.",
+        "Les traces partent vers les arbres."
+      ],
+      "question": "Qu’a trouvé {confiserie} sur le sol ?",
+      "choix": ["Des traces de pattes", "Un bonbon cassé", "Une clé"],
+      "reponse": 3
+    },
+    {
+      "titre": "En haut de l’arbre",
+      "phrases": [
+        "{chantier} et {confiserie} suivent les traces.",
+        "Ils s’arrêtent au pied d’un grand arbre.",
+        "Tout en haut, une pie les regarde.",
+        "Dans son nid, quelque chose brille au soleil !"
+      ],
+      "question": "Qui est en haut de l’arbre ?",
+      "choix": ["Une pie", "Un chat", "Un écureuil"],
+      "reponse": 3
+    },
+    {
+      "titre": "L’idée de {chamboule}",
+      "phrases": [
+        "La pie ne veut pas rendre le boulon.",
+        "Elle aime tout ce qui brille.",
+        "{chamboule} a une idée : il lui offre une petite cuillère dorée.",
+        "La pie prend la cuillère et laisse tomber le boulon !"
+      ],
+      "question": "Qu’offre {chamboule} à la pie ?",
+      "choix": ["Une petite cuillère dorée", "Un bonbon", "Une balle"],
+      "reponse": 3
+    },
+    {
+      "titre": "La roue tourne",
+      "phrases": [
+        "{chantier} visse le boulon doré au milieu de la roue.",
+        "Il tourne la clé trois fois.",
+        "La roue fait un petit grincement, puis elle tourne doucement.",
+        "Tout le monde applaudit."
+      ],
+      "question": "Combien de fois {chantier} tourne-t-il la clé ?",
+      "choix": ["Trois fois", "Une fois", "Dix fois"],
+      "reponse": 2
+    },
+    {
+      "titre": "La fête du soir",
+      "phrases": [
+        "Le soir, les forains font la fête autour de la roue.",
+        "{confiserie} apporte des sucettes pour tout le monde.",
+        "La pie se pose sur une cabine, avec sa cuillère dorée.",
+        "{chantier} sourit : « Il manque encore des pièces, mais avec ton aide, on y arrivera ! »"
+      ],
+      "question": "Qu’apporte {confiserie} pour tout le monde ?",
+      "choix": ["Des sucettes", "Des crêpes", "Des ballons"],
+      "reponse": 2
+    }
+  ]
+}
