@@ -8,6 +8,7 @@ import type { IdStand } from '../scene/fete.ts';
 import { ajouterJours, type Jour } from '../memoire/jours.ts';
 import { semaineDe } from '../recompenses/recompenses.ts';
 import { DEPOT_VALIDE, ecrireAcces, lireAcces } from '../reve/synchro.ts';
+import { exporterSauvegarde, importerSauvegarde, type Import } from '../sauvegarde/export.ts';
 import type { Sauvegarde } from '../sauvegarde/format.ts';
 import { bilanDepuis, elementsFragiles, lisible, minutesParJour } from './bilan.ts';
 
@@ -24,6 +25,8 @@ export interface OptionsEspace {
   /** Lance un échange avec le dépôt privé ; renvoie un message pour le parent. */
   synchroniser(): Promise<string>;
   rejouerIntroduction(): void;
+  /** Remplace toute la sauvegarde par celle d'un fichier, puis relance le jeu. */
+  remplacer(s: Sauvegarde): Promise<void>;
 }
 
 function el<K extends keyof HTMLElementTagNameMap>(balise: K, classe = '', texte = ''): HTMLElementTagNameMap[K] {
@@ -324,6 +327,64 @@ function construire(o: OptionsEspace, fermer: () => void): HTMLElement {
   const boutonsDepot = el('div', 'lecture-boutons');
   boutonsDepot.append(enregistrer, echanger, oublier);
 
+  // Copie de secours : télécharger la sauvegarde, ou la recharger depuis un fichier.
+  const exporter = el('button', 'bouton-principal', 'Exporter la sauvegarde');
+  const importer = el('button', 'bouton-secondaire', 'Importer une sauvegarde');
+  const fichier = el('input');
+  fichier.type = 'file';
+  fichier.accept = '.json,application/json';
+  fichier.hidden = true;
+  const messageSecours = el('p', 'lecture-texte');
+  const confirmer = el('button', 'bouton-principal', 'Remplacer la sauvegarde');
+  const renoncer = el('button', 'bouton-secondaire', 'Annuler');
+  const boutonsConfirmer = el('div', 'lecture-boutons');
+  boutonsConfirmer.append(renoncer, confirmer);
+  boutonsConfirmer.hidden = true;
+  let enAttente: Import | null = null;
+  exporter.addEventListener('click', () => {
+    const { nom, texte } = exporterSauvegarde(s, o.jour);
+    const adresse = URL.createObjectURL(new Blob([texte], { type: 'application/json' }));
+    const lien = el('a');
+    lien.href = adresse;
+    lien.download = nom;
+    document.body.append(lien);
+    lien.click();
+    lien.remove();
+    window.setTimeout(() => URL.revokeObjectURL(adresse), 10_000);
+    messageSecours.textContent = `Fichier « ${nom} » enregistré dans les téléchargements. Garde-le en lieu sûr.`;
+  });
+  importer.addEventListener('click', () => fichier.click());
+  fichier.addEventListener('change', async () => {
+    const choisi = fichier.files?.[0];
+    fichier.value = '';
+    if (!choisi) return;
+    try {
+      enAttente = importerSauvegarde(await choisi.text());
+    } catch (erreur) {
+      enAttente = null;
+      boutonsConfirmer.hidden = true;
+      messageSecours.textContent = erreur instanceof Error ? erreur.message : 'Fichier illisible.';
+      return;
+    }
+    const n = enAttente.sauvegarde;
+    const date = enAttente.exportee ? new Date(enAttente.exportee).toLocaleString('fr-FR') : 'date inconnue';
+    messageSecours.textContent = `Sauvegarde du ${date} : ${n.tickets} tickets, grande roue ${n.roue}/10, ${Object.keys(n.journees).length} jours de jeu. Elle remplacera entièrement la sauvegarde actuelle.`;
+    boutonsConfirmer.hidden = false;
+  });
+  renoncer.addEventListener('click', () => {
+    enAttente = null;
+    boutonsConfirmer.hidden = true;
+    messageSecours.textContent = 'Rien n’a changé.';
+  });
+  confirmer.addEventListener('click', () => {
+    if (!enAttente) return;
+    confirmer.disabled = true;
+    messageSecours.textContent = 'Remplacement en cours, le jeu va redémarrer…';
+    void o.remplacer(enAttente.sauvegarde);
+  });
+  const boutonsSecours = el('div', 'lecture-boutons');
+  boutonsSecours.append(exporter, importer);
+
   panneau.append(
     tete,
     section('Progression', resume, tableau),
@@ -341,6 +402,18 @@ function construire(o: OptionsEspace, fermer: () => void): HTMLElement {
       cle,
       boutonsDepot,
       etat,
+    ),
+    section(
+      'Copie de secours',
+      el(
+        'p',
+        'lecture-texte',
+        'Avant de vider le cache ou de changer de tablette, exporte la sauvegarde : tickets, lots, progression, prénoms et réglages. La clé du dépôt privé n’est pas dans le fichier.',
+      ),
+      boutonsSecours,
+      fichier,
+      messageSecours,
+      boutonsConfirmer,
     ),
   );
   return panneau;
