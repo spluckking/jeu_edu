@@ -66,6 +66,7 @@ import { surveillerModeApp } from './app/modeApp.ts';
 
 surveillerModeApp();
 import { CameraSuivie } from './scene/suivi.ts';
+import { Obstacle } from './scene/obstacles.ts';
 import { creerCommandes } from './controles/joystick.ts';
 import { basculerMuet, bruitage, demarrerSon, estMuet, reglerVolumes } from './son/bruitages.ts';
 import { dire, reglerVoix } from './son/voix.ts';
@@ -570,22 +571,23 @@ const DECOR: Array<[number, number, number]> = [
   [15, -14, 0.25],
   [0, -15.5, 0.25],
 ];
-const boitesStands = fete.stands.map((s) => new THREE.Box3().setFromObject(s.zone).expandByScalar(0.25));
-const obstacles: THREE.Box3[] = [
-  ...boitesStands,
-  ...entree.obstacles,
-  ...DECOR.map(([x, z, r]) => new THREE.Box3(new THREE.Vector3(x - r, 0, z - r), new THREE.Vector3(x + r, 4, z + r))),
+// Chaque stand garde sa vraie forme, même tourné : son devant reste libre.
+const obstaclesStands = fete.stands.map((s) => Obstacle.depuisMaillage(s.zone, 0.25));
+const obstaclesEntree = entree.obstacles.map((b) => Obstacle.boite(b));
+const obstacles: Obstacle[] = [
+  ...obstaclesStands,
+  ...obstaclesEntree,
+  ...DECOR.map(([x, z, r]) => Obstacle.boite(new THREE.Box3(new THREE.Vector3(x - r, 0, z - r), new THREE.Vector3(x + r, 4, z + r)))),
 ];
 // La caméra ne bute que sur les stands et l'entrée (le petit décor ne la gêne pas).
-const suivi = new CameraSuivie([...boitesStands, ...entree.obstacles]);
+const suivi = new CameraSuivie([...obstaclesStands, ...obstaclesEntree]);
 const commandes = creerCommandes(ui.zoneStick, ui.joystick, ui.zoneRegard);
 const heros = (): THREE.Object3D => fete.heros();
 
-/** De combien ce point s'enfonce dans un obstacle (0 : rien ne gêne). */
+/** De combien ce point s'enfonce dans un obstacle (0 : rien ne gêne ; plus c'est profond, plus c'est grand). */
 function enfoncement(x: number, z: number): number {
-  const p = new THREE.Vector3(x, 1, z);
   let pire = 0;
-  for (const b of obstacles) pire = Math.max(pire, RAYON_PERSONNAGE - b.distanceToPoint(p));
+  for (const o of obstacles) pire = Math.max(pire, o.enfoncement(x, z, RAYON_PERSONNAGE));
   return pire;
 }
 
@@ -700,6 +702,10 @@ if (new URLSearchParams(location.search).has('essai')) {
         heros().position.set(x, 0.06, z);
         heros().rotation.y = cap;
         suivi.placerDerriere(cap);
+      },
+      /** Les approches des stands : là où le personnage se trouve en sortant. */
+      approches(): Array<[string, number, number]> {
+        return fete.stands.map((s) => [s.id, s.approche.x, s.approche.z]);
       },
       position(): string {
         const p = heros().position;
