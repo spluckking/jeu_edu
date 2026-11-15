@@ -62,6 +62,9 @@ import { suiviNeuf, type Sauvegarde } from './sauvegarde/format.ts';
 import { ecrireSauvegarde, lireSauvegarde } from './sauvegarde/stockage.ts';
 import { construireFete, type IdStand, type PoseCamera, type Stand } from './scene/fete.ts';
 import { construireEntree } from './scene/entree.ts';
+import { surveillerModeApp } from './app/modeApp.ts';
+
+surveillerModeApp();
 import { CameraSuivie } from './scene/suivi.ts';
 import { creerCommandes } from './controles/joystick.ts';
 import { basculerMuet, bruitage, demarrerSon, estMuet, reglerVolumes } from './son/bruitages.ts';
