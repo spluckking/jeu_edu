@@ -61,7 +61,7 @@ export interface Fete {
 
 const VITESSE_MARCHE = 3.2;
 /** Au-delà (vers l'arrière), on est dans l'allée du fond de la fête. */
-const LIMITE_FOND = -6;
+const LIMITE_FOND = -11;
 
 export function construireFete(tenue = 0): Fete {
   const atelier = new Atelier();
@@ -116,11 +116,11 @@ export function construireFete(tenue = 0): Fete {
 
   // --- Sol et allées -------------------------------------------------------
   f(racine, [90, 0.4, 90], [0, -0.2, 0], 'sol');
-  f(racine, [3.4, 0.06, 15], [0, 0.03, 2.5], 'allee');
-  f(racine, [24, 0.07, 3.4], [0, 0.035, 1], 'allee');
+  f(racine, [3.4, 0.06, 14], [0, 0.03, 5], 'allee');
+  f(racine, [34, 0.07, 3.6], [0, 0.035, -1], 'allee');
   // L'allée vers le fond de la fête, à droite du chamboule-tout, puis celle du fond.
-  f(racine, [2.6, 0.065, 11], [3.1, 0.033, -6.5], 'allee');
-  f(racine, [20, 0.068, 3], [0, 0.034, -10.2], 'allee');
+  for (const x of [-5.5, 5.5]) f(racine, [3, 0.065, 22], [x, 0.033, -12], 'allee');
+  f(racine, [30, 0.068, 3.4], [0, 0.034, -22.5], 'allee');
 
   // --- Stand générique -----------------------------------------------------
   const stands: Stand[] = [];
@@ -692,11 +692,11 @@ export function construireFete(tenue = 0): Fete {
       { maillot: 0x7bd389, pantalon: 0x7a5c9a, cheveux: 0xc98a3a, tenue: 1, objets: true },
       { maillot: 0xb48cf2, pantalon: 0x5b6b7a, cheveux: 0xe2c06a, tenue: 2, objets: true },
     ];
-    const longueur = 19;
+    const longueur = 28;
     allures.forEach((allure, i) => {
       const v = creerPersonne(atelier, racine, allure);
       decorVivant.push(v.racine);
-      const z = 1.3 + i * 0.5;
+      const z = -1.6 + i * 0.6;
       const vitesse = 0.9 + i * 0.2;
       const decalage = i * 11.3;
       v.racine.scale.setScalar(0.92 + (i % 3) * 0.1);
@@ -711,49 +711,49 @@ export function construireFete(tenue = 0): Fete {
   }
 
   // --- Assemblage -------------------------------------------------------------
-  stand('confiserie', -6.6, -1.5, 0.5, garnirConfiserie);
-  stand('chamboule', 0, -5, 0, garnirChamboule);
-  stand('horloge', -11.6, 1.2, 0.8, garnirHorloge);
+  stand('confiserie', -10.5, -3.5, 0.5, garnirConfiserie);
+  stand('chamboule', 0, -9, 0, garnirChamboule);
+  stand('horloge', -17.5, 3.5, 0.9, garnirHorloge);
   // Le fond de la fête.
-  stand('peche', -6.8, -11.6, 0.9, garnirPeche);
-  stand('autos', 7.2, -11.2, -0.35, garnirAutos);
-  stand('trampoline', -3.4, -16.6, 0.1, garnirTrampoline);
-  stand('glaces', 3.6, -16.6, -0.1, garnirGlaces);
-  chantier(6.9, -1.5, -0.5);
-  chapiteau(-14, -16);
-  chapiteau(0, -24);
-  chapiteau(15, -16);
-  arbre(-12, -7, 1.1);
-  arbre(12.5, -8, 1.2);
-  arbre(-16, 6, 1);
-  arbre(14, 3, 0.9);
-  arbre(-11, -15, 1.3);
-  arbre(11.5, -15.5, 1.15);
+  stand('peche', -12.5, -19, 0.9, garnirPeche);
+  stand('autos', 12.5, -18.5, -0.6, garnirAutos);
+  stand('trampoline', -5.5, -30, 0.1, garnirTrampoline);
+  stand('glaces', 5.5, -30, -0.1, garnirGlaces);
+  chantier(11, -3.5, -0.5);
+  chapiteau(-21, -28);
+  chapiteau(0, -38);
+  chapiteau(21, -28);
+  arbre(-19, -10, 1.1);
+  arbre(19.5, -11, 1.2);
+  arbre(-22, 9, 1);
+  arbre(20, 4, 0.9);
+  arbre(-17, -36, 1.3);
+  arbre(17, -37, 1.15);
   nuage(-20, 17, -34);
   nuage(4, 21, -40);
   nuage(24, 15, -32);
 
   const coins: Vec3[] = [
-    [-10.5, 0, 5],
-    [10.5, 0, 5],
-    [-10.5, 0, -9],
-    [10.5, 0, -9],
+    [-15, 0, 6],
+    [15, 0, 6],
+    [-15, 0, -14],
+    [15, 0, -14],
   ];
   for (const [x, , z] of coins) f(racine, [0.3, 5.6, 0.3], [x, 2.8, z], 'poteau', { forme: 'tube' });
-  f(racine, [0.34, 8, 0.34], [0, 4, -10.5], 'poteau', { forme: 'tube' });
+  f(racine, [0.34, 8, 0.34], [0, 4, -15.5], 'poteau', { forme: 'tube' });
   const haut = (i: number): THREE.Vector3 => {
     const c = coins[i] ?? [0, 0, 0];
     return new THREE.Vector3(c[0], 5.6, c[2]);
   };
-  const mat = new THREE.Vector3(0, 8, -10.5);
+  const mat = new THREE.Vector3(0, 8, -15.5);
   guirlande(haut(0), haut(2), 12, 0.7);
   guirlande(haut(1), haut(3), 12, 0.7);
   guirlande(haut(2), mat, 10, 0.6);
   guirlande(mat, haut(3), 10, 0.6);
   guirlande(haut(0), mat, 16, 0.9);
   guirlande(haut(1), mat, 16, 0.9);
-  fanions(new THREE.Vector3(-10.5, 4.6, 5), new THREE.Vector3(-2, 4.5, -3.7), 13, 0.8);
-  fanions(new THREE.Vector3(10.5, 4.6, 5), new THREE.Vector3(2, 4.5, -3.7), 13, 0.8);
+  fanions(new THREE.Vector3(-15, 4.6, 6), new THREE.Vector3(-2.5, 4.5, -7.5), 18, 0.9);
+  fanions(new THREE.Vector3(15, 4.6, 6), new THREE.Vector3(2.5, 4.5, -7.5), 18, 0.9);
   ballonsLaches();
   visiteurs();
 
@@ -881,9 +881,9 @@ export function construireFete(tenue = 0): Fete {
     stands,
     vues: {
       // Assez large pour voir les quatre stands, horloge comprise.
-      place: { position: new THREE.Vector3(-1.6, 8.6, 21.5), cible: new THREE.Vector3(-1.6, 2.2, -2) },
+      place: { position: new THREE.Vector3(-2, 12, 30), cible: new THREE.Vector3(-1, 2.2, -6) },
       // Assez bas pour voir la pyramide sous la toile du stand.
-      chamboule: { position: new THREE.Vector3(3.1, 2.9, 5.2), cible: new THREE.Vector3(1.4, 2.5, -4.8) },
+      chamboule: { position: new THREE.Vector3(3.1, 2.9, 1.2), cible: new THREE.Vector3(1.4, 2.5, -8.8) },
       confiserie: vuesStand.confiserie ?? { position: new THREE.Vector3(), cible: new THREE.Vector3() },
       chantier: vuesStand.chantier ?? { position: new THREE.Vector3(), cible: new THREE.Vector3() },
       horloge: vuesStand.horloge ?? { position: new THREE.Vector3(), cible: new THREE.Vector3() },
@@ -903,8 +903,8 @@ export function construireFete(tenue = 0): Fete {
       debutSucette = maintenant;
     },
     vuesCinema: {
-      survol: { position: new THREE.Vector3(-3, 15, 26), cible: new THREE.Vector3(0, 1.5, -4) },
-      fin: { position: new THREE.Vector3(2, 9, 21), cible: new THREE.Vector3(2, 3, -3) },
+      survol: { position: new THREE.Vector3(-4, 19, 30), cible: new THREE.Vector3(0, 1.5, -9) },
+      fin: { position: new THREE.Vector3(3, 12, 26), cible: new THREE.Vector3(3, 3, -7) },
       chamboule: vuesForain.chamboule ?? { position: new THREE.Vector3(), cible: new THREE.Vector3() },
       confiserie: vuesForain.confiserie ?? { position: new THREE.Vector3(), cible: new THREE.Vector3() },
       chantier: vuesForain.chantier ?? { position: new THREE.Vector3(), cible: new THREE.Vector3() },
@@ -927,8 +927,8 @@ export function construireFete(tenue = 0): Fete {
         const fond = (z: number): boolean => z < LIMITE_FOND;
         const points: THREE.Vector3[] = [];
         if (fond(stand.approche.z) !== fond(heros.racine.position.z)) {
-          const devant = new THREE.Vector3(3.1, 0.06, -3);
-          const derriere = new THREE.Vector3(3.1, 0.06, -9.5);
+          const devant = new THREE.Vector3(5.5, 0.06, -1);
+          const derriere = new THREE.Vector3(5.5, 0.06, -15);
           points.push(...(fond(stand.approche.z) ? [devant, derriere] : [derriere, devant]));
         }
         points.push(stand.approche.clone().setY(0.06));

@@ -25,8 +25,8 @@ Rien de tout cela ne va dans le dépôt public. Le journal ne contient jamais le
    - *Repository access* : *Only select repositories*, puis le dépôt du rêve seulement.
    - *Permissions* → *Repository permissions* → *Contents* : *Read and write*. Rien d'autre.
    - Une durée d'un an au plus.
-3. Sur la tablette, ouvrir l'espace parent : **appui long de 2 secondes** sur le petit soleil
-   en haut à gauche, puis le code (choisi la première fois). Dans « Dépôt privé », écrire
+3. Sur la tablette, ouvrir l'espace parent : **appui long d'une seconde et demie** sur le petit
+   cadenas en haut à gauche, puis le code (choisi la première fois). Dans « Dépôt privé », écrire
    `propriétaire/nom-du-dépôt` et la clé, **Enregistrer**, puis **Échanger maintenant**.
 4. Programmer le rêve chaque soir (routine Claude dans le cloud, ou tâche planifiée sur le PC
    si l'offre ne le permet pas), avec pour consigne le fichier `docs/reve/consigne-du-soir.md`.

@@ -14,8 +14,8 @@ export interface Entree {
 
 const Z = 12;
 /** Les palissades : côtés en ±BORD, fond en FOND ; l'allée d'arrivée va jusqu'à FIN_ALLEE. */
-const BORD = 18;
-const FOND = -27;
+const BORD = 25;
+const FOND = -42;
 const FIN_ALLEE = 33;
 
 function enseigne(texte: string): THREE.Mesh {
@@ -85,11 +85,11 @@ export function construireEntree(): Entree {
   obstacles.push(new THREE.Box3(new THREE.Vector3(-9.4, 0, Z + 0.2), new THREE.Vector3(-7, 3, Z + 2.2)));
   // Les palissades de chaque côté de l'entrée.
   for (const signe of [-1, 1]) {
-    for (let i = 0; i < 18; i++) {
+    for (let i = 0; i < 31; i++) {
       const x = signe * (6.8 + i * 0.6);
       f([0.5, 1.6, 0.14], [x, 0.8, Z], i % 2 === 0 ? 'barriereA' : 'barriereB');
     }
-    obstacles.push(new THREE.Box3(new THREE.Vector3(signe < 0 ? -18 : 6.5, 0, Z - 0.3), new THREE.Vector3(signe < 0 ? -6.5 : 18, 2, Z + 0.3)));
+    obstacles.push(new THREE.Box3(new THREE.Vector3(signe < 0 ? -BORD : 6.5, 0, Z - 0.3), new THREE.Vector3(signe < 0 ? -6.5 : BORD, 2, Z + 0.3)));
   }
   // L'allée d'arrivée et ses lampadaires.
   f([3.4, 0.06, 23], [0, 0.03, Z + 11.5], 'allee');

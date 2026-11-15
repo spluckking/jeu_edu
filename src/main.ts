@@ -552,19 +552,20 @@ const CHAMP_PROMENADE = 58;
 const RAYON_PERSONNAGE = 0.45;
 /** Le décor qu'on ne traverse pas : chapiteaux, arbres, poteaux des guirlandes. */
 const DECOR: Array<[number, number, number]> = [
-  [-14, -16, 2.7],
-  [0, -24, 2.7],
-  [15, -16, 2.7],
-  [-12, -7, 0.5],
-  [12.5, -8, 0.5],
-  [14, 3, 0.5],
-  [-11, -15, 0.6],
-  [11.5, -15.5, 0.5],
-  [-10.5, 5, 0.25],
-  [10.5, 5, 0.25],
-  [-10.5, -9, 0.25],
-  [10.5, -9, 0.25],
-  [0, -10.5, 0.25],
+  [-21, -28, 2.7],
+  [0, -38, 2.7],
+  [21, -28, 2.7],
+  [-19, -10, 0.5],
+  [19.5, -11, 0.5],
+  [-22, 9, 0.5],
+  [20, 4, 0.5],
+  [-17, -36, 0.6],
+  [17, -37, 0.5],
+  [-15, 6, 0.25],
+  [15, 6, 0.25],
+  [-15, -14, 0.25],
+  [15, -14, 0.25],
+  [0, -15.5, 0.25],
 ];
 const boitesStands = fete.stands.map((s) => new THREE.Box3().setFromObject(s.zone).expandByScalar(0.25));
 const obstacles: THREE.Box3[] = [
