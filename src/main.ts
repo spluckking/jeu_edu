@@ -132,7 +132,10 @@ const elements = new Map<string, Element>();
 
 let sauvegarde: Sauvegarde = await lireSauvegarde();
 let ecriture: Promise<void> = Promise.resolve();
+/** Pendant le remplacement par une copie de secours, plus rien n'écrit l'ancienne sauvegarde. */
+let remplacement = false;
 function sauver(): void {
+  if (remplacement) return;
   const copie = structuredClone(sauvegarde);
   ecriture = ecriture.then(() => ecrireSauvegarde(copie)).catch((erreur: unknown) => console.error(erreur));
 }
@@ -1242,6 +1245,12 @@ porteParent(ui.parent, () => {
     appliquer: appliquerReglages,
     synchroniser: echanger,
     rejouerIntroduction: () => void introduction(true).then(() => parler(messageDeLaPlace())),
+    remplacer: async (nouvelle) => {
+      remplacement = true;
+      await ecriture;
+      await ecrireSauvegarde(nouvelle);
+      location.reload();
+    },
   });
 });
 
