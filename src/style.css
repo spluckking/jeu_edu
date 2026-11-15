@@ -691,6 +691,88 @@ svg {
   text-align: left;
 }
 
+/* --- Feuilleton ---------------------------------------------------------------------- */
+
+.episode {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  width: min(820px, calc(100% - 40px));
+  max-height: calc(100% - 32px);
+  padding: 24px 32px;
+  overflow-y: auto;
+  border-radius: 36px;
+  background: var(--papier);
+  box-shadow: var(--ombre);
+  text-align: center;
+  touch-action: pan-y;
+  animation: apparaitre 0.4s var(--rebond);
+}
+
+.episode-texte {
+  padding: 18px 26px;
+  border-radius: 24px;
+  background: #fff3d6;
+  font-size: clamp(1.45rem, 3.2vh, 1.8rem);
+  line-height: 1.6;
+  text-align: left;
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.episode-phrase {
+  border-radius: 8px;
+  transition: background 0.4s;
+}
+
+.episode-phrase.allumee {
+  background: var(--jaune);
+  box-shadow: 0 0 0 4px var(--jaune);
+}
+
+.episode-question {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.choix.juste {
+  background: var(--vert-pale);
+  box-shadow: 0 0 0 4px var(--vert);
+}
+
+.choix.rate {
+  opacity: 0.45;
+  text-decoration: line-through;
+}
+
+.histoire {
+  position: relative;
+}
+
+.histoire.a-lire::after {
+  content: '';
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 16px;
+  height: 16px;
+  border: 3px solid white;
+  border-radius: 50%;
+  background: var(--rouge);
+}
+
+.histoire.a-lire {
+  animation: appel 1.6s ease-in-out infinite;
+}
+
+@keyframes appel {
+  50% {
+    transform: scale(1.12);
+  }
+}
+
 /* --- Pause calme --------------------------------------------------------------------- */
 
 .pause-fond {
