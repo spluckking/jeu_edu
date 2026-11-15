@@ -5,10 +5,13 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { AMPOULES, Atelier, COULEURS, type Peinture, type Vec3 } from './atelier.ts';
 import { creerPersonne, type Allure, type Personne } from './personne.ts';
 
-export type IdStand = 'chamboule' | 'confiserie' | 'chantier' | 'horloge';
+export type IdStand = 'chamboule' | 'confiserie' | 'chantier' | 'horloge' | 'peche';
+/** Les stands de détente : jeu libre seulement, sans forain à nommer. */
+export type IdDetente = 'autos' | 'trampoline' | 'glaces';
+export type IdLieu = IdStand | IdDetente;
 
 export interface Stand {
-  id: IdStand;
+  id: IdLieu;
   /** Boîte invisible que l'on touche pour aller au stand. */
   zone: THREE.Mesh;
   /** Où le personnage se place devant le stand, et vers où il regarde. */
@@ -24,7 +27,10 @@ export interface PoseCamera {
 export interface Fete {
   racine: THREE.Group;
   stands: Stand[];
-  vues: Record<'place' | IdStand, PoseCamera>;
+  /** place : l'entrée de la fête ; fond : l'allée de derrière. */
+  vues: Record<'place' | 'fond' | IdStand, PoseCamera>;
+  /** Bonne réponse à la pêche : un canard sort de l'eau. */
+  pecher(): void;
   /** La grande roue montre n pièces construites sur « sur ». */
   construireRoue(n: number, sur: number): void;
   /** Le personnage de l'enfant change de tenue (0 à 3) ou de maillot. */
@@ -50,6 +56,8 @@ export interface Fete {
 }
 
 const VITESSE_MARCHE = 3.2;
+/** Au-delà (vers l'arrière), on est dans l'allée du fond de la fête. */
+const LIMITE_FOND = -6;
 
 export function construireFete(tenue = 0): Fete {
   const atelier = new Atelier();
@@ -106,12 +114,15 @@ export function construireFete(tenue = 0): Fete {
   f(racine, [90, 0.4, 90], [0, -0.2, 0], 'sol');
   f(racine, [3.4, 0.06, 15], [0, 0.03, 2.5], 'allee');
   f(racine, [24, 0.07, 3.4], [0, 0.035, 1], 'allee');
+  // L'allée vers le fond de la fête, à droite du chamboule-tout, puis celle du fond.
+  f(racine, [2.6, 0.065, 11], [3.1, 0.033, -6.5], 'allee');
+  f(racine, [20, 0.068, 3], [0, 0.034, -10.2], 'allee');
 
   // --- Stand générique -----------------------------------------------------
   const stands: Stand[] = [];
   const zoneMateriau = atelier.materiau(new THREE.MeshBasicMaterial());
 
-  function stand(id: IdStand, x: number, z: number, ry: number, garnir: (g: THREE.Group) => void): THREE.Group {
+  function stand(id: IdLieu, x: number, z: number, ry: number, garnir: (g: THREE.Group) => void): THREE.Group {
     const g = new THREE.Group();
     g.position.set(x, 0, z);
     g.rotation.y = ry;
@@ -142,7 +153,7 @@ export function construireFete(tenue = 0): Fete {
   }
 
   /** approcheLocale : où se place le personnage, dans le repère du stand. */
-  function ajouterZone(id: IdStand, g: THREE.Group, taille: Vec3, centre: Vec3, approcheLocale: Vec3): void {
+  function ajouterZone(id: IdLieu, g: THREE.Group, taille: Vec3, centre: Vec3, approcheLocale: Vec3): void {
     const zone = new THREE.Mesh(atelier.suivre(new THREE.BoxGeometry(...taille)), zoneMateriau);
     zone.position.set(...centre);
     g.add(zone);
@@ -453,6 +464,93 @@ export function construireFete(tenue = 0): Fete {
     };
   }
 
+  // --- Pêche aux canards : un ruisseau sur le comptoir, des canards qui tournent ----------
+  let debutPeche = -99;
+  function garnirPeche(g: THREE.Group): void {
+    f(g, [3.9, 0.22, 0.9], [0, 1.2, 1.3], 0x5cc4f0);
+    f(g, [4.1, 0.1, 1.05], [0, 1.08, 1.3], 'bois');
+    const canards: THREE.Group[] = [];
+    for (let i = 0; i < 6; i++) {
+      const c = atelier.mobile(g, [0, 1.34, 1.3]);
+      f(c, [0.36, 0.26, 0.28], [0, 0.06, 0], 'enseigne', { forme: 'boule' });
+      f(c, [0.22, 0.22, 0.22], [0.13, 0.24, 0], 'enseigne', { forme: 'boule' });
+      f(c, [0.12, 0.05, 0.08], [0.27, 0.22, 0], 0xff8a3a, { forme: 'boule' });
+      for (const cote of [-1, 1]) f(c, [0.04, 0.05, 0.03], [0.18, 0.28, cote * 0.09], 'sombre', { forme: 'boule' });
+      canards.push(c);
+    }
+    // Les canards glissent le long du ruisseau ; le premier saute quand on pêche juste.
+    animations.push((temps) => {
+      canards.forEach((c, i) => {
+        const x = (((temps * 0.35 + i / canards.length) % 1) - 0.5) * 3.5;
+        c.position.x = x;
+        c.position.y = 1.34 + Math.sin(temps * 3 + i) * 0.02;
+        c.rotation.set(0, 0, 0);
+      });
+      const t = temps - debutPeche;
+      const premier = canards[0];
+      if (premier && t >= 0 && t < 1.2) {
+        const saut = Math.sin((t / 1.2) * Math.PI);
+        premier.position.y = 1.34 + saut * 1.3;
+        premier.rotation.y = t * 9;
+      }
+    });
+    // Les cannes à pêche, sur le côté, et les lots au fond.
+    for (const x of [1.6, 1.85]) {
+      f(g, [0.05, 2.2, 0.05], [x, 2.0, 0.6], 'bois', { forme: 'tube', rz: -0.25 });
+    }
+    for (const [x, p] of [[-1.2, 'bonbon1'], [0, 'bonbon2'], [1.2, 'enseigne']] as const) {
+      peluche(g, [x, 2.34, -1.1], p, 0.7);
+      f(g, [0.9, 0.08, 0.4], [x, 2.3, -1.1], 'bois');
+    }
+    forain('peche', g, { maillot: 0xffd447, pantalon: 0x3f6fa0, cheveux: 0x6b3a1c, tenue: 0, objets: false }, [-1.55, 0, -0.4], 0.3);
+    vueLocale('peche', g, [-0.6, 2.8, 6.4], [-0.8, 2.3, 0]);
+    repere('peche', g);
+    g.updateMatrixWorld(true);
+    vuesStand.peche = {
+      position: new THREE.Vector3(2.0, 3.4, 7).applyMatrix4(g.matrixWorld),
+      cible: new THREE.Vector3(1.6, 2.1, 0.2).applyMatrix4(g.matrixWorld),
+    };
+  }
+
+  // --- Stands de détente ----------------------------------------------------------------
+  function garnirAutos(g: THREE.Group): void {
+    f(g, [3.8, 0.08, 2.4], [0, 1.1, 0], 0x4a4f6a);
+    const couleurs: Peinture[] = ['bonbon1', 'bonbon2', 'enseigne', 'bonbon3'];
+    couleurs.forEach((p, i) => {
+      const auto = atelier.mobile(g, [-1.3 + i * 0.85, 1.32, 0]);
+      f(auto, [0.6, 0.26, 0.42], [0, 0, 0], p);
+      f(auto, [0.68, 0.12, 0.5], [0, -0.12, 0], 'sombre', { forme: 'tube' });
+      f(auto, [0.06, 0.6, 0.06], [-0.18, 0.35, 0], 'poteau', { forme: 'tube' });
+      animations.push((temps) => {
+        auto.position.z = Math.sin(temps * 0.9 + i * 1.7) * 0.8;
+        auto.position.x = -1.3 + i * 0.85 + Math.cos(temps * 0.7 + i) * 0.2;
+        auto.rotation.y = Math.sin(temps * 0.9 + i * 1.7) * 0.6;
+      });
+    });
+  }
+
+  function garnirTrampoline(g: THREE.Group): void {
+    f(g, [2.6, 0.2, 2.6], [0, 1.2, 0], 0x4c9cff, { forme: 'tube' });
+    f(g, [2.4, 0.22, 2.4], [0, 1.22, 0], 'sombre', { forme: 'tube' });
+    const sauteur = atelier.mobile(g, [0, 1.4, 0]);
+    f(sauteur, [0.5, 0.5, 0.5], [0, 0.25, 0], 'bonbon1', { forme: 'boule' });
+    f(sauteur, [0.36, 0.36, 0.36], [0, 0.7, 0], 'peau', { forme: 'boule' });
+    animations.push((temps) => {
+      sauteur.position.y = 1.4 + Math.abs(Math.sin(temps * 2.2)) * 1.4;
+      sauteur.rotation.y = temps;
+    });
+  }
+
+  function garnirGlaces(g: THREE.Group): void {
+    const miroir = atelier.materiau(new THREE.MeshStandardMaterial({ color: 0xcfefff, metalness: 0.4, roughness: 0.1 }));
+    for (let i = 0; i < 5; i++) {
+      const m = new THREE.Mesh(atelier.suivre(new THREE.BoxGeometry(0.75, 2.2, 0.08)), miroir);
+      m.position.set(-1.6 + i * 0.8, 2.2, -0.9 + (i % 2) * 0.5);
+      m.rotation.y = (i % 2 === 0 ? 1 : -1) * 0.5;
+      g.add(m);
+    }
+  }
+
   // --- Chantier : la grande roue à venir ----------------------------------------
   const piecesRoue: Array<{ parent: THREE.Object3D; geometrie: THREE.BufferGeometry }> = [];
   const maillagesRoue: THREE.Mesh[] = [];
@@ -612,16 +710,21 @@ export function construireFete(tenue = 0): Fete {
   stand('confiserie', -6.6, -1.5, 0.5, garnirConfiserie);
   stand('chamboule', 0, -5, 0, garnirChamboule);
   stand('horloge', -11.6, 1.2, 0.8, garnirHorloge);
+  // Le fond de la fête.
+  stand('peche', -6.8, -11.6, 0.9, garnirPeche);
+  stand('autos', 7.2, -11.2, -0.35, garnirAutos);
+  stand('trampoline', -3.4, -16.6, 0.1, garnirTrampoline);
+  stand('glaces', 3.6, -16.6, -0.1, garnirGlaces);
   chantier(6.9, -1.5, -0.5);
   chapiteau(-14, -16);
-  chapiteau(1, -20);
+  chapiteau(0, -24);
   chapiteau(15, -16);
   arbre(-12, -7, 1.1);
   arbre(12.5, -8, 1.2);
   arbre(-16, 6, 1);
   arbre(14, 3, 0.9);
-  arbre(-6.5, -13, 1.3);
-  arbre(7.5, -13.5, 1.15);
+  arbre(-11, -15, 1.3);
+  arbre(11.5, -15.5, 1.15);
   nuage(-20, 17, -34);
   nuage(4, 21, -40);
   nuage(24, 15, -32);
@@ -669,16 +772,20 @@ export function construireFete(tenue = 0): Fete {
     heros.racine.rotation.copy(ancien.rotation);
     ancien.removeFromParent();
   }
-  let cible: { point: THREE.Vector3; regard: number; arrivee: () => void } | null = null;
+  /** Le trajet du personnage : des points de passage, puis l'arrivée devant le stand. */
+  let cible: { points: THREE.Vector3[]; regard: number; arrivee: () => void } | null = null;
   let finSalut = 0;
   let maintenant = 0;
 
   animations.push((temps, delta) => {
     let pas = 0;
-    if (cible) {
-      const ecart = cible.point.clone().sub(heros.racine.position).setY(0);
+    const point = cible?.points[0];
+    if (cible && point) {
+      const ecart = point.clone().sub(heros.racine.position).setY(0);
       const distance = ecart.length();
       if (distance < 0.05) {
+        cible.points.shift();
+        if (cible.points.length > 0) return;
         heros.racine.rotation.y = cible.regard;
         const fini = cible.arrivee;
         cible = null;
@@ -775,6 +882,11 @@ export function construireFete(tenue = 0): Fete {
       confiserie: vuesStand.confiserie ?? { position: new THREE.Vector3(), cible: new THREE.Vector3() },
       chantier: vuesStand.chantier ?? { position: new THREE.Vector3(), cible: new THREE.Vector3() },
       horloge: vuesStand.horloge ?? { position: new THREE.Vector3(), cible: new THREE.Vector3() },
+      peche: vuesStand.peche ?? { position: new THREE.Vector3(), cible: new THREE.Vector3() },
+      fond: { position: new THREE.Vector3(-1.5, 14, 0.5), cible: new THREE.Vector3(0, 0.5, -13.5) },
+    },
+    pecher() {
+      debutPeche = maintenant;
     },
     construireRoue,
     habiller,
@@ -788,6 +900,7 @@ export function construireFete(tenue = 0): Fete {
       confiserie: vuesForain.confiserie ?? { position: new THREE.Vector3(), cible: new THREE.Vector3() },
       chantier: vuesForain.chantier ?? { position: new THREE.Vector3(), cible: new THREE.Vector3() },
       horloge: vuesForain.horloge ?? { position: new THREE.Vector3(), cible: new THREE.Vector3() },
+      peche: vuesForain.peche ?? { position: new THREE.Vector3(), cible: new THREE.Vector3() },
     },
     saluerForain(id) {
       if (finsDeSalut.has(id)) finsDeSalut.set(id, maintenant + DUREE_SALUT);
@@ -801,7 +914,16 @@ export function construireFete(tenue = 0): Fete {
     },
     allerAuStand(stand) {
       return new Promise((resoudre) => {
-        cible = { point: stand.approche.clone().setY(0.06), regard: stand.regard, arrivee: resoudre };
+        // Entre l'entrée et le fond de la fête, on passe par l'allée à droite du chamboule-tout.
+        const fond = (z: number): boolean => z < LIMITE_FOND;
+        const points: THREE.Vector3[] = [];
+        if (fond(stand.approche.z) !== fond(heros.racine.position.z)) {
+          const devant = new THREE.Vector3(3.1, 0.06, -3);
+          const derriere = new THREE.Vector3(3.1, 0.06, -9.5);
+          points.push(...(fond(stand.approche.z) ? [devant, derriere] : [derriere, devant]));
+        }
+        points.push(stand.approche.clone().setY(0.06));
+        cible = { points, regard: stand.regard, arrivee: resoudre };
       });
     },
     lancer() {

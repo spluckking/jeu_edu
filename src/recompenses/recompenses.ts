@@ -10,6 +10,9 @@ export const PRIX_PIECE = 8;
 export const PIECES_ROUE = 10;
 export const DEFIS_PAR_SEANCE = 5;
 export const HEURES_PAR_SEANCE = 4;
+export const PECHES_PAR_SEANCE = 4;
+/** Après ce temps de jeu dans la journée, un forain propose une pause (minutes). */
+export const TEMPS_DE_JEU = 30;
 
 /** Ce que l'enfant a fait un jour donné. */
 export interface Journee {
@@ -24,6 +27,11 @@ export interface Journee {
   pause?: boolean;
   /** L'épisode du feuilleton lu aujourd'hui (un seul par jour). */
   histoire?: string;
+  /** Canards pêchés juste aujourd'hui. */
+  peches?: number;
+  /** Secondes de jeu aujourd'hui (écran ouvert et visible), et la pause proposée. */
+  secondes?: number;
+  pauseProposee?: boolean;
   ticketsGagnes: number;
   /** La séance du jour est finie (le bonus est donné une fois). */
   finie: boolean;

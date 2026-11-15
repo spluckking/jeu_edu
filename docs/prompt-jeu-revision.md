@@ -263,6 +263,12 @@ ORDRE DE CONSTRUCTION (une étape livrée et essayée sur la tablette avant la s
 3. La séance du jour complète : stands allumés, manches, tickets, lots, chantiers, jeu
    libre, fermeture. Musique à cette étape.
 4. Pêche aux canards et 2 ou 3 stands de détente.
+   Retenu : à la pêche, les homophones de CE2 (a / à, et / est, on / ont, son / sont),
+   4 par séance, phrases validées une fois ; ses vraies leçons passeront devant.
+   Détente en jeu libre seulement : autos tamponneuses, trampoline, palais des glaces
+   (labyrinthe). Après 30 minutes de jeu dans la journée, un forain propose une pause,
+   sans rien couper. Les nouveaux stands sont au fond de la fête, derrière le
+   chamboule-tout.
 5. Espace parent, échange avec le dépôt privé, rêve.
 
 QUALITÉ

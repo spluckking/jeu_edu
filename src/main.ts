@@ -24,6 +24,8 @@ import { confiserie } from './stands/confiserie.ts';
 import type { JeuDeStand } from './stands/stand.ts';
 import { creerDefis } from './stands/defis.ts';
 import { creerHorloge } from './stands/horloge.ts';
+import { creerPeche } from './stands/peche.ts';
+import { jouerDetente } from './detente/jeux.ts';
 import { demanderPrenom } from './ui/prenom.ts';
 import { exerciceDuJour, jouerPause, pauseDue } from './detente/pause.ts';
 import { chargerFeuilleton, episodeDuJour, type Episode } from './histoire/feuilleton.ts';
@@ -34,6 +36,8 @@ import {
   choisirLot,
   DEFIS_PAR_SEANCE,
   HEURES_PAR_SEANCE,
+  PECHES_PAR_SEANCE,
+  TEMPS_DE_JEU,
   journeeNeuve,
   lot,
   LOTS,
@@ -89,6 +93,7 @@ const ui = {
   tickets: el<HTMLParagraphElement>('tickets'),
   calendrier: el<HTMLOListElement>('calendrier'),
   garderobe: el<HTMLButtonElement>('garderobe'),
+  versFond: el<HTMLButtonElement>('vers-fond'),
   histoire: el<HTMLButtonElement>('histoire'),
   construction: el<HTMLDivElement>('construction'),
   constructionTexte: el<HTMLParagraphElement>('construction-texte'),
@@ -148,8 +153,12 @@ function journee(): Journee {
 function restants(jeu: JeuDeStand): number | null {
   if (jeu.type === 'defi') return Math.max(0, DEFIS_PAR_SEANCE - journee().defis);
   if (jeu.type === 'heure') return Math.max(0, HEURES_PAR_SEANCE - (journee().heures ?? 0));
+  if (jeu.type === 'homophone') return Math.max(0, PECHES_PAR_SEANCE - (journee().peches ?? 0));
   return null;
 }
+
+const standPeche = creerPeche({ niveau: () => sauvegarde.niveauPeche.niveau, noms: () => sauvegarde.forains });
+for (let i = 0; i < PECHES_PAR_SEANCE; i++) elements.set(`peche-${i}`, { type: 'homophone', id: `peche-${i}` });
 
 // --- Le feuilleton --------------------------------------------------------------------------
 // Seules les semaines validées par le parent arrivent ; « ?feuilleton-essai » montre aussi
@@ -180,7 +189,7 @@ const defis = creerDefis({
 // Les places des défis : l'exercice est fabriqué au moment de le poser.
 for (let i = 0; i < DEFIS_PAR_SEANCE; i++) elements.set(`defi-${i}`, { type: 'defi', id: `defi-${i}` });
 
-const JEUX: JeuDeStand[] = [chamboule, confiserie, defis, standHorloge];
+const JEUX: JeuDeStand[] = [chamboule, confiserie, defis, standHorloge, standPeche];
 /** Le stand a encore quelque chose à faire dans la séance du jour : il est allumé. */
 const aReviser = (jeu: JeuDeStand): boolean => {
   const reste = restants(jeu);
@@ -281,6 +290,8 @@ function parler(texte: string, afficher = true): void {
   minuterieBulle = window.setTimeout(() => (ui.bulle.hidden = true), 6000);
 }
 
+const capitale = (texte: string): string => texte.charAt(0).toUpperCase() + texte.slice(1);
+
 /** Le prénom que l'enfant a donné à ce forain (ou le premier proposé, avant l'introduction). */
 function nom(id: IdStand): string {
   const donne = sauvegarde.forains[id];
@@ -294,6 +305,7 @@ const LIEU: Record<IdStand, string> = {
   confiserie: 'à la confiserie',
   chantier: 'au chantier',
   horloge: 'à l’horloge',
+  peche: 'à la pêche aux canards',
 };
 
 function messageDeLaPlace(): string {
@@ -491,17 +503,86 @@ ui.canvas.addEventListener('pointerup', (e) => {
   const pointeur = new THREE.Vector2((e.clientX / innerWidth) * 2 - 1, -(e.clientY / innerHeight) * 2 + 1);
   rayon.setFromCamera(pointeur, camera);
   fete.racine.updateMatrixWorld();
-  const touche = rayon.intersectObjects(fete.stands.map((s) => s.zone), false)[0];
+  // Seuls les stands de la partie de la fête qu'on regarde se touchent (le chamboule-tout,
+  // vu de dos depuis le fond, ne doit pas cacher la pêche aux canards).
+  const visibles = fete.stands.filter((s) => (s.approche.z < LIMITE_FOND) === (zone === 'fond'));
+  const touche = rayon.intersectObjects(visibles.map((s) => s.zone), false)[0];
   const stand = fete.stands.find((s) => s.zone === touche?.object);
   if (stand) toucherStand(stand);
 });
 
+// --- Le temps de jeu ---------------------------------------------------------------------------
+// On compte le temps où le jeu est ouvert et visible. Après TEMPS_DE_JEU minutes dans la
+// journée, un forain propose une pause, une seule fois, sans rien couper ni bloquer.
+const PAS_DE_TEMPS = 5;
+window.setInterval(() => {
+  if (document.visibilityState !== 'visible' || !ui.entree.hidden) return;
+  const j = journee();
+  j.secondes = (j.secondes ?? 0) + PAS_DE_TEMPS;
+  if (j.secondes % 30 === 0) sauver();
+  if (j.pauseProposee || j.secondes < TEMPS_DE_JEU * 60) return;
+  // On attend un moment calme : pas au milieu d'une question ni d'une cinématique.
+  if (enCinema || enMarche || (dansUnStand && !ui.exercice.hidden)) return;
+  j.pauseProposee = true;
+  sauver();
+  const fond = document.createElement('div');
+  fond.className = 'vitrine-fond';
+  const carte = document.createElement('div');
+  carte.className = 'vitrine';
+  const texte = document.createElement('p');
+  texte.className = 'lecture-titre';
+  texte.textContent = `${capitale(nom('chamboule'))} : « Tu joues depuis un bon moment. C’est l’heure de faire une pause : va bouger, boire un verre d’eau, et reviens demain ! »`;
+  const ok = document.createElement('button');
+  ok.type = 'button';
+  ok.className = 'bouton-principal';
+  ok.textContent = 'D’accord';
+  ok.addEventListener('click', () => {
+    bruitage.touche();
+    fond.remove();
+  });
+  carte.append(texte, ok);
+  fond.append(carte);
+  document.body.append(fond);
+  fete.saluerForain('chamboule');
+  dire(texte.textContent);
+}, PAS_DE_TEMPS * 1000);
+
+// --- L'entrée et le fond de la fête --------------------------------------------------------
+let zone: 'place' | 'fond' = 'place';
+const LIMITE_FOND = -6;
+
+function allerVers(nouvelle: 'place' | 'fond'): void {
+  zone = nouvelle;
+  deplacerCamera(fete.vues[zone], 1.4);
+  ui.versFond.textContent = zone === 'place' ? 'Le fond de la fête' : 'L’entrée de la fête';
+  ui.versFond.classList.toggle('retour', zone === 'fond');
+}
+
+ui.versFond.addEventListener('click', () => {
+  if (dansUnStand || enMarche || enCinema) return;
+  bruitage.touche();
+  allerVers(zone === 'place' ? 'fond' : 'place');
+});
+
 function toucherStand(stand: Stand): void {
   bruitage.touche();
+  zone = stand.approche.z < LIMITE_FOND ? 'fond' : 'place';
   const jeu = JEUX.find((j) => j.id === stand.id);
   if (!jeu) {
-    fete.saluerForain(stand.id);
-    parler(`${nom('chantier')} : « Avec tes tickets, je construirai la grande roue ! »`);
+    // Un stand de détente : jeu libre, sans manche ni mémoire.
+    const id = stand.id;
+    if (id !== 'autos' && id !== 'trampoline' && id !== 'glaces') return;
+    enMarche = true;
+    ui.bulle.hidden = true;
+    void fete.allerAuStand(stand).then(async () => {
+      enMarche = false;
+      dansUnStand = true;
+      musique.demarrer();
+      await jouerDetente(id);
+      musique.arreter();
+      dansUnStand = false;
+      parler(messageDeLaPlace());
+    });
     return;
   }
   enMarche = true;
@@ -535,6 +616,7 @@ function prochaineManche(): TypeManche {
 
 const PRESENTATIONS: Partial<Record<IdStand, string>> = {
   horloge: 'Une nouvelle foraine est arrivée : elle répare les horloges et connaît l’heure par cœur.',
+  peche: 'Au fond de la fête, un nouveau forain fait nager des canards qui portent des mots.',
 };
 
 async function ouvrirStand(nouveau: JeuDeStand): Promise<void> {
@@ -562,7 +644,7 @@ function fermerStand(): void {
   manche = null;
   ui.stand.hidden = true;
   fete.calme(false);
-  deplacerCamera(fete.vues.place);
+  deplacerCamera(fete.vues[zone]);
   mettreAJourPlace();
   parler(messageDeLaPlace());
 }
@@ -590,7 +672,9 @@ function montrerCarte(type: TypeManche, apresUneManche: boolean, gain = 0): void
       : type === 'defis'
         ? jeu.type === 'heure'
           ? `${nom('horloge')} te pose ${jeu.unite(nombre)}.`
-          : `${nom('chantier')} te lance ${jeu.unite(nombre)}.`
+          : jeu.type === 'homophone'
+            ? `${capitale(nom('peche'))} a ${jeu.unite(nombre)}.`
+            : `${nom('chantier')} te lance ${jeu.unite(nombre)}.`
         : type === 'semaine'
           ? `Manche « Cette semaine » : ${jeu.unite(nombre)}.`
           : `Manche « Mémoire » : ${jeu.unite(nombre)} pour ne pas oublier.`;
@@ -709,6 +793,9 @@ function valider(): void {
   } else if (jeu.type === 'heure') {
     sauvegarde.niveauHorloge = ajusterNiveau(sauvegarde.niveauHorloge, reussi);
     if (reussi && typeManche === 'defis') journee().heures = (journee().heures ?? 0) + 1;
+  } else if (jeu.type === 'homophone') {
+    sauvegarde.niveauPeche = ajusterNiveau(sauvegarde.niveauPeche, reussi);
+    if (reussi && typeManche === 'defis') journee().peches = (journee().peches ?? 0) + 1;
   } else if (typeManche !== 'libre') {
     sauvegarde.etats[e.id] = enregistrer(sauvegarde.etats[e.id] ?? etatNeuf(), {
       jour: aujourdhui(),

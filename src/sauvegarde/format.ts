@@ -7,7 +7,7 @@ import type { Jour } from '../memoire/jours.ts';
 import type { EtatElement } from '../memoire/moteur.ts';
 import { garderobeNeuve, type Garderobe, type Journee } from '../recompenses/recompenses.ts';
 
-export const VERSION = 4;
+export const VERSION = 5;
 
 /** Une ligne du journal. Jamais de prénom. */
 export interface EntreeJournal {
@@ -50,6 +50,8 @@ export interface Sauvegarde {
   niveauDefis: Niveau;
   /** Niveau des questions de l'horloge. */
   niveauHorloge: Niveau;
+  /** Niveau de la pêche aux canards (homophones). */
+  niveauPeche: Niveau;
   journees: Record<Jour, Journee>;
 }
 
@@ -70,6 +72,7 @@ export function sauvegardeNeuve(): Sauvegarde {
     lectures: {},
     ...recompensesNeuves(),
     niveauHorloge: niveauDeDepart(),
+    niveauPeche: niveauDeDepart(),
   };
 }
 
@@ -88,6 +91,8 @@ export function migrer(brut: unknown): Sauvegarde {
   if (s.version === 2) s = { ...s, version: 3, ...recompensesNeuves() };
   // Version 3 → 4 : le niveau des questions de l'horloge.
   if (s.version === 3) s = { ...s, version: 4, niveauHorloge: niveauDeDepart() };
+  // Version 4 → 5 : le niveau de la pêche aux canards.
+  if (s.version === 4) s = { ...s, version: 5, niveauPeche: niveauDeDepart() };
   if (s.version === VERSION) return s as unknown as Sauvegarde;
   // Une version plus récente que ce code : on refuse plutôt que d'écraser des données.
   throw new Error(`Version de sauvegarde inconnue : ${String(s.version)}`);

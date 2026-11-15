@@ -32,7 +32,13 @@ export interface ElementHeure {
   id: string;
 }
 
-export type Element = ElementCalcul | ElementMot | ElementDefi | ElementHeure;
+/** Une place de pêche aux canards (homophones), fabriquée au moment de la poser. */
+export interface ElementHomophone {
+  type: 'homophone';
+  id: string;
+}
+
+export type Element = ElementCalcul | ElementMot | ElementDefi | ElementHeure | ElementHomophone;
 export type TypeContenu = Element['type'];
 
 export interface Contenu {

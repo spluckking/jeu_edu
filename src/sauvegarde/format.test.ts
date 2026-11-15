@@ -12,7 +12,7 @@ describe('migrations de la sauvegarde', () => {
   });
 
   it('une sauvegarde de version 3 garde ses tickets et reçoit le niveau de l’horloge', () => {
-    const { niveauHorloge: _, ...v3 } = { ...sauvegardeNeuve(), version: 3, tickets: 12, roue: 2 };
+    const { niveauHorloge: _, niveauPeche: __, ...v3 } = { ...sauvegardeNeuve(), version: 3, tickets: 12, roue: 2 };
     expect(migrer(v3)).toEqual({ ...sauvegardeNeuve(), tickets: 12, roue: 2 });
   });
 
