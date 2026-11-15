@@ -691,6 +691,142 @@ svg {
   text-align: left;
 }
 
+/* --- Espace parent ------------------------------------------------------------------------- */
+
+/* La porte : discrète, en haut à gauche ; il faut appuyer 2 secondes. */
+.porte-parent {
+  position: fixed;
+  top: calc(16px + env(safe-area-inset-top));
+  left: calc(16px + env(safe-area-inset-left));
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: rgba(255, 250, 240, 0.45);
+  font-size: 22px;
+  color: var(--encre-douce);
+}
+
+.porte-parent.appui {
+  background: var(--papier);
+  box-shadow: 0 0 0 4px var(--bleu);
+  transition: box-shadow 2s linear;
+}
+
+.parent-fond {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  overflow-y: auto;
+  background: #f4efe6;
+  touch-action: pan-y;
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.parent {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 20px 20px 60px;
+  font-size: 1.05rem;
+  line-height: 1.5;
+}
+
+.parent-tete {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 0;
+  background: #f4efe6;
+}
+
+.parent h1 {
+  margin: 0;
+  font-size: 1.8rem;
+}
+
+.parent-section {
+  margin: 16px 0;
+  padding: 16px 20px;
+  border-radius: 20px;
+  background: white;
+  box-shadow: 0 2px 8px rgba(58, 47, 74, 0.08);
+}
+
+.parent-section h2 {
+  margin: 0 0 10px;
+  font-size: 1.25rem;
+}
+
+.parent-tableau {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.parent-tableau th,
+.parent-tableau td {
+  padding: 6px 8px;
+  border-bottom: 1px solid #ebe4d6;
+  text-align: left;
+}
+
+.parent-liste {
+  margin: 0;
+  padding-left: 1.2em;
+}
+
+.parent-ligne {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 44px;
+}
+
+.parent-ligne input[type='range'] {
+  flex: 1;
+}
+
+.parent-ligne input[type='checkbox'] {
+  width: 26px;
+  height: 26px;
+}
+
+.parent-champ,
+.parent-zone {
+  display: block;
+  width: 100%;
+  margin: 6px 0;
+  padding: 10px 12px;
+  border: 2px solid #d8cfbd;
+  border-radius: 12px;
+  font: inherit;
+  color: var(--encre);
+  background: white;
+}
+
+.parent-semaine {
+  margin: 8px 0;
+  padding: 8px 12px;
+  border-radius: 14px;
+  background: #fff8ea;
+}
+
+.parent-episode p {
+  margin: 4px 0 10px;
+}
+
+.parent .bouton-principal,
+.parent .bouton-secondaire {
+  min-height: 48px;
+  padding: 8px 18px;
+  font-size: 1.05rem;
+}
+
 /* --- Aller au fond de la fête ------------------------------------------------------------ */
 
 .vers-fond {

@@ -6,8 +6,33 @@ import type { Noms } from '../histoire/lecture.ts';
 import type { Jour } from '../memoire/jours.ts';
 import type { EtatElement } from '../memoire/moteur.ts';
 import { garderobeNeuve, type Garderobe, type Journee } from '../recompenses/recompenses.ts';
+import type { Preparation } from '../reve/preparation.ts';
 
-export const VERSION = 5;
+export const VERSION = 6;
+
+/** Les réglages du parent. */
+export interface Reglages {
+  /** Stands éteints par le parent : ils ne s'allument plus et ne comptent plus dans la séance. */
+  standsEteints: string[];
+  /** Minutes de jeu dans la journée avant que la pause soit proposée. */
+  tempsDeJeu: number;
+  /** Volumes de 0 à 1. */
+  volumeMusique: number;
+  volumeBruitages: number;
+  /** Vitesse de la voix (0,6 lent à 1,1 rapide). */
+  vitesseVoix: number;
+}
+
+export function reglagesNeufs(): Reglages {
+  return { standsEteints: [], tempsDeJeu: 30, volumeMusique: 1, volumeBruitages: 1, vitesseVoix: 0.92 };
+}
+
+/** Une liste ajoutée en vitesse par le parent dans l'espace parent (un mot par ligne). */
+export interface ListeRapide {
+  id: string;
+  titre: string;
+  mots: string[];
+}
 
 /** Une ligne du journal. Jamais de prénom. */
 export interface EntreeJournal {
@@ -53,6 +78,16 @@ export interface Sauvegarde {
   /** Niveau de la pêche aux canards (homophones). */
   niveauPeche: Niveau;
   journees: Record<Jour, Journee>;
+  reglages: Reglages;
+  /** Le code de l'espace parent, choisi par le parent (absent tant qu'il n'est pas choisi). */
+  codeParent?: string;
+  /** La dernière préparation reçue du rêve (donnée vérifiée). */
+  preparation?: Preparation;
+  /** Décisions du parent sur les textes proposés : identifiant → validé ou refusé. */
+  validations: Record<string, 'validee' | 'refusee'>;
+  listesRapides: ListeRapide[];
+  /** Dernier échange réussi avec le dépôt privé (ISO), et dernier problème. */
+  synchro: { derniere?: string; probleme?: string };
 }
 
 /** Au-delà, les plus vieilles lignes du journal sont retirées (elles seront parties au rêve avant). */
@@ -73,7 +108,12 @@ export function sauvegardeNeuve(): Sauvegarde {
     ...recompensesNeuves(),
     niveauHorloge: niveauDeDepart(),
     niveauPeche: niveauDeDepart(),
+    ...parentNeuf(),
   };
+}
+
+function parentNeuf(): Pick<Sauvegarde, 'reglages' | 'validations' | 'listesRapides' | 'synchro'> {
+  return { reglages: reglagesNeufs(), validations: {}, listesRapides: [], synchro: {} };
 }
 
 export function suiviNeuf(): SuiviLecture {
@@ -93,6 +133,8 @@ export function migrer(brut: unknown): Sauvegarde {
   if (s.version === 3) s = { ...s, version: 4, niveauHorloge: niveauDeDepart() };
   // Version 4 → 5 : le niveau de la pêche aux canards.
   if (s.version === 4) s = { ...s, version: 5, niveauPeche: niveauDeDepart() };
+  // Version 5 → 6 : l'espace parent (réglages, validations, listes rapides, échange).
+  if (s.version === 5) s = { ...s, version: 6, ...parentNeuf() };
   if (s.version === VERSION) return s as unknown as Sauvegarde;
   // Une version plus récente que ce code : on refuse plutôt que d'écraser des données.
   throw new Error(`Version de sauvegarde inconnue : ${String(s.version)}`);
