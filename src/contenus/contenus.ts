@@ -20,7 +20,13 @@ export interface ElementMot {
   reponse: string;
 }
 
-export type Element = ElementCalcul | ElementMot;
+/** Une place de défi du chantier : l'exercice lui-même est généré au moment de le poser. */
+export interface ElementDefi {
+  type: 'defi';
+  id: string;
+}
+
+export type Element = ElementCalcul | ElementMot | ElementDefi;
 export type TypeContenu = Element['type'];
 
 export interface Contenu {

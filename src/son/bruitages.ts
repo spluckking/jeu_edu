@@ -26,6 +26,11 @@ export function demarrerSon(): void {
   if (contexte.state === 'suspended') void contexte.resume();
 }
 
+/** La sortie son commune (null tant que l'enfant n'a pas touché l'écran). Le muet y coupe tout. */
+export function sortieSon(): { contexte: AudioContext; volume: GainNode } | null {
+  return contexte && volume ? { contexte, volume } : null;
+}
+
 export function estMuet(): boolean {
   return muet;
 }

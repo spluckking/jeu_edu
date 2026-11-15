@@ -23,7 +23,11 @@ export interface PoseCamera {
 export interface Fete {
   racine: THREE.Group;
   stands: Stand[];
-  vues: { place: PoseCamera; chamboule: PoseCamera; confiserie: PoseCamera };
+  vues: Record<'place' | IdStand, PoseCamera>;
+  /** La grande roue montre n pièces construites sur « sur ». */
+  construireRoue(n: number, sur: number): void;
+  /** Le personnage de l'enfant change de tenue (0 à 3) ou de maillot. */
+  habiller(tenue: number, maillot: number): void;
   /** Les plans de la cinématique : vue d'ensemble, chaque forain, vue de fin. */
   vuesCinema: Record<'survol' | 'fin' | IdStand, PoseCamera>;
   /** Le forain de ce stand salue un instant. */
@@ -213,8 +217,8 @@ export function construireFete(tenue = 0): Fete {
   const vuesStand: Partial<Record<IdStand, PoseCamera>> = {};
 
   /** Repère du stand allumé : une grosse étoile qui tourne et rebondit au-dessus de l'enseigne. */
-  function repere(id: IdStand, g: THREE.Group): void {
-    const r = atelier.mobile(g, [0, 6.3, 0.6]);
+  function repere(id: IdStand, g: THREE.Group, hauteur = 6.3): void {
+    const r = atelier.mobile(g, [0, hauteur, 0.6]);
     f(r, [0.9, 0.9, 0.2], [0, 0, 0], 'or', { lumineux: true });
     f(r, [0.9, 0.9, 0.2], [0, 0, 0.01], 'or', { rz: Math.PI / 4, lumineux: true });
     f(r, [0.5, 0.5, 0.3], [0, 0, 0], 0xfff6c8, { forme: 'boule', lumineux: true });
@@ -223,7 +227,7 @@ export function construireFete(tenue = 0): Fete {
     const decalage = reperes.size * 0.7;
     animations.push((temps) => {
       r.rotation.y = temps * 1.6 + decalage;
-      r.position.y = 6.3 + Math.abs(Math.sin(temps * 2.4 + decalage)) * 0.35;
+      r.position.y = hauteur + Math.abs(Math.sin(temps * 2.4 + decalage)) * 0.35;
     });
   }
 
@@ -399,6 +403,18 @@ export function construireFete(tenue = 0): Fete {
   }
 
   // --- Chantier : la grande roue à venir ----------------------------------------
+  const piecesRoue: THREE.Mesh[] = [];
+  let roueFinie = false;
+  let vitesseRoue = 0.15;
+  /** n pièces sur 10 : les montants, puis les rayons, puis les cabines. */
+  function construireRoue(n: number, sur: number): void {
+    const visibles = Math.round((piecesRoue.length * Math.max(0, Math.min(n, sur))) / sur);
+    piecesRoue.forEach((m, i) => {
+      m.userData.fantome ??= m.material;
+      m.material = (i < visibles ? m.userData.construite : m.userData.fantome) as THREE.Material;
+    });
+    roueFinie = n >= sur;
+  }
   function chantier(x: number, z: number, ry: number): void {
     const g = new THREE.Group();
     g.position.set(x, 0, z);
@@ -418,23 +434,40 @@ export function construireFete(tenue = 0): Fete {
     const fantome = atelier.materiau(
       new THREE.MeshBasicMaterial({ color: COULEURS.fantome, transparent: true, opacity: 0.3, depthWrite: false }),
     );
-    const piece = (parent: THREE.Object3D, taille: Vec3, position: Vec3, rz = 0): void => {
+    // Chaque pièce garde son propre maillage : elle passe de fantôme à construite.
+    const solide = (couleur: number): THREE.Material =>
+      atelier.materiau(new THREE.MeshStandardMaterial({ color: couleur, roughness: 0.55 }));
+    const couleursCabines = [COULEURS.bonbon1, COULEURS.bonbon2, COULEURS.enseigne, COULEURS.bonbon3];
+    const piece = (parent: THREE.Object3D, taille: Vec3, position: Vec3, construite: THREE.Material, rz = 0): void => {
       const m = new THREE.Mesh(atelier.suivre(new THREE.BoxGeometry(...taille)), fantome);
       m.position.set(...position);
       m.rotation.z = rz;
+      m.userData.garder = true;
+      m.userData.construite = construite;
       parent.add(m);
+      piecesRoue.push(m);
     };
-    piece(g, [0.26, 4.5, 0.26], [0.75, 2.1, -0.5], 0.343);
-    piece(g, [0.26, 4.5, 0.26], [-0.75, 2.1, -0.5], -0.343);
+    const metal = solide(0xe8e2f2);
+    piece(g, [0.26, 4.5, 0.26], [0.75, 2.1, -0.5], metal, 0.343);
+    piece(g, [0.26, 4.5, 0.26], [-0.75, 2.1, -0.5], metal, -0.343);
     const roue = atelier.mobile(g, [0, 4.2, -0.5]);
-    for (let i = 0; i < 6; i++) piece(roue, [5.8, 0.12, 0.12], [0, 0, 0], (i * Math.PI) / 6);
+    for (let i = 0; i < 6; i++) piece(roue, [5.8, 0.12, 0.12], [0, 0, 0], metal, (i * Math.PI) / 6);
     for (let i = 0; i < 12; i++) {
       const a = (i * Math.PI) / 6;
-      piece(roue, [0.62, 0.62, 0.5], [Math.cos(a) * 2.9, Math.sin(a) * 2.9, 0]);
+      piece(roue, [0.62, 0.62, 0.5], [Math.cos(a) * 2.9, Math.sin(a) * 2.9, 0], solide(couleursCabines[i % 4] ?? 0xffffff));
     }
-    animations.push((temps) => {
-      roue.rotation.z = temps * 0.15;
+    animations.push((temps, delta) => {
+      // Elle tourne doucement en chantier, franchement une fois finie.
+      vitesseRoue += ((roueFinie ? 0.6 : 0.15) - vitesseRoue) * Math.min(1, delta);
+      roue.rotation.z += vitesseRoue * delta;
+      void temps;
     });
+    repere('chantier', g, 8.1);
+    g.updateMatrixWorld(true);
+    vuesStand.chantier = {
+      position: new THREE.Vector3(5.6, 5.4, 16).applyMatrix4(g.matrixWorld),
+      cible: new THREE.Vector3(3.6, 3.4, 0).applyMatrix4(g.matrixWorld),
+    };
     ajouterZone('chantier', g, [6.5, 7, 5], [0, 3, 0], [0, 0, 4.2]);
     forain('chantier', g, { maillot: 0xffa53a, pantalon: 0x4a6fa5, cheveux: 0x2b2233, tenue: 0, objets: false }, [1.8, 0.06, 3.1], -0.2);
     vueLocale('chantier', g, [1.0, 4.2, 12], [0.8, 2.8, 0]);
@@ -547,15 +580,24 @@ export function construireFete(tenue = 0): Fete {
   visiteurs();
 
   // --- Le personnage de l'enfant ------------------------------------------------
-  const heros: Personne = creerPersonne(atelier, racine, {
-    maillot: 'maillot',
+  const allureHeros = (t: number, maillot: Peinture): Allure => ({
+    maillot,
     pantalon: 'pantalon',
     cheveux: COULEURS.cheveux,
-    tenue,
+    tenue: t,
     objets: true,
   });
+  let heros: Personne = creerPersonne(atelier, racine, allureHeros(tenue, 'maillot'));
   heros.racine.position.set(0, 0.06, 5.5);
   heros.racine.rotation.y = Math.PI;
+  /** Le personnage change de tenue ou de maillot : on le refait au même endroit. */
+  function habiller(t: number, maillot: Peinture): void {
+    const ancien = heros.racine;
+    heros = creerPersonne(atelier, racine, allureHeros(t, maillot));
+    heros.racine.position.copy(ancien.position);
+    heros.racine.rotation.copy(ancien.rotation);
+    ancien.removeFromParent();
+  }
   let cible: { point: THREE.Vector3; regard: number; arrivee: () => void } | null = null;
   let finSalut = 0;
   let maintenant = 0;
@@ -659,7 +701,10 @@ export function construireFete(tenue = 0): Fete {
       // Assez bas pour voir la pyramide sous la toile du stand.
       chamboule: { position: new THREE.Vector3(3.1, 2.9, 5.2), cible: new THREE.Vector3(1.4, 2.5, -4.8) },
       confiserie: vuesStand.confiserie ?? { position: new THREE.Vector3(), cible: new THREE.Vector3() },
+      chantier: vuesStand.chantier ?? { position: new THREE.Vector3(), cible: new THREE.Vector3() },
     },
+    construireRoue,
+    habiller,
     sucette() {
       debutSucette = maintenant;
     },
