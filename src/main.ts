@@ -61,6 +61,9 @@ import { chargerHistoires, METIERS, PROPOSITIONS } from './histoire/lecture.ts';
 import { suiviNeuf, type Sauvegarde } from './sauvegarde/format.ts';
 import { ecrireSauvegarde, lireSauvegarde } from './sauvegarde/stockage.ts';
 import { construireFete, type IdStand, type PoseCamera, type Stand } from './scene/fete.ts';
+import { construireEntree } from './scene/entree.ts';
+import { CameraSuivie } from './scene/suivi.ts';
+import { creerCommandes } from './controles/joystick.ts';
 import { basculerMuet, bruitage, demarrerSon, estMuet, reglerVolumes } from './son/bruitages.ts';
 import { dire, reglerVoix } from './son/voix.ts';
 
@@ -96,7 +99,11 @@ const ui = {
   tickets: el<HTMLParagraphElement>('tickets'),
   calendrier: el<HTMLOListElement>('calendrier'),
   garderobe: el<HTMLButtonElement>('garderobe'),
-  versFond: el<HTMLButtonElement>('vers-fond'),
+  zoneStick: el<HTMLDivElement>('zone-joystick'),
+  joystick: el<HTMLDivElement>('joystick'),
+  zoneRegard: el<HTMLDivElement>('zone-regard'),
+  interagir: el<HTMLButtonElement>('interagir'),
+  interagirTexte: el<HTMLSpanElement>('interagir-texte'),
   parent: el<HTMLButtonElement>('parent'),
   histoire: el<HTMLButtonElement>('histoire'),
   construction: el<HTMLDivElement>('construction'),
@@ -260,6 +267,9 @@ scene.add(soleil);
 
 const fete = construireFete(0);
 scene.add(fete.racine);
+const entree = construireEntree();
+scene.add(entree.racine);
+fete.racine.updateMatrixWorld(true);
 
 const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 250);
 const vise = new THREE.Vector3();
@@ -276,6 +286,12 @@ function deplacerCamera(vers: PoseCamera, duree = 1.1): void {
   trajet = { de: { position: camera.position.clone(), cible: vise.clone() }, vers, debut: horloge, duree };
 }
 const adoucir = (t: number): number => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2);
+
+/** Les vues des stands et des cinématiques sont réglées pour ce champ de vision. */
+function champNormal(): void {
+  camera.fov = camera.aspect < 1 ? 70 : 45;
+  camera.updateProjectionMatrix();
+}
 
 function redimensionner(): void {
   const largeur = window.innerWidth;
@@ -303,6 +319,7 @@ renderer.setAnimationLoop((maintenant) => {
     camera.lookAt(vise);
     if (t >= 1) trajet = null;
   }
+  promenade(delta);
   fete.mettreAJour(mouvementReduit.matches ? 0 : horloge, delta);
   renderer.render(scene, camera);
   document.body.dataset.appels = String(renderer.info.render.calls);
@@ -521,29 +538,141 @@ fete.construireRoue(sauvegarde.roue, PIECES_ROUE);
 habiller(sauvegarde.garderobe);
 mettreAJourPlace();
 
-// --- Toucher un stand ------------------------------------------------------------------
-const rayon = new THREE.Raycaster();
+// --- La promenade : joystick, caméra à l'épaule, bouton « Entrer » près d'un stand --------------
 let dansUnStand = false;
 let enMarche = false;
 let enCinema = false;
-let appui: { x: number; y: number } | null = null;
+/** La caméra suit le personnage (sinon elle est posée : stand, cinématique, écran d'entrée). */
+let modeSuivi = false;
+let bienvenue = true;
+let standProche: Stand | null = null;
 
-ui.canvas.addEventListener('pointerdown', (e) => {
-  appui = { x: e.clientX, y: e.clientY };
-});
-ui.canvas.addEventListener('pointerup', (e) => {
-  if (!appui || Math.hypot(e.clientX - appui.x, e.clientY - appui.y) > 12) return;
-  appui = null;
-  if (dansUnStand || enMarche || enCinema) return;
-  const pointeur = new THREE.Vector2((e.clientX / innerWidth) * 2 - 1, -(e.clientY / innerHeight) * 2 + 1);
-  rayon.setFromCamera(pointeur, camera);
-  fete.racine.updateMatrixWorld();
-  // Seuls les stands de la partie de la fête qu'on regarde se touchent (le chamboule-tout,
-  // vu de dos depuis le fond, ne doit pas cacher la pêche aux canards).
-  const visibles = fete.stands.filter((s) => (s.approche.z < LIMITE_FOND) === (zone === 'fond'));
-  const touche = rayon.intersectObjects(visibles.map((s) => s.zone), false)[0];
-  const stand = fete.stands.find((s) => s.zone === touche?.object);
-  if (stand) toucherStand(stand);
+const VITESSE = 5;
+const CHAMP_PROMENADE = 58;
+const RAYON_PERSONNAGE = 0.45;
+const obstacles: THREE.Box3[] = [
+  ...fete.stands.map((s) => new THREE.Box3().setFromObject(s.zone).expandByScalar(0.25)),
+  ...entree.obstacles,
+];
+const suivi = new CameraSuivie(obstacles);
+const commandes = creerCommandes(ui.zoneStick, ui.joystick, ui.zoneRegard);
+const heros = (): THREE.Object3D => fete.heros();
+
+function libre(x: number, z: number): boolean {
+  const p = new THREE.Vector3(x, 1, z);
+  return !obstacles.some((b) => b.distanceToPoint(p) < RAYON_PERSONNAGE);
+}
+
+const TITRES_DETENTE: Record<string, string> = { autos: 'Autos tamponneuses', trampoline: 'Trampoline', glaces: 'Palais des glaces' };
+function titreDuStand(s: Stand): string {
+  return JEUX.find((j) => j.id === s.id)?.titre ?? TITRES_DETENTE[s.id] ?? 'Le stand';
+}
+
+/** La caméra revient derrière le personnage, en douceur. */
+function retourPromenade(duree = 1.1): void {
+  suivi.placerDerriere(heros().rotation.y);
+  const p = suivi.pose(heros(), heros().rotation.y, 0, 0);
+  deplacerCamera({ position: p.position, cible: p.cible }, duree);
+  modeSuivi = true;
+}
+
+/** À chaque partie, on arrive par l'allée et on passe la grande porte. */
+function arriverALEntree(): void {
+  const h = heros();
+  h.position.set(0, 0.06, 27);
+  h.rotation.y = Math.PI;
+  suivi.placerDerriere(Math.PI);
+  const p = suivi.pose(h, Math.PI, 0, 0);
+  trajet = null;
+  poser({ position: p.position, cible: p.cible });
+  modeSuivi = true;
+  bienvenue = false;
+}
+
+function promenade(delta: number): void {
+  const active = modeSuivi && !trajet && ui.entree.hidden && !dansUnStand && !enMarche && !enCinema;
+  commandes.actives = active;
+  if (!active) {
+    ui.interagir.hidden = true;
+    ui.zoneStick.hidden = !modeSuivi || !ui.entree.hidden || dansUnStand || enCinema;
+    if (!enMarche) fete.marcheLibre(0);
+    return;
+  }
+  ui.zoneStick.hidden = false;
+  // Champ de vision un peu plus large à l'épaule, pour bien voir la fête.
+  if (Math.abs(camera.fov - CHAMP_PROMENADE) > 0.1) {
+    camera.fov += (CHAMP_PROMENADE - camera.fov) * Math.min(1, delta * 3);
+    camera.updateProjectionMatrix();
+  }
+  const h = heros();
+  const regard = commandes.prendreRegard();
+  suivi.tourner(regard.x, regard.y);
+  const force = Math.min(1, Math.hypot(commandes.x, commandes.y));
+  if (force > 0.02) {
+    const { avant, droite } = suivi.axes();
+    const n = Math.max(1, Math.hypot(commandes.x, commandes.y));
+    const mx = (droite.x * commandes.x + avant.x * commandes.y) / n;
+    const mz = (droite.z * commandes.x + avant.z * commandes.y) / n;
+    const pas = VITESSE * force * delta;
+    const nx = h.position.x + mx * pas;
+    const nz = h.position.z + mz * pas;
+    if (libre(nx, nz)) h.position.set(nx, 0.06, nz);
+    else if (libre(nx, h.position.z)) h.position.x = nx;
+    else if (libre(h.position.x, nz)) h.position.z = nz;
+    let ecart = Math.atan2(mx, mz) - h.rotation.y;
+    ecart = Math.atan2(Math.sin(ecart), Math.cos(ecart));
+    h.rotation.y += ecart * Math.min(1, delta * 10);
+  }
+  fete.marcheLibre(force);
+  const pose = suivi.pose(h, h.rotation.y, commandes.y > -0.3 ? force : 0, delta);
+  poser({ position: pose.position, cible: pose.cible });
+
+  // En passant la grande porte.
+  if (!bienvenue && h.position.z < 11.5) {
+    bienvenue = true;
+    bruitage.finDeManche();
+    parler('Bienvenue à la fête foraine !');
+    window.setTimeout(() => {
+      if (!dansUnStand && !enCinema) parler(messageDeLaPlace());
+    }, 3500);
+  }
+
+  // Le stand le plus proche, s'il est à portée : le bouton « Entrer » apparaît.
+  let meilleur: Stand | null = null;
+  let distance = 2.8;
+  for (const s of fete.stands) {
+    const d = Math.hypot(s.approche.x - h.position.x, s.approche.z - h.position.z);
+    if (d < distance) {
+      distance = d;
+      meilleur = s;
+    }
+  }
+  if (meilleur !== standProche) {
+    standProche = meilleur;
+    if (meilleur) ui.interagirTexte.textContent = eteint(meilleur.id) ? `${titreDuStand(meilleur)} (fermé)` : titreDuStand(meilleur);
+  }
+  ui.interagir.hidden = standProche === null;
+}
+
+// « ?essai » : placer le personnage d'un coup (pour les essais et les captures).
+if (new URLSearchParams(location.search).has('essai')) {
+  Object.assign(window, {
+    essai: {
+      placer(x: number, z: number, cap: number): void {
+        heros().position.set(x, 0.06, z);
+        heros().rotation.y = cap;
+        suivi.placerDerriere(cap);
+      },
+      avancer(secondes: number): void {
+        for (let t = 0; t < secondes; t += 1 / 30) promenade(1 / 30);
+        renderer.render(scene, camera);
+      },
+    },
+  });
+}
+
+ui.interagir.addEventListener('click', () => {
+  if (standProche && commandes.actives) toucherStand(standProche);
 });
 
 // --- Le temps de jeu ---------------------------------------------------------------------------
@@ -582,26 +711,8 @@ window.setInterval(() => {
   dire(texte.textContent);
 }, PAS_DE_TEMPS * 1000);
 
-// --- L'entrée et le fond de la fête --------------------------------------------------------
-let zone: 'place' | 'fond' = 'place';
-const LIMITE_FOND = -6;
-
-function allerVers(nouvelle: 'place' | 'fond'): void {
-  zone = nouvelle;
-  deplacerCamera(fete.vues[zone], 1.4);
-  ui.versFond.textContent = zone === 'place' ? 'Le fond de la fête' : 'L’entrée de la fête';
-  ui.versFond.classList.toggle('retour', zone === 'fond');
-}
-
-ui.versFond.addEventListener('click', () => {
-  if (dansUnStand || enMarche || enCinema) return;
-  bruitage.touche();
-  allerVers(zone === 'place' ? 'fond' : 'place');
-});
-
 function toucherStand(stand: Stand): void {
   bruitage.touche();
-  zone = stand.approche.z < LIMITE_FOND ? 'fond' : 'place';
   if (eteint(stand.id)) {
     parler('Ce stand est fermé pour le moment.');
     return;
@@ -620,6 +731,7 @@ function toucherStand(stand: Stand): void {
       await jouerDetente(id);
       musique.arreter();
       dansUnStand = false;
+      retourPromenade();
       parler(messageDeLaPlace());
     });
     return;
@@ -661,6 +773,7 @@ const PRESENTATIONS: Partial<Record<IdStand, string>> = {
 async function ouvrirStand(nouveau: JeuDeStand): Promise<void> {
   jeu = nouveau;
   dansUnStand = true;
+  champNormal();
   fete.calme(true);
   deplacerCamera(fete.vues[jeu.id]);
   // Un forain arrivé après l'introduction reçoit son prénom à la première rencontre.
@@ -683,7 +796,7 @@ function fermerStand(): void {
   manche = null;
   ui.stand.hidden = true;
   fete.calme(false);
-  deplacerCamera(fete.vues[zone]);
+  retourPromenade();
   mettreAJourPlace();
   parler(messageDeLaPlace());
 }
@@ -978,6 +1091,7 @@ async function introduction(forcer = false): Promise<void> {
   const suivi = (sauvegarde.lectures.introduction ??= suiviNeuf());
   if (suivi.reussie && !forcer && !parametres.has('intro')) return;
   enCinema = true;
+  champNormal();
   ui.bulle.hidden = true;
   // Sans visiteurs : ils passeraient devant la caméra.
   fete.calme(true);
@@ -1007,7 +1121,6 @@ async function introduction(forcer = false): Promise<void> {
     enCinema = false;
     fete.calme(false);
   }
-  deplacerCamera(fete.vues.place, 1.6);
 }
 
 ui.entrer.addEventListener('click', async () => {
@@ -1015,7 +1128,9 @@ ui.entrer.addEventListener('click', async () => {
   bruitage.ouverture();
   ui.entree.hidden = true;
   await introduction();
-  parler(messageDeLaPlace());
+  // On arrive toujours par la grande porte, comme dans un parc d'attractions.
+  arriverALEntree();
+  parler('Avance avec le joystick et passe la grande porte !');
   void echanger();
 });
 
