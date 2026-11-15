@@ -1,6 +1,6 @@
 # Le rêve du soir
 
-Chaque soir, Claude lit ce que la tablette a déposé dans un **dépôt privé** et y écrit la
+Chaque nuit, après minuit, Claude lit ce que la tablette a déposé la veille dans un **dépôt privé** et y écrit la
 **préparation** du lendemain (voir `docs/adr/0001-reve-du-soir-par-le-reseau.md`). Le jeu
 marche sans : sans préparation nouvelle, il garde la dernière reçue, et le moteur de mémoire
 suffit à faire une séance du jour correcte.
