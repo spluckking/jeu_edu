@@ -691,6 +691,117 @@ svg {
   text-align: left;
 }
 
+/* --- Aller au fond de la fête ------------------------------------------------------------ */
+
+.vers-fond {
+  position: fixed;
+  right: calc(16px + env(safe-area-inset-right));
+  bottom: calc(16px + env(safe-area-inset-bottom));
+  z-index: 2;
+  min-height: 56px;
+  padding: 8px 22px;
+  font-size: 1.2rem;
+}
+
+.vers-fond::before {
+  content: '↑ ';
+}
+
+.vers-fond.retour::before {
+  content: '↓ ';
+}
+
+.stand:not([hidden]) ~ .vers-fond,
+body:has(.stand:not([hidden])) .vers-fond {
+  display: none;
+}
+
+/* --- Stands de détente ----------------------------------------------------------------- */
+
+.detente {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  width: min(1100px, calc(100% - 32px));
+  height: calc(100% - 32px);
+  padding: 18px 24px;
+  border-radius: 32px;
+  background: var(--papier);
+  box-shadow: var(--ombre);
+  text-align: center;
+}
+
+.detente-toile {
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+  border-radius: 22px;
+  touch-action: none;
+}
+
+/* --- Pêche aux canards ----------------------------------------------------------------- */
+
+.question .phrase-a-trou {
+  display: block;
+  font-size: 0.62em;
+  line-height: 1.5;
+  white-space: normal;
+}
+
+.question .mot-trou {
+  display: inline-block;
+  min-width: 2.6ch;
+  margin: 0 0.15em;
+  border-bottom: 5px solid var(--bleu);
+  color: var(--bleu);
+  text-align: center;
+}
+
+.question .mot-trou.juste {
+  border-color: var(--vert);
+  color: var(--vert);
+}
+
+.clavier.canards {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 18px;
+}
+
+.canard-bouton {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  max-width: 180px;
+  padding: 14px;
+  border-radius: 28px;
+  background: #dff4ff;
+  box-shadow: 0 6px 0 #a9d9f2;
+  font-size: 2.4rem;
+  font-weight: 700;
+  animation: flotte 2.4s ease-in-out infinite;
+}
+
+.canard-bouton:nth-child(2) {
+  animation-delay: -1.2s;
+}
+
+.canard-bouton .canard {
+  width: 110px;
+  height: 82px;
+  fill: initial;
+  stroke: none;
+}
+
+@keyframes flotte {
+  50% {
+    transform: translateY(-6px) rotate(-2deg);
+  }
+}
+
 /* --- Feuilleton ---------------------------------------------------------------------- */
 
 .episode {

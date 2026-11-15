@@ -3,7 +3,7 @@
 
 import type { IdStand } from '../scene/fete.ts';
 
-export const FORAINS: readonly IdStand[] = ['chamboule', 'confiserie', 'chantier', 'horloge'];
+export const FORAINS: readonly IdStand[] = ['chamboule', 'confiserie', 'chantier', 'horloge', 'peche'];
 
 /** Les prénoms proposés à l'enfant pour chaque forain ; il peut aussi taper le sien. */
 export const PROPOSITIONS: Record<IdStand, readonly string[]> = {
@@ -11,6 +11,7 @@ export const PROPOSITIONS: Record<IdStand, readonly string[]> = {
   confiserie: ['Lila', 'Rose', 'Nina'],
   chantier: ['Bruno', 'Hugo', 'Victor'],
   horloge: ['Pia', 'Capucine', 'Jeanne'],
+  peche: ['Lou', 'Marius', 'Oscar'],
 };
 
 /** Comment on désigne le forain avant qu'il ait un prénom. */
@@ -19,6 +20,7 @@ export const METIERS: Record<IdStand, string> = {
   confiserie: 'la foraine de la confiserie',
   chantier: 'le forain du chantier',
   horloge: 'l’horlogère',
+  peche: 'le pêcheur de canards',
 };
 
 export type Noms = Partial<Record<IdStand, string>>;
