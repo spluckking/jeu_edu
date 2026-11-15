@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Planche de styles</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <canvas id="scene" aria-label="Aperçu de la fête foraine"></canvas>
+    <div class="panel">
+      <div class="head">
+        <div>
+          <p class="name" id="name"></p>
+          <p class="desc" id="desc"></p>
+        </div>
+        <div class="actions">
+          <button type="button" id="outfit"></button>
+          <button type="button" id="zoom"></button>
+        </div>
+      </div>
+      <div class="choices" id="choices" role="group" aria-label="Choix du style"></div>
+    </div>
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>

@@ -1,0 +1,15 @@
+{
+  "id": "exemple-mots",
+  "titre": "Exemple : mots de CE2 (à remplacer par sa vraie liste)",
+  "type": "mots",
+  "elements": [
+    { "mot": "maison", "phrase": "La maison a un toit rouge." },
+    { "mot": "jardin", "phrase": "Les fleurs poussent dans le jardin." },
+    { "mot": "école", "phrase": "Je vais à l'école le matin." },
+    { "mot": "cahier", "phrase": "J'écris dans mon cahier." },
+    { "mot": "toujours", "phrase": "Le soleil revient toujours." },
+    { "mot": "beaucoup", "phrase": "Il y a beaucoup de monde." },
+    { "mot": "aujourd'hui", "phrase": "Aujourd'hui, il fait beau." },
+    { "mot": "chaque", "phrase": "Je lis chaque soir." }
+  ]
+}
