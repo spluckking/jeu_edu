@@ -3,6 +3,8 @@
 // réglages et clé du dépôt privé.
 
 import type { Semaine } from '../histoire/feuilleton.ts';
+import { FORAINS, METIERS, nettoyerPrenom, PROPOSITIONS } from '../histoire/lecture.ts';
+import type { IdStand } from '../scene/fete.ts';
 import { ajouterJours, type Jour } from '../memoire/jours.ts';
 import { semaineDe } from '../recompenses/recompenses.ts';
 import { DEPOT_VALIDE, ecrireAcces, lireAcces } from '../reve/synchro.ts';
@@ -221,6 +223,33 @@ function construire(o: OptionsEspace, fermer: () => void): HTMLElement {
     ajoutMessage.textContent = `${mots.length} mots ajoutés : ils arrivent dès aujourd’hui à la confiserie, en priorité jusqu’à jeudi.`;
   });
 
+  // Prénoms des forains : on peut corriger un prénom mal tapé.
+  const prenoms = el('div');
+  const champsPrenoms = new Map<IdStand, HTMLInputElement>();
+  for (const id of FORAINS) {
+    const ligne = el('label', 'parent-ligne');
+    const champ = el('input', 'parent-champ');
+    champ.value = s.forains[id] ?? '';
+    champ.placeholder = PROPOSITIONS[id][0] ?? '';
+    champ.maxLength = 14;
+    champsPrenoms.set(id, champ);
+    ligne.append(el('span', 'parent-etiquette', METIERS[id].replace(/^./, (c) => c.toUpperCase())), champ);
+    prenoms.append(ligne);
+  }
+  const enregistrerPrenoms = el('button', 'bouton-secondaire', 'Enregistrer les prénoms');
+  const messagePrenoms = el('p', 'lecture-texte');
+  enregistrerPrenoms.addEventListener('click', () => {
+    for (const [id, champ] of champsPrenoms) {
+      const propre = nettoyerPrenom(champ.value);
+      if (propre.length >= 2) s.forains[id] = propre;
+      champ.value = s.forains[id] ?? '';
+    }
+    o.sauver();
+    o.appliquer();
+    messagePrenoms.textContent = 'Prénoms enregistrés.';
+  });
+  prenoms.append(enregistrerPrenoms, messagePrenoms);
+
   // Stands à éteindre.
   const stands = el('div', 'parent-cases');
   for (const st of o.stands) {
@@ -302,6 +331,7 @@ function construire(o: OptionsEspace, fermer: () => void): HTMLElement {
     section('Dernier rêve', reve),
     section('Textes à valider', attente),
     section('Ajout rapide d’une liste', titreListe, zone, ajout, ajoutMessage),
+    section('Prénoms des forains', prenoms),
     section('Stands allumés', stands),
     section('Réglages', reglages),
     section(
@@ -333,16 +363,31 @@ export async function ouvrirEspaceParent(o: OptionsEspace): Promise<void> {
 /** Un appui long (2 s) sur ce bouton ouvre la porte ; un appui court ne fait rien. */
 export function porteParent(bouton: HTMLElement, ouvrir: () => void): void {
   let minuterie = 0;
+  let doigt: number | null = null;
   const annuler = (): void => {
     window.clearTimeout(minuterie);
+    doigt = null;
     bouton.classList.remove('appui');
   };
-  bouton.addEventListener('pointerdown', () => {
+  // Sur tablette, un appui long déclenche le menu du navigateur et annule le geste :
+  // on l'empêche, et le doigt reste « capturé » par le bouton même s'il glisse un peu.
+  bouton.addEventListener('contextmenu', (e) => e.preventDefault());
+  bouton.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    doigt = e.pointerId;
+    try {
+      bouton.setPointerCapture(e.pointerId);
+    } catch {
+      // Pas de capture possible : l'appui long marche quand même si le doigt ne bouge pas.
+    }
     bouton.classList.add('appui');
+    window.clearTimeout(minuterie);
     minuterie = window.setTimeout(() => {
       annuler();
       ouvrir();
-    }, 2000);
+    }, 1500);
   });
-  for (const evenement of ['pointerup', 'pointerleave', 'pointercancel'] as const) bouton.addEventListener(evenement, annuler);
+  bouton.addEventListener('pointerup', (e) => {
+    if (e.pointerId === doigt) annuler();
+  });
 }

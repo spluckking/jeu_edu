@@ -550,17 +550,51 @@ let standProche: Stand | null = null;
 const VITESSE = 5;
 const CHAMP_PROMENADE = 58;
 const RAYON_PERSONNAGE = 0.45;
-const obstacles: THREE.Box3[] = [
-  ...fete.stands.map((s) => new THREE.Box3().setFromObject(s.zone).expandByScalar(0.25)),
-  ...entree.obstacles,
+/** Le décor qu'on ne traverse pas : chapiteaux, arbres, poteaux des guirlandes. */
+const DECOR: Array<[number, number, number]> = [
+  [-14, -16, 2.7],
+  [0, -24, 2.7],
+  [15, -16, 2.7],
+  [-12, -7, 0.5],
+  [12.5, -8, 0.5],
+  [14, 3, 0.5],
+  [-11, -15, 0.6],
+  [11.5, -15.5, 0.5],
+  [-10.5, 5, 0.25],
+  [10.5, 5, 0.25],
+  [-10.5, -9, 0.25],
+  [10.5, -9, 0.25],
+  [0, -10.5, 0.25],
 ];
-const suivi = new CameraSuivie(obstacles);
+const boitesStands = fete.stands.map((s) => new THREE.Box3().setFromObject(s.zone).expandByScalar(0.25));
+const obstacles: THREE.Box3[] = [
+  ...boitesStands,
+  ...entree.obstacles,
+  ...DECOR.map(([x, z, r]) => new THREE.Box3(new THREE.Vector3(x - r, 0, z - r), new THREE.Vector3(x + r, 4, z + r))),
+];
+// La caméra ne bute que sur les stands et l'entrée (le petit décor ne la gêne pas).
+const suivi = new CameraSuivie([...boitesStands, ...entree.obstacles]);
 const commandes = creerCommandes(ui.zoneStick, ui.joystick, ui.zoneRegard);
 const heros = (): THREE.Object3D => fete.heros();
 
-function libre(x: number, z: number): boolean {
+/** De combien ce point s'enfonce dans un obstacle (0 : rien ne gêne). */
+function enfoncement(x: number, z: number): number {
   const p = new THREE.Vector3(x, 1, z);
-  return !obstacles.some((b) => b.distanceToPoint(p) < RAYON_PERSONNAGE);
+  let pire = 0;
+  for (const b of obstacles) pire = Math.max(pire, RAYON_PERSONNAGE - b.distanceToPoint(p));
+  return pire;
+}
+
+/**
+ * Peut-on aller là ? Jamais hors de la fête. Et si le personnage est déjà un peu dans un
+ * obstacle (en sortant d'un stand), tout pas qui l'en éloigne est permis : il n'est jamais bloqué.
+ */
+function libre(x: number, z: number): boolean {
+  if (!entree.dansLaFete(x, z)) return false;
+  const apres = enfoncement(x, z);
+  if (apres <= 0) return true;
+  const h = heros().position;
+  return apres < enfoncement(h.x, h.z) - 1e-4;
 }
 
 const TITRES_DETENTE: Record<string, string> = { autos: 'Autos tamponneuses', trampoline: 'Trampoline', glaces: 'Palais des glaces' };
@@ -662,6 +696,10 @@ if (new URLSearchParams(location.search).has('essai')) {
         heros().position.set(x, 0.06, z);
         heros().rotation.y = cap;
         suivi.placerDerriere(cap);
+      },
+      position(): string {
+        const p = heros().position;
+        return `${p.x.toFixed(2)} ${p.z.toFixed(2)}`;
       },
       avancer(secondes: number): void {
         for (let t = 0; t < secondes; t += 1 / 30) promenade(1 / 30);

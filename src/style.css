@@ -698,7 +698,8 @@ svg {
   position: fixed;
   top: calc(16px + env(safe-area-inset-top));
   left: calc(16px + env(safe-area-inset-left));
-  z-index: 2;
+  /* Au-dessus de l'écran d'entrée aussi : le parent peut ouvrir son espace avant de jouer. */
+  z-index: 11;
   display: grid;
   place-items: center;
   width: 44px;
@@ -707,12 +708,23 @@ svg {
   background: rgba(255, 250, 240, 0.45);
   font-size: 22px;
   color: var(--encre-douce);
+  touch-action: none;
+  -webkit-touch-callout: none;
 }
 
+/* Pendant l'appui, un anneau se remplit : au bout de 1,5 s, la porte s'ouvre. */
 .porte-parent.appui {
   background: var(--papier);
-  box-shadow: 0 0 0 4px var(--bleu);
-  transition: box-shadow 2s linear;
+  animation: remplir-porte 1.5s linear forwards;
+}
+
+@keyframes remplir-porte {
+  from {
+    box-shadow: 0 0 0 0 var(--bleu);
+  }
+  to {
+    box-shadow: 0 0 0 8px var(--bleu);
+  }
 }
 
 .parent-fond {
@@ -785,6 +797,14 @@ svg {
   align-items: center;
   gap: 12px;
   min-height: 44px;
+}
+
+.parent-etiquette {
+  flex: 0 0 45%;
+}
+
+.parent-ligne .parent-champ {
+  flex: 1;
 }
 
 .parent-ligne input[type='range'] {
