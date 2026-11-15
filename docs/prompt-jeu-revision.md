@@ -127,6 +127,14 @@ LE TEMPS DE JEU
 - Ensuite jeu libre : tout est ouvert, rien n'est bloqué, mais on n'y gagne ni ticket ni lot.
 - Un jour sans rien à réviser, tout est ouvert tout de suite.
 
+LA PROMENADE
+- Vue à la 3e personne, caméra proche à l'épaule (réglage « A » du prototype), qui revient
+  d'elle-même dans le dos du personnage. Déplacement libre au joystick virtuel (comme dans
+  Golémanciens), un doigt à droite pour tourner la caméra.
+- À chaque partie, le personnage arrive par l'allée et passe la grande entrée de la fête,
+  comme dans un parc d'attractions.
+- Près d'un stand, un bouton « Entrer » apparaît ; on ne traverse pas les stands.
+
 LES STANDS
 - Un stand de révision est une façon de répondre, pas une matière. Premiers stands :
   Chamboule-tout (taper un nombre), Confiserie (écrire un mot entendu), Pêche aux canards

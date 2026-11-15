@@ -35,6 +35,10 @@ export interface Fete {
   construireRoue(n: number, sur: number): void;
   /** Le personnage de l'enfant change de tenue (0 à 3) ou de maillot. */
   habiller(tenue: number, maillot: number): void;
+  /** Le personnage de l'enfant (pour le piloter au joystick). */
+  heros(): THREE.Group;
+  /** Pilotage libre : allure de marche de 0 (arrêté) à 1, quand aucun trajet n'est en cours. */
+  marcheLibre(allure: number): void;
   /** Les plans de la cinématique : vue d'ensemble, chaque forain, vue de fin. */
   vuesCinema: Record<'survol' | 'fin' | IdStand, PoseCamera>;
   /** Le forain de ce stand salue un instant. */
@@ -776,9 +780,10 @@ export function construireFete(tenue = 0): Fete {
   let cible: { points: THREE.Vector3[]; regard: number; arrivee: () => void } | null = null;
   let finSalut = 0;
   let maintenant = 0;
+  let allureLibre = 0;
 
   animations.push((temps, delta) => {
-    let pas = 0;
+    let pas = cible ? 0 : allureLibre;
     const point = cible?.points[0];
     if (cible && point) {
       const ecart = point.clone().sub(heros.racine.position).setY(0);
@@ -890,6 +895,10 @@ export function construireFete(tenue = 0): Fete {
     },
     construireRoue,
     habiller,
+    heros: () => heros.racine,
+    marcheLibre(allure) {
+      allureLibre = Math.max(0, Math.min(1, allure));
+    },
     sucette() {
       debutSucette = maintenant;
     },

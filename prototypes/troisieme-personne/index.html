@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+    <title>Prototype : vue à la 3e personne</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <canvas id="scene"></canvas>
+    <p id="bulle" class="bulle" hidden></p>
+    <div id="joystick-zone" class="zone-joystick">
+      <div id="joystick" class="joystick"><div class="bouton-joystick"></div></div>
+    </div>
+    <div id="regard" class="zone-regard"></div>
+    <div class="vues">
+      <button type="button" data-vue="epaule">A · Épaule</button>
+      <button type="button" data-vue="classique">B · Classique</button>
+      <button type="button" data-vue="haute">C · Haute</button>
+    </div>
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>

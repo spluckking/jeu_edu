@@ -35,7 +35,14 @@
       <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3" /><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1" /></svg>
     </button>
 
-    <button id="vers-fond" class="bouton-secondaire vers-fond" type="button">Le fond de la fête</button>
+    <div id="zone-regard" class="zone-regard"></div>
+    <div id="zone-joystick" class="zone-joystick" hidden>
+      <div id="joystick" class="joystick"><div class="bouton-joystick"></div></div>
+    </div>
+    <button id="interagir" class="interagir" type="button" hidden>
+      <span class="interagir-mot">Entrer</span>
+      <span id="interagir-texte" class="interagir-texte"></span>
+    </button>
 
     <section id="stand" class="stand" hidden aria-live="polite">
       <header class="stand-tete">
