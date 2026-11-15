@@ -1,0 +1,83 @@
+{
+  "id": "introduction",
+  "titre": "L'arrivée de la fête",
+  "plans": [
+    {
+      "vue": "survol",
+      "texte": "Ce matin, une fête foraine s'est installée dans ta ville. Les guirlandes brillent et les fanions dansent dans le vent."
+    },
+    {
+      "vue": "chamboule",
+      "salue": "chamboule",
+      "texte": "Au chamboule-tout, un forain à moustache te fait signe. Il porte un grand chapeau noir.",
+      "nommer": "chamboule"
+    },
+    {
+      "vue": "chamboule",
+      "texte": "Il s'appelle {chamboule}. Chez lui, on lance une balle pour faire tomber six boîtes."
+    },
+    {
+      "vue": "confiserie",
+      "salue": "confiserie",
+      "texte": "À la confiserie, une foraine au bonnet bleu prépare des sucettes.",
+      "nommer": "confiserie"
+    },
+    {
+      "vue": "confiserie",
+      "texte": "Elle s'appelle {confiserie}. Ses bonbons préférés sont les bonbons à la fraise."
+    },
+    {
+      "vue": "chantier",
+      "salue": "chantier",
+      "texte": "Derrière les barrières jaunes et bleues, un forain à casquette t'appelle.",
+      "nommer": "chantier"
+    },
+    {
+      "vue": "chantier",
+      "texte": "C'est {chantier}. Il veut construire une grande roue, mais il lui manque des pièces."
+    },
+    {
+      "vue": "chantier",
+      "marche": "chantier",
+      "texte": "« Pour acheter les pièces, il faut des tickets, dit {chantier}. Tu veux bien nous aider ? »"
+    },
+    {
+      "vue": "fin",
+      "texte": "Chaque jour, tu gagneras des tickets aux stands. Avec eux, la grande roue grandira, pièce par pièce !"
+    }
+  ],
+  "questions": [
+    {
+      "question": "Où la fête foraine s'est-elle installée ?",
+      "choix": ["Dans ta ville", "Dans une forêt", "Sur une plage"]
+    },
+    {
+      "question": "Comment s'appelle le forain du chamboule-tout ?",
+      "nom": "chamboule"
+    },
+    {
+      "question": "Que porte le forain du chamboule-tout sur la tête ?",
+      "choix": ["Un grand chapeau noir", "Une casquette", "Un bonnet bleu"]
+    },
+    {
+      "question": "Combien de boîtes faut-il faire tomber au chamboule-tout ?",
+      "choix": ["Six", "Trois", "Dix"]
+    },
+    {
+      "question": "Que prépare {confiserie} ?",
+      "choix": ["Des sucettes", "Des crêpes", "Des glaces"]
+    },
+    {
+      "question": "Quels sont les bonbons préférés de {confiserie} ?",
+      "choix": ["Les bonbons à la fraise", "Les bonbons au citron", "Les bonbons à la menthe"]
+    },
+    {
+      "question": "Que veut construire {chantier} ?",
+      "choix": ["Une grande roue", "Un château", "Un petit train"]
+    },
+    {
+      "question": "Que faut-il pour acheter les pièces de la grande roue ?",
+      "choix": ["Des tickets", "Des bonbons", "Des ballons"]
+    }
+  ]
+}

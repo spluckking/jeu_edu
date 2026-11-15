@@ -1,0 +1,8 @@
+node_modules/
+dist/
+test-results/
+# Journaux et bilans de l'enfant : jamais dans ce dépôt public
+dream/
+# Photos et listes déposées par le parent : elles peuvent porter le prénom ou l'école
+content/inbox/*
+!content/inbox/LISEZ-MOI.md
