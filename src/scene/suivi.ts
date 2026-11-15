@@ -2,6 +2,7 @@
 // dos quand il avance, et se rapproche si un stand ou l'entrée se met entre eux.
 
 import * as THREE from 'three';
+import type { Obstacle } from './obstacles.ts';
 
 export const DISTANCE = 5.2;
 export const TANGAGE = 0.2;
@@ -18,9 +19,8 @@ export class CameraSuivie {
   private readonly cible = new THREE.Vector3();
   private readonly direction = new THREE.Vector3();
   private readonly rayon = new THREE.Ray();
-  private readonly impact = new THREE.Vector3();
 
-  constructor(private readonly obstacles: THREE.Box3[]) {}
+  constructor(private readonly obstacles: Obstacle[]) {}
 
   tourner(dx: number, dy: number): void {
     if (dx === 0 && dy === 0) return;
@@ -55,9 +55,9 @@ export class CameraSuivie {
     this.direction.set(Math.sin(this.lacet) * cp, Math.sin(this.tangage), Math.cos(this.lacet) * cp);
     this.rayon.set(this.cible, this.direction);
     let proche = DISTANCE;
-    for (const b of this.obstacles) {
-      const p = this.rayon.intersectBox(b, this.impact);
-      if (p && !b.containsPoint(this.cible)) proche = Math.min(proche, p.distanceTo(this.cible));
+    for (const o of this.obstacles) {
+      const d = o.distanceRayon(this.rayon);
+      if (d !== null) proche = Math.min(proche, d);
     }
     const voulue = Math.max(1.5, proche - 0.4);
     this.distance = voulue < this.distance ? voulue : this.distance + (voulue - this.distance) * Math.min(1, dt * 3);
