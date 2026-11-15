@@ -36,6 +36,10 @@ _Avoid_ : stand actif, stand du jour, quête
 Le temps de révision récompensé d'une journée : l'enfant fait les stands allumés dans l'ordre qu'il veut. Elle a une fin nette.
 _Avoid_ : session, partie, mission
 
+**Pause calme** :
+Un moment de respiration ou de pleine conscience, obligatoire au milieu de la séance du jour, jamais noté.
+_Avoid_ : relaxation, méditation, récréation
+
 **Jeu libre** :
 Tout ce que l'enfant fait après la séance du jour. Il n'est jamais bloqué, mais il n'est pas récompensé comme la séance.
 _Avoid_ : mode libre, bonus

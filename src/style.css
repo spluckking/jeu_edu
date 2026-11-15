@@ -691,6 +691,174 @@ svg {
   text-align: left;
 }
 
+/* --- Pause calme --------------------------------------------------------------------- */
+
+.pause-fond {
+  position: fixed;
+  inset: 0;
+  z-index: 9;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(180deg, rgba(122, 170, 230, 0.75), rgba(190, 168, 230, 0.75));
+  backdrop-filter: blur(8px);
+}
+
+.pause {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  width: min(680px, calc(100% - 40px));
+  padding: 28px 32px;
+  border-radius: 36px;
+  background: var(--papier);
+  box-shadow: var(--ombre);
+  text-align: center;
+}
+
+.pause-ballon {
+  width: 110px;
+  height: 110px;
+  margin: 50px 0;
+  border-radius: 50% 50% 48% 48%;
+  background: radial-gradient(circle at 35% 30%, #ffd0dc, var(--rouge) 70%);
+  box-shadow: 0 10px 24px rgba(217, 61, 85, 0.3);
+  transform: scale(1);
+  transition-property: transform;
+  transition-timing-function: ease-in-out;
+}
+
+.pause-ballon.gonfle {
+  transform: scale(1.9);
+}
+
+.pause-consigne {
+  min-height: 2.8em;
+  margin: 0;
+  font-size: clamp(1.5rem, 3.4vh, 1.9rem);
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.pause-compte {
+  display: flex;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pause-compte li {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #ebe4d6;
+}
+
+.pause-compte li.fait {
+  background: var(--bleu);
+}
+
+/* La respiration reste guidée même avec « moins d'animations » : seul le ballon bouge. */
+@media (prefers-reduced-motion: reduce) {
+  .pause-ballon {
+    transition-property: transform !important;
+    transition-duration: 5s !important;
+  }
+}
+
+/* --- L'horloge ------------------------------------------------------------------------ */
+
+.question .cadran {
+  display: block;
+  width: min(180px, 22vh);
+  height: auto;
+  margin: 0 auto 6px;
+  font-size: 1rem;
+}
+
+.cadran-bord {
+  fill: var(--rouge);
+}
+
+.cadran-fond {
+  fill: white;
+}
+
+.cadran-trait {
+  stroke: #b8afc8;
+  stroke-width: 1.5;
+}
+
+.cadran-trait.fort {
+  stroke: var(--encre);
+  stroke-width: 3;
+}
+
+.cadran-chiffre {
+  font-family: var(--police);
+  font-size: 22px;
+  font-weight: 700;
+  fill: var(--encre);
+  text-anchor: middle;
+}
+
+.aiguille {
+  stroke-linecap: round;
+}
+
+.aiguille.petite {
+  stroke: var(--encre);
+  stroke-width: 9;
+}
+
+.aiguille.grande {
+  stroke: var(--bleu);
+  stroke-width: 6;
+}
+
+.cadran-centre {
+  fill: var(--jaune);
+}
+
+.question .enonce-heure {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 1.35rem;
+  font-weight: 700;
+  line-height: 1.35;
+  white-space: normal;
+}
+
+.question-ligne:has(.cadran) .question,
+.question-ligne:has(.enonce-heure) .question {
+  font-size: clamp(2.2rem, 5vh, 3rem);
+  text-align: center;
+}
+
+.clavier.heure {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.clavier.heure .valider {
+  grid-row: span 2;
+}
+
+.clavier.heure .zero {
+  grid-column: span 3;
+}
+
+.clavier .touche-h {
+  background: #fff3d6;
+}
+
+.clavier.choix-heure {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 14px;
+}
+
 .correction .explication {
   display: block;
   margin-top: 6px;

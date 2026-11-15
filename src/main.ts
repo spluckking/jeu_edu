@@ -23,11 +23,15 @@ import { chamboule } from './stands/chamboule.ts';
 import { confiserie } from './stands/confiserie.ts';
 import type { JeuDeStand } from './stands/stand.ts';
 import { creerDefis } from './stands/defis.ts';
+import { creerHorloge } from './stands/horloge.ts';
+import { demanderPrenom } from './ui/prenom.ts';
+import { exerciceDuJour, jouerPause, pauseDue } from './detente/pause.ts';
 import { ajusterNiveau } from './exercices/generateur.ts';
 import {
   BONUS_SEANCE,
   choisirLot,
   DEFIS_PAR_SEANCE,
+  HEURES_PAR_SEANCE,
   journeeNeuve,
   lot,
   LOTS,
@@ -133,7 +137,18 @@ function revisions(jeu: JeuDeStand): Revisions {
 function journee(): Journee {
   return (sauvegarde.journees[aujourdhui()] ??= journeeNeuve());
 }
-const defisRestants = (): number => Math.max(0, DEFIS_PAR_SEANCE - journee().defis);
+/**
+ * Ce qui reste à faire aujourd'hui dans un stand d'exercices fabriqués (défis, horloge),
+ * ou null pour un stand de révision (il suit le moteur de mémoire).
+ */
+function restants(jeu: JeuDeStand): number | null {
+  if (jeu.type === 'defi') return Math.max(0, DEFIS_PAR_SEANCE - journee().defis);
+  if (jeu.type === 'heure') return Math.max(0, HEURES_PAR_SEANCE - (journee().heures ?? 0));
+  return null;
+}
+
+const standHorloge = creerHorloge({ niveau: () => sauvegarde.niveauHorloge.niveau });
+for (let i = 0; i < HEURES_PAR_SEANCE; i++) elements.set(`heure-${i}`, { type: 'heure', id: `heure-${i}` });
 
 const defis = creerDefis({
   niveau: () => sauvegarde.niveauDefis.niveau,
@@ -146,10 +161,11 @@ const defis = creerDefis({
 // Les places des défis : l'exercice est fabriqué au moment de le poser.
 for (let i = 0; i < DEFIS_PAR_SEANCE; i++) elements.set(`defi-${i}`, { type: 'defi', id: `defi-${i}` });
 
-const JEUX: JeuDeStand[] = [chamboule, confiserie, defis];
+const JEUX: JeuDeStand[] = [chamboule, confiserie, defis, standHorloge];
 /** Le stand a encore quelque chose à faire dans la séance du jour : il est allumé. */
 const aReviser = (jeu: JeuDeStand): boolean => {
-  if (jeu.type === 'defi') return defisRestants() > 0;
+  const reste = restants(jeu);
+  if (reste !== null) return reste > 0;
   const r = revisions(jeu);
   return r.semaine.length + r.memoire.length > 0;
 };
@@ -248,10 +264,18 @@ function parler(texte: string, afficher = true): void {
 
 /** Le prénom que l'enfant a donné à ce forain (ou le premier proposé, avant l'introduction). */
 function nom(id: IdStand): string {
-  return sauvegarde.forains[id] ?? PROPOSITIONS[id][0] ?? METIERS[id];
+  const donne = sauvegarde.forains[id];
+  if (donne) return donne;
+  // Un forain arrivé après l'introduction n'a pas encore de prénom : on dit son métier.
+  return id in PRESENTATIONS ? METIERS[id] : (PROPOSITIONS[id][0] ?? METIERS[id]);
 }
 
-const LIEU: Record<IdStand, string> = { chamboule: 'au chamboule-tout', confiserie: 'à la confiserie', chantier: 'au chantier' };
+const LIEU: Record<IdStand, string> = {
+  chamboule: 'au chamboule-tout',
+  confiserie: 'à la confiserie',
+  chantier: 'au chantier',
+  horloge: 'à l’horloge',
+};
 
 function messageDeLaPlace(): string {
   const allumes = JEUX.filter(aReviser).map((j) => j.id);
@@ -259,11 +283,23 @@ function messageDeLaPlace(): string {
   if (!premier) return 'Séance finie pour aujourd’hui. Tu peux jouer librement !';
   if (allumes.length === 1) return `Va ${LIEU[premier]}, ${nom(premier)} t’attend !`;
   const noms = allumes.map(nom);
-  return `${noms.slice(0, -1).join(', ')} et ${noms.at(-1) ?? ''} t’attendent : leurs stands brillent !`;
+  const phrase = `${noms.slice(0, -1).join(', ')} et ${noms.at(-1) ?? ''} t’attendent : leurs stands brillent !`;
+  return phrase.charAt(0).toUpperCase() + phrase.slice(1);
 }
 
 function mettreAJourPlace(): void {
   for (const jeu of JEUX) fete.allumer(jeu.id, aReviser(jeu));
+  // Le travail du jour est compté une fois, à la première ouverture : il fixe la pause calme.
+  const j = journee();
+  if (j.total === undefined) {
+    j.total = JEUX.reduce((somme, jeu) => {
+      const reste = restants(jeu);
+      if (reste !== null) return somme + reste;
+      const r = revisions(jeu);
+      return somme + r.semaine.length + r.memoire.length;
+    }, 0);
+    sauver();
+  }
   majHud();
 }
 
@@ -440,18 +476,30 @@ let debutQuestion = 0;
 let attente = false;
 
 function prochaineManche(): TypeManche {
-  if (jeu.type === 'defi') return defisRestants() > 0 ? 'defis' : 'libre';
+  const reste = restants(jeu);
+  if (reste !== null) return reste > 0 ? 'defis' : 'libre';
   const r = revisions(jeu);
   if (r.semaine.length > 0) return 'semaine';
   if (r.memoire.length > 0) return 'memoire';
   return 'libre';
 }
 
-function ouvrirStand(nouveau: JeuDeStand): void {
+const PRESENTATIONS: Partial<Record<IdStand, string>> = {
+  horloge: 'Une nouvelle foraine est arrivée : elle répare les horloges et connaît l’heure par cœur.',
+};
+
+async function ouvrirStand(nouveau: JeuDeStand): Promise<void> {
   jeu = nouveau;
   dansUnStand = true;
   fete.calme(true);
   deplacerCamera(fete.vues[jeu.id]);
+  // Un forain arrivé après l'introduction reçoit son prénom à la première rencontre.
+  const presentation = PRESENTATIONS[jeu.id];
+  if (presentation && !sauvegarde.forains[jeu.id]) {
+    fete.saluerForain(jeu.id);
+    sauvegarde.forains[jeu.id] = await demanderPrenom(jeu.id, presentation);
+    sauver();
+  }
   bruitage.ouverture();
   ui.stand.classList.toggle('large', jeu.large);
   ui.stand.hidden = false;
@@ -483,15 +531,17 @@ function montrerCarte(type: TypeManche, apresUneManche: boolean, gain = 0): void
   ui.mancheNom.textContent = '';
   const r = revisions(jeu);
   const nombre =
-    type === 'defis' ? defisRestants() : Math.min(type === 'semaine' ? r.semaine.length : type === 'memoire' ? r.memoire.length : 8, 8);
+    type === 'defis' ? (restants(jeu) ?? 0) : Math.min(type === 'semaine' ? r.semaine.length : type === 'memoire' ? r.memoire.length : 8, 8);
   ui.carteTitre.textContent = apresUneManche ? 'Bravo !' : jeu.titre;
   const texte =
     type === 'libre'
-      ? jeu.type === 'defi'
-        ? 'Les défis du jour sont faits. Tu peux t’entraîner pour le plaisir.'
+      ? restants(jeu) !== null
+        ? `C’est fait pour aujourd’hui. Tu peux t’entraîner pour le plaisir.`
         : 'Tout est révisé ici pour aujourd’hui. Tu peux jouer pour le plaisir.'
       : type === 'defis'
-        ? `${nom('chantier')} te lance ${jeu.unite(nombre)}.`
+        ? jeu.type === 'heure'
+          ? `${nom('horloge')} te pose ${jeu.unite(nombre)}.`
+          : `${nom('chantier')} te lance ${jeu.unite(nombre)}.`
         : type === 'semaine'
           ? `Manche « Cette semaine » : ${jeu.unite(nombre)}.`
           : `Manche « Mémoire » : ${jeu.unite(nombre)} pour ne pas oublier.`;
@@ -516,7 +566,7 @@ function lancerManche(): void {
       : typeManche === 'memoire'
         ? r.memoire
         : typeManche === 'defis'
-          ? elementsDuStand().slice(0, defisRestants())
+          ? elementsDuStand().slice(0, restants(jeu) ?? 0)
           : elementsDuStand();
   ui.construction.hidden = true;
   musique.demarrer();
@@ -601,10 +651,15 @@ function valider(): void {
   const aide = niveauIndice > 0;
   const duree = Math.round(performance.now() - debutQuestion);
 
+  // Le travail fait aujourd'hui, pour savoir quand vient la pause calme.
+  if (reussi && typeManche !== 'libre') journee().faites = (journee().faites ?? 0) + 1;
   if (jeu.type === 'defi') {
     // Un exercice généré n'est pas un élément à retenir : seul le niveau s'adapte.
     sauvegarde.niveauDefis = ajusterNiveau(sauvegarde.niveauDefis, reussi);
     if (reussi && typeManche === 'defis') journee().defis += 1;
+  } else if (jeu.type === 'heure') {
+    sauvegarde.niveauHorloge = ajusterNiveau(sauvegarde.niveauHorloge, reussi);
+    if (reussi && typeManche === 'defis') journee().heures = (journee().heures ?? 0) + 1;
   } else if (typeManche !== 'libre') {
     sauvegarde.etats[e.id] = enregistrer(sauvegarde.etats[e.id] ?? etatNeuf(), {
       jour: aujourdhui(),
@@ -620,7 +675,7 @@ function valider(): void {
     instant: new Date().toISOString(),
     stand: jeu.id,
     manche: typeManche,
-    element: jeu.type === 'defi' ? (defis.exercice()?.id ?? e.id) : e.id,
+    element: jeu.idExercice?.() ?? e.id,
     reponse,
     reussi,
     aide,
@@ -638,7 +693,7 @@ function valider(): void {
     bruitage.reussite();
     manche = avancer(manche, true);
     majProgres();
-    window.setTimeout(suite, 1500);
+    window.setTimeout(() => void suite(), 1500);
     return;
   }
 
@@ -654,18 +709,28 @@ function valider(): void {
   manche = avancer(manche, false);
 }
 
-function suite(): void {
+async function suite(): Promise<void> {
   if (!manche) return;
   if (!mancheFinie(manche)) return poserQuestion();
   // Défi raté deux fois : il a été retiré de la manche. On enchaîne sur un nouveau défi
   // (fabriqué à un niveau plus facile) jusqu'à en réussir 5.
-  if (typeManche === 'defis' && defisRestants() > 0) return lancerManche();
+  if (typeManche === 'defis' && (restants(jeu) ?? 0) > 0) return lancerManche();
   musique.arreter();
   bruitage.finDeManche();
   fete.saluer();
   // Une manche de révision terminée rapporte des tickets ; le jeu libre, non.
   const gain = typeManche === 'semaine' || typeManche === 'memoire' ? TICKETS_PAR_MANCHE : 0;
   if (gain > 0) gagnerTickets(gain);
+  // À la moitié du travail du jour : la pause calme, obligatoire.
+  const j = journee();
+  const forcee = parametres.has('pause') && !j.pause;
+  if (typeManche !== 'libre' && (forcee || pauseDue(j.total ?? 0, j.faites ?? 0, j.pause === true))) {
+    ui.stand.hidden = true;
+    await jouerPause(exerciceDuJour(aujourdhui()), parametres.has('pause-rapide') ? 0.05 : 1);
+    j.pause = true;
+    sauver();
+    ui.stand.hidden = false;
+  }
   mettreAJourPlace();
   montrerCarte(prochaineManche(), true, gain);
   void finDeSeance().then((finie) => {
@@ -678,7 +743,7 @@ function suite(): void {
 
 ui.continuer.addEventListener('click', () => {
   bruitage.touche();
-  suite();
+  void suite();
 });
 ui.carteBouton.addEventListener('click', () => {
   bruitage.touche();

@@ -26,7 +26,13 @@ export interface ElementDefi {
   id: string;
 }
 
-export type Element = ElementCalcul | ElementMot | ElementDefi;
+/** Une place de question de l'horloge, fabriquée elle aussi au moment de la poser. */
+export interface ElementHeure {
+  type: 'heure';
+  id: string;
+}
+
+export type Element = ElementCalcul | ElementMot | ElementDefi | ElementHeure;
 export type TypeContenu = Element['type'];
 
 export interface Contenu {
