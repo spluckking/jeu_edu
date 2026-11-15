@@ -1,7 +1,7 @@
 // Musique calme et discrète pendant les exercices : sinus et triangle, sans batterie,
 // une petite mélodie pentatonique qui se promène sur des accords doux. Tout est fabriqué ici.
 
-import { sortieSon } from './bruitages.ts';
+import { sortieSon, volumes } from './bruitages.ts';
 
 const TEMPO = 76;
 const NOIRE = 60 / TEMPO;
@@ -55,10 +55,10 @@ function programmer(): void {
 export const musique = {
   demarrer(): void {
     const son = sortieSon();
-    if (!son || bus) return;
+    if (!son || bus || volumes.musique <= 0) return;
     bus = son.contexte.createGain();
     bus.gain.setValueAtTime(0.0001, son.contexte.currentTime);
-    bus.gain.exponentialRampToValueAtTime(VOLUME, son.contexte.currentTime + 1.5);
+    bus.gain.exponentialRampToValueAtTime(Math.max(0.0002, VOLUME * volumes.musique), son.contexte.currentTime + 1.5);
     bus.connect(son.volume);
     prochainTemps = son.contexte.currentTime + 0.1;
     pas = 0;

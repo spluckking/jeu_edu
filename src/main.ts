@@ -4,7 +4,7 @@ import '@fontsource/andika/latin-400.css';
 import '@fontsource/andika/latin-700.css';
 import './style.css';
 import * as THREE from 'three';
-import { chargerContenus, type Element, type TypeContenu } from './contenus/contenus.ts';
+import { chargerContenus, lireContenu, type Contenu, type Element, type TypeContenu } from './contenus/contenus.ts';
 import { jourDe, type Jour } from './memoire/jours.ts';
 import {
   avancer,
@@ -13,6 +13,7 @@ import {
   estRattrapage,
   etatNeuf,
   mancheFinie,
+  melanger,
   nouvelleManche,
   revisionsDuJour,
   type ElementSuivi,
@@ -28,7 +29,10 @@ import { creerPeche } from './stands/peche.ts';
 import { jouerDetente } from './detente/jeux.ts';
 import { demanderPrenom } from './ui/prenom.ts';
 import { exerciceDuJour, jouerPause, pauseDue } from './detente/pause.ts';
-import { chargerFeuilleton, episodeDuJour, type Episode } from './histoire/feuilleton.ts';
+import { chargerFeuilleton, episodeDuJour, lireSemaine, type Episode, type Semaine } from './histoire/feuilleton.ts';
+import { ouvrirEspaceParent, porteParent } from './parent/espace.ts';
+import { ordonner, type Preparation } from './reve/preparation.ts';
+import { lireAcces, synchroniser } from './reve/synchro.ts';
 import { lireEpisode } from './histoire/episode.ts';
 import { ajusterNiveau } from './exercices/generateur.ts';
 import {
@@ -37,7 +41,6 @@ import {
   DEFIS_PAR_SEANCE,
   HEURES_PAR_SEANCE,
   PECHES_PAR_SEANCE,
-  TEMPS_DE_JEU,
   journeeNeuve,
   lot,
   LOTS,
@@ -58,8 +61,8 @@ import { chargerHistoires, METIERS, PROPOSITIONS } from './histoire/lecture.ts';
 import { suiviNeuf, type Sauvegarde } from './sauvegarde/format.ts';
 import { ecrireSauvegarde, lireSauvegarde } from './sauvegarde/stockage.ts';
 import { construireFete, type IdStand, type PoseCamera, type Stand } from './scene/fete.ts';
-import { basculerMuet, bruitage, demarrerSon, estMuet } from './son/bruitages.ts';
-import { dire } from './son/voix.ts';
+import { basculerMuet, bruitage, demarrerSon, estMuet, reglerVolumes } from './son/bruitages.ts';
+import { dire, reglerVoix } from './son/voix.ts';
 
 function el<T extends HTMLElement>(id: string): T {
   const trouve = document.getElementById(id);
@@ -94,6 +97,7 @@ const ui = {
   calendrier: el<HTMLOListElement>('calendrier'),
   garderobe: el<HTMLButtonElement>('garderobe'),
   versFond: el<HTMLButtonElement>('vers-fond'),
+  parent: el<HTMLButtonElement>('parent'),
   histoire: el<HTMLButtonElement>('histoire'),
   construction: el<HTMLDivElement>('construction'),
   constructionTexte: el<HTMLParagraphElement>('construction-texte'),
@@ -111,9 +115,9 @@ function aujourdhui(): Jour {
 }
 
 // --- Contenus et sauvegarde ----------------------------------------------------------
-const contenus = chargerContenus();
+const contenusDuDepot = chargerContenus();
+let contenus: Contenu[] = [];
 const elements = new Map<string, Element>();
-for (const contenu of contenus) for (const e of contenu.elements) elements.set(e.id, e);
 
 let sauvegarde: Sauvegarde = await lireSauvegarde();
 let ecriture: Promise<void> = Promise.resolve();
@@ -122,8 +126,18 @@ function sauver(): void {
   ecriture = ecriture.then(() => ecrireSauvegarde(copie)).catch((erreur: unknown) => console.error(erreur));
 }
 
-// Un contenu arrive le jour où la tablette le voit pour la première fois.
-for (const contenu of contenus) sauvegarde.arrivees[contenu.id] ??= aujourdhui();
+/** Les contenus du dépôt, plus les listes ajoutées par le parent sur la tablette. */
+function rechargerContenus(): void {
+  const listes = sauvegarde.listesRapides.flatMap((l) => {
+    const lu = lireContenu({ id: l.id, titre: l.titre, type: 'mots', elements: l.mots.map((mot) => ({ mot })) }, l.titre);
+    return Array.isArray(lu) ? [] : [lu];
+  });
+  contenus = [...contenusDuDepot, ...listes];
+  for (const contenu of contenus) for (const e of contenu.elements) elements.set(e.id, e);
+  // Un contenu arrive le jour où la tablette le voit pour la première fois.
+  for (const contenu of contenus) sauvegarde.arrivees[contenu.id] ??= aujourdhui();
+}
+rechargerContenus();
 sauver();
 
 /** Les éléments suivis d'un type de contenu (chaque stand a le sien). */
@@ -163,10 +177,26 @@ for (let i = 0; i < PECHES_PAR_SEANCE; i++) elements.set(`peche-${i}`, { type: '
 // --- Le feuilleton --------------------------------------------------------------------------
 // Seules les semaines validées par le parent arrivent ; « ?feuilleton-essai » montre aussi
 // celles qui attendent (pour que le parent les lise sur la tablette avant de valider).
-const feuilleton = chargerFeuilleton().map((s) =>
-  new URLSearchParams(location.search).has('feuilleton-essai') ? { ...s, valide: true } : s,
-);
-const episodesValides = feuilleton.filter((s) => s.valide).flatMap((s) => s.episodes);
+// Les semaines proposées par le rêve arrivent par la préparation ; elles ne deviennent visibles
+// qu'une fois validées par le parent dans l'espace parent.
+const feuilletonDuDepot = chargerFeuilleton();
+let feuilleton: Semaine[] = [];
+let episodesValides: Episode[] = [];
+
+function semainesProposees(): Semaine[] {
+  return (sauvegarde.preparation?.feuilleton ?? []).flatMap((brut, i) => {
+    const lu = lireSemaine(brut, `proposition ${i + 1}`);
+    return Array.isArray(lu) || feuilletonDuDepot.some((s) => s.id === lu.id) ? [] : [lu];
+  });
+}
+
+function rechargerFeuilleton(): void {
+  const essai = new URLSearchParams(location.search).has('feuilleton-essai');
+  const proposees = semainesProposees().map((s) => ({ ...s, valide: sauvegarde.validations[s.id] === 'validee' }));
+  feuilleton = [...feuilletonDuDepot, ...proposees].map((s) => (essai ? { ...s, valide: true } : s));
+  episodesValides = feuilleton.filter((s) => s.valide).flatMap((s) => s.episodes);
+}
+rechargerFeuilleton();
 
 /** L'épisode à lire aujourd'hui, ou null s'il a déjà été lu (ou s'il n'y en a plus). */
 function histoireDuJour(): Episode | null {
@@ -190,8 +220,11 @@ const defis = creerDefis({
 for (let i = 0; i < DEFIS_PAR_SEANCE; i++) elements.set(`defi-${i}`, { type: 'defi', id: `defi-${i}` });
 
 const JEUX: JeuDeStand[] = [chamboule, confiserie, defis, standHorloge, standPeche];
+/** Un stand éteint par le parent ne s'allume plus et ne compte plus dans la séance. */
+const eteint = (id: string): boolean => sauvegarde.reglages.standsEteints.includes(id);
 /** Le stand a encore quelque chose à faire dans la séance du jour : il est allumé. */
 const aReviser = (jeu: JeuDeStand): boolean => {
+  if (eteint(jeu.id)) return false;
   const reste = restants(jeu);
   if (reste !== null) return reste > 0;
   const r = revisions(jeu);
@@ -422,6 +455,8 @@ async function finDeSeance(): Promise<boolean> {
     });
   }
   sauver();
+  // La séance du jour est finie : son journal part tout de suite pour le rêve du soir.
+  void echanger();
   return true;
 }
 
@@ -512,7 +547,7 @@ ui.canvas.addEventListener('pointerup', (e) => {
 });
 
 // --- Le temps de jeu ---------------------------------------------------------------------------
-// On compte le temps où le jeu est ouvert et visible. Après TEMPS_DE_JEU minutes dans la
+// On compte le temps où le jeu est ouvert et visible. Après le temps réglé par le parent dans la
 // journée, un forain propose une pause, une seule fois, sans rien couper ni bloquer.
 const PAS_DE_TEMPS = 5;
 window.setInterval(() => {
@@ -520,7 +555,7 @@ window.setInterval(() => {
   const j = journee();
   j.secondes = (j.secondes ?? 0) + PAS_DE_TEMPS;
   if (j.secondes % 30 === 0) sauver();
-  if (j.pauseProposee || j.secondes < TEMPS_DE_JEU * 60) return;
+  if (j.pauseProposee || j.secondes < sauvegarde.reglages.tempsDeJeu * 60) return;
   // On attend un moment calme : pas au milieu d'une question ni d'une cinématique.
   if (enCinema || enMarche || (dansUnStand && !ui.exercice.hidden)) return;
   j.pauseProposee = true;
@@ -567,6 +602,10 @@ ui.versFond.addEventListener('click', () => {
 function toucherStand(stand: Stand): void {
   bruitage.touche();
   zone = stand.approche.z < LIMITE_FOND ? 'fond' : 'place';
+  if (eteint(stand.id)) {
+    parler('Ce stand est fermé pour le moment.');
+    return;
+  }
   const jeu = JEUX.find((j) => j.id === stand.id);
   if (!jeu) {
     // Un stand de détente : jeu libre, sans manche ni mémoire.
@@ -703,7 +742,10 @@ function lancerManche(): void {
           : elementsDuStand();
   ui.construction.hidden = true;
   musique.demarrer();
-  manche = nouvelleManche(ids, Math.random);
+  // Le rêve peut demander de faire passer certains éléments en premier (ceux qui résistent).
+  const focus = sauvegarde.preparation?.focus ?? [];
+  const choisis = focus.length > 0 ? ordonner(melanger(ids, Math.random), focus).slice(0, 8) : ids;
+  manche = nouvelleManche(choisis, Math.random);
   ui.carte.hidden = true;
   ui.exercice.hidden = false;
   ui.mancheNom.textContent = NOMS[typeManche];
@@ -930,11 +972,11 @@ ui.son.addEventListener('click', () => {
 const histoires = chargerHistoires();
 const parametres = new URLSearchParams(location.search);
 
-async function introduction(): Promise<void> {
+async function introduction(forcer = false): Promise<void> {
   const histoire = histoires.get('introduction');
   if (!histoire) return;
   const suivi = (sauvegarde.lectures.introduction ??= suiviNeuf());
-  if (suivi.reussie && !parametres.has('intro')) return;
+  if (suivi.reussie && !forcer && !parametres.has('intro')) return;
   enCinema = true;
   ui.bulle.hidden = true;
   // Sans visiteurs : ils passeraient devant la caméra.
@@ -974,9 +1016,75 @@ ui.entrer.addEventListener('click', async () => {
   ui.entree.hidden = true;
   await introduction();
   parler(messageDeLaPlace());
+  void echanger();
 });
 
-// Si la tablette reste ouverte d'un jour à l'autre, la place se remet à jour.
+// --- L'échange avec le dépôt privé et le rêve -------------------------------------------------
+let echangeEnCours = false;
+
+/** Applique une préparation nouvelle : les niveaux conseillés par le rêve, puis le reste à la demande. */
+function appliquerPreparation(p: Preparation): void {
+  const neuf = { reussitesDeSuite: 0, erreursDeSuite: 0 };
+  if (p.niveaux.defis) sauvegarde.niveauDefis = { niveau: p.niveaux.defis, ...neuf };
+  if (p.niveaux.horloge) sauvegarde.niveauHorloge = { niveau: p.niveaux.horloge, ...neuf };
+  if (p.niveaux.peche) sauvegarde.niveauPeche = { niveau: p.niveaux.peche, ...neuf };
+  sauvegarde.preparation = p;
+  rechargerFeuilleton();
+}
+
+/** Un échange avec le dépôt privé, s'il y a une clé et du réseau ; renvoie un message pour le parent. */
+async function echanger(): Promise<string> {
+  const acces = lireAcces();
+  if (!acces) return 'Pas de clé enregistrée : aucun échange.';
+  if (!navigator.onLine) return 'Pas de réseau : l’échange se fera plus tard.';
+  if (echangeEnCours) return 'Un échange est déjà en cours.';
+  echangeEnCours = true;
+  try {
+    const r = await synchroniser(sauvegarde, acces, aujourdhui());
+    sauvegarde.synchro = { derniere: new Date().toISOString() };
+    if (r.preparation && r.preparation.jour !== sauvegarde.preparation?.jour) appliquerPreparation(r.preparation);
+    else if (r.preparation) sauvegarde.preparation = { ...r.preparation };
+    sauver();
+    majHud();
+    return `Échange réussi : ${r.envoyes} fichier${r.envoyes > 1 ? 's' : ''} déposé${r.envoyes > 1 ? 's' : ''}${r.preparation ? ', préparation reçue' : ''}.`;
+  } catch (erreur) {
+    const message = erreur instanceof Error ? erreur.message : 'Échange impossible.';
+    sauvegarde.synchro = { ...sauvegarde.synchro, probleme: message };
+    sauver();
+    return message;
+  } finally {
+    echangeEnCours = false;
+  }
+}
+
+// --- Réglages du parent ------------------------------------------------------------------------
+function appliquerReglages(): void {
+  reglerVolumes(sauvegarde.reglages.volumeBruitages, sauvegarde.reglages.volumeMusique);
+  reglerVoix(sauvegarde.reglages.vitesseVoix);
+  rechargerContenus();
+  rechargerFeuilleton();
+  sauver();
+  mettreAJourPlace();
+}
+appliquerReglages();
+
+porteParent(ui.parent, () => {
+  if (dansUnStand || enCinema || enMarche) return;
+  void ouvrirEspaceParent({
+    sauvegarde: () => sauvegarde,
+    sauver,
+    jour: aujourdhui(),
+    stands: JEUX.map((j) => ({ id: j.id, titre: j.titre })),
+    propositions: () => semainesProposees().filter((s) => !sauvegarde.validations[s.id]),
+    appliquer: appliquerReglages,
+    synchroniser: echanger,
+    rejouerIntroduction: () => void introduction(true).then(() => parler(messageDeLaPlace())),
+  });
+});
+
+// Si la tablette reste ouverte d'un jour à l'autre, la place se remet à jour ; quand on quitte
+// le jeu, le journal part au dépôt privé pour le rêve du soir.
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible' && !dansUnStand) mettreAJourPlace();
+  if (document.visibilityState === 'hidden') void echanger();
 });

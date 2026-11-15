@@ -26,6 +26,14 @@ export function demarrerSon(): void {
   if (contexte.state === 'suspended') void contexte.resume();
 }
 
+/** Volumes séparés réglés par le parent (0 à 1). */
+export const volumes = { bruitages: 1, musique: 1 };
+
+export function reglerVolumes(bruitages: number, musique: number): void {
+  volumes.bruitages = Math.max(0, Math.min(1, bruitages));
+  volumes.musique = Math.max(0, Math.min(1, musique));
+}
+
 /** La sortie son commune (null tant que l'enfant n'a pas touché l'écran). Le muet y coupe tout. */
 export function sortieSon(): { contexte: AudioContext; volume: GainNode } | null {
   return contexte && volume ? { contexte, volume } : null;
@@ -48,8 +56,9 @@ export function basculerMuet(): boolean {
 }
 
 /** Une note douce : attaque rapide, extinction en douceur. */
-function note(frequence: number, debut: number, duree: number, force = 0.25, forme: OscillatorType = 'sine'): void {
-  if (!contexte || !volume) return;
+function note(frequence: number, debut: number, duree: number, forceDemandee = 0.25, forme: OscillatorType = 'sine'): void {
+  if (!contexte || !volume || volumes.bruitages <= 0) return;
+  const force = Math.max(0.0002, forceDemandee * volumes.bruitages);
   const t = contexte.currentTime + debut;
   const oscillateur = contexte.createOscillator();
   const enveloppe = contexte.createGain();
@@ -64,8 +73,9 @@ function note(frequence: number, debut: number, duree: number, force = 0.25, for
 }
 
 /** Un souffle de bruit filtré (balle qui part, boîtes qui tombent). */
-function souffle(debut: number, duree: number, frequence: number, force: number, glisse = 1): void {
-  if (!contexte || !volume) return;
+function souffle(debut: number, duree: number, frequence: number, forceDemandee: number, glisse = 1): void {
+  if (!contexte || !volume || volumes.bruitages <= 0) return;
+  const force = Math.max(0.0002, forceDemandee * volumes.bruitages);
   const t = contexte.currentTime + debut;
   const echantillons = Math.ceil(contexte.sampleRate * duree);
   const tampon = contexte.createBuffer(1, echantillons, contexte.sampleRate);
