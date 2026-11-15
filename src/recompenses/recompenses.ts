@@ -8,11 +8,19 @@ export const BONUS_SEANCE = 2;
 export const PRIX_PIECE = 8;
 export const PIECES_ROUE = 10;
 export const DEFIS_PAR_SEANCE = 5;
+export const HEURES_PAR_SEANCE = 4;
 
 /** Ce que l'enfant a fait un jour donné. */
 export interface Journee {
-  /** Défis du chantier réussis ou tentés jusqu'au bout aujourd'hui. */
+  /** Défis du chantier réussis aujourd'hui. */
   defis: number;
+  /** Questions de l'horloge réussies aujourd'hui (absent dans les journées d'avant l'horloge). */
+  heures?: number;
+  /** Travail du jour compté à la première ouverture (révisions + exercices), et fait. */
+  total?: number;
+  faites?: number;
+  /** La pause calme du jour a été prise. */
+  pause?: boolean;
   ticketsGagnes: number;
   /** La séance du jour est finie (le bonus est donné une fois). */
   finie: boolean;
@@ -21,7 +29,7 @@ export interface Journee {
 }
 
 export function journeeNeuve(): Journee {
-  return { defis: 0, ticketsGagnes: 0, finie: false, lotChoisi: false };
+  return { defis: 0, heures: 0, ticketsGagnes: 0, finie: false, lotChoisi: false };
 }
 
 // --- Lots -------------------------------------------------------------------------------

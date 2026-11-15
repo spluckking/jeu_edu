@@ -7,7 +7,7 @@ import type { Jour } from '../memoire/jours.ts';
 import type { EtatElement } from '../memoire/moteur.ts';
 import { garderobeNeuve, type Garderobe, type Journee } from '../recompenses/recompenses.ts';
 
-export const VERSION = 3;
+export const VERSION = 4;
 
 /** Une ligne du journal. Jamais de prénom. */
 export interface EntreeJournal {
@@ -48,6 +48,8 @@ export interface Sauvegarde {
   garderobe: Garderobe;
   /** Niveau des défis du chantier (exercices générés). */
   niveauDefis: Niveau;
+  /** Niveau des questions de l'horloge. */
+  niveauHorloge: Niveau;
   journees: Record<Jour, Journee>;
 }
 
@@ -59,7 +61,16 @@ function recompensesNeuves(): Pick<Sauvegarde, 'tickets' | 'roue' | 'garderobe' 
 }
 
 export function sauvegardeNeuve(): Sauvegarde {
-  return { version: VERSION, arrivees: {}, etats: {}, journal: [], forains: {}, lectures: {}, ...recompensesNeuves() };
+  return {
+    version: VERSION,
+    arrivees: {},
+    etats: {},
+    journal: [],
+    forains: {},
+    lectures: {},
+    ...recompensesNeuves(),
+    niveauHorloge: niveauDeDepart(),
+  };
 }
 
 export function suiviNeuf(): SuiviLecture {
@@ -75,6 +86,8 @@ export function migrer(brut: unknown): Sauvegarde {
   if (s.version === 1) s = { ...s, version: 2, forains: {}, lectures: {} };
   // Version 2 → 3 : tickets, grande roue, lots, niveau des défis, journées.
   if (s.version === 2) s = { ...s, version: 3, ...recompensesNeuves() };
+  // Version 3 → 4 : le niveau des questions de l'horloge.
+  if (s.version === 3) s = { ...s, version: 4, niveauHorloge: niveauDeDepart() };
   if (s.version === VERSION) return s as unknown as Sauvegarde;
   // Une version plus récente que ce code : on refuse plutôt que d'écraser des données.
   throw new Error(`Version de sauvegarde inconnue : ${String(s.version)}`);

@@ -152,6 +152,19 @@ export function creerPersonne(atelier: Atelier, parent: THREE.Object3D, allure: 
       }
       break;
     }
+    case 4: {
+      // Chignon et lunettes rondes (l'horlogère).
+      cheveuxDessus();
+      pose([0.42, 0.42, 0.42], [0, 2.5, -0.28], allure.cheveux, { forme: 'boule' });
+      // Montures carrées autour des yeux, sans les cacher.
+      for (const cote of [-1, 1]) {
+        const x = cote * 0.19;
+        for (const y of [2.09, 1.82]) pose([0.3, 0.035, 0.04], [x, y, profondeur(x, y) + 0.04], sombre);
+        for (const dx of [-0.15, 0.15]) pose([0.035, 0.3, 0.04], [x + dx, 1.955, profondeur(x + dx, 1.955) + 0.04], sombre);
+      }
+      pose([0.1, 0.035, 0.04], [0, 2.0, profondeur(0, 2.0) + 0.06], sombre);
+      break;
+    }
     default: {
       calotte([1.02, 0.34, 0.98], 2.26, 'casquette');
       pose([0.56, 0.07, 0.38], [0, 2.3, 0.58], ombree('casquette'), { forme: 'tube' });

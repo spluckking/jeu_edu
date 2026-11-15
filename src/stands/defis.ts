@@ -55,5 +55,6 @@ export function creerDefis(source: SourceDefis): JeuDeStand & { exercice(): Exer
       fete.saluerForain('chantier');
     },
     exercice: () => courant,
+    idExercice: () => courant?.id ?? null,
   };
 }

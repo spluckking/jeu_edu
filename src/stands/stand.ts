@@ -36,6 +36,8 @@ export interface JeuDeStand {
   indice(element: Element, niveau: number): string | null;
   /** Bonne réponse : la réaction dans la scène. */
   reussite(fete: Fete): void;
+  /** Exercice fabriqué par le jeu : son identifiant pour le journal (modèle et valeurs). */
+  idExercice?(): string | null;
 }
 
 /** Une touche de clavier en bouton : chiffre, lettre, ou icône (effacer, valider). */

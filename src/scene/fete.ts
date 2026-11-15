@@ -1,10 +1,11 @@
 // La place de la fête foraine : décor, stands, chantier, personnage et visiteurs.
 
 import * as THREE from 'three';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { AMPOULES, Atelier, COULEURS, type Peinture, type Vec3 } from './atelier.ts';
 import { creerPersonne, type Allure, type Personne } from './personne.ts';
 
-export type IdStand = 'chamboule' | 'confiserie' | 'chantier';
+export type IdStand = 'chamboule' | 'confiserie' | 'chantier' | 'horloge';
 
 export interface Stand {
   id: IdStand;
@@ -402,17 +403,90 @@ export function construireFete(tenue = 0): Fete {
     });
   }
 
+  // --- L'horloge : lire l'heure et se repérer dans la journée --------------------------
+  /** Un cadran à aiguilles ; si vraie, il montre l'heure réelle de la tablette. */
+  function cadran(parent: THREE.Object3D, position: Vec3, rayon: number, vraie: boolean): void {
+    f(parent, [rayon * 2.2, rayon * 2.2, 0.16], position, 'enseigne', { forme: 'disque' });
+    f(parent, [rayon * 2, rayon * 2, 0.2], position, 'blanc', { forme: 'disque' });
+    for (let i = 0; i < 12; i++) {
+      const a = (i * Math.PI) / 6;
+      const long = i % 3 === 0 ? 0.22 : 0.12;
+      f(parent, [0.05 * rayon * 2, long * rayon, 0.05], [position[0] + Math.sin(a) * rayon * 0.8, position[1] + Math.cos(a) * rayon * 0.8, position[2] + 0.11], 'sombre', { rz: -a });
+    }
+    const petite = atelier.mobile(parent, [position[0], position[1], position[2] + 0.14]);
+    f(petite, [0.09 * rayon * 1.6, rayon * 0.5, 0.04], [0, rayon * 0.22, 0], 'sombre');
+    const grande = atelier.mobile(parent, [position[0], position[1], position[2] + 0.17]);
+    f(grande, [0.06 * rayon * 1.6, rayon * 0.78, 0.04], [0, rayon * 0.36, 0], 'rouge');
+    f(parent, [rayon * 0.16, rayon * 0.16, 0.08], [position[0], position[1], position[2] + 0.2], 'or', { forme: 'disque' });
+    const decalage = vraie ? 0 : 2.6;
+    animations.push(() => {
+      const d = new Date();
+      const minutes = d.getMinutes() + d.getSeconds() / 60;
+      const heures = (d.getHours() % 12) + minutes / 60 + decalage;
+      grande.rotation.z = -(minutes / 60) * Math.PI * 2;
+      petite.rotation.z = -(heures / 12) * Math.PI * 2;
+    });
+  }
+
+  function garnirHorloge(g: THREE.Group): void {
+    // La grande horloge de la fête, au-dessus de l'enseigne : elle donne l'heure vraie.
+    for (const sx of [-0.5, 0.5]) f(g, [0.14, 1.2, 0.14], [sx, 5.1, 0.6], 'poteau', { forme: 'tube' });
+    cadran(g, [0, 5.75, 0.62], 0.75, true);
+    // Au fond, des réveils sur une étagère, et un sablier sur le comptoir.
+    f(g, [3.2, 0.12, 0.5], [0, 2.3, -1.15], 'bois');
+    [-1.1, 0, 1.1].forEach((x, i) => {
+      f(g, [0.62, 0.62, 0.3], [x, 2.72, -1.1], (['bonbon1', 'bonbon2', 'bonbon3'] as const)[i] ?? 'bonbon1', { forme: 'tube', rx: Math.PI / 2 });
+      f(g, [0.5, 0.5, 0.05], [x, 2.72, -0.94], 'blanc', { forme: 'disque' });
+      for (const c of [-1, 1]) f(g, [0.16, 0.16, 0.16], [x + c * 0.2, 3.08, -1.1], 'or', { forme: 'boule' });
+    });
+    f(g, [0.34, 0.06, 0.34], [1.3, 1.19, 1.3], 'bois', { forme: 'tube' });
+    f(g, [0.26, 0.3, 0.26], [1.3, 1.38, 1.3], 0xffe8a0, { forme: 'boule' });
+    f(g, [0.26, 0.3, 0.26], [1.3, 1.66, 1.3], 0xdff4ff, { forme: 'boule' });
+    f(g, [0.34, 0.06, 0.34], [1.3, 1.85, 1.3], 'bois', { forme: 'tube' });
+    forain('horloge', g, { maillot: 0x6fc7c0, pantalon: 0x5b4a7a, cheveux: 0xb9b2c8, tenue: 4, objets: false }, [-0.4, 0, -0.35], 0.15);
+    vueLocale('horloge', g, [-0.2, 2.6, 6.2], [-0.3, 2.4, 0]);
+    repere('horloge', g, 7.3);
+    g.updateMatrixWorld(true);
+    vuesStand.horloge = {
+      position: new THREE.Vector3(2.9, 3.9, 10.5).applyMatrix4(g.matrixWorld),
+      cible: new THREE.Vector3(2.5, 2.4, 0.2).applyMatrix4(g.matrixWorld),
+    };
+  }
+
   // --- Chantier : la grande roue à venir ----------------------------------------
-  const piecesRoue: THREE.Mesh[] = [];
+  const piecesRoue: Array<{ parent: THREE.Object3D; geometrie: THREE.BufferGeometry }> = [];
+  const maillagesRoue: THREE.Mesh[] = [];
+  const roueFantome = atelier.materiau(
+    new THREE.MeshBasicMaterial({ color: COULEURS.fantome, transparent: true, opacity: 0.3, depthWrite: false }),
+  );
+  const roueConstruite = atelier.materiau(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.55 }));
   let roueFinie = false;
   let vitesseRoue = 0.15;
   /** n pièces sur 10 : les montants, puis les rayons, puis les cabines. */
   function construireRoue(n: number, sur: number): void {
+    for (const m of maillagesRoue) {
+      m.removeFromParent();
+      m.geometry.dispose();
+    }
+    maillagesRoue.length = 0;
     const visibles = Math.round((piecesRoue.length * Math.max(0, Math.min(n, sur))) / sur);
-    piecesRoue.forEach((m, i) => {
-      m.userData.fantome ??= m.material;
-      m.material = (i < visibles ? m.userData.construite : m.userData.fantome) as THREE.Material;
+    // Un maillage par groupe (montants fixes, roue qui tourne) et par état.
+    const paquets = new Map<string, { parent: THREE.Object3D; construite: boolean; geometries: THREE.BufferGeometry[] }>();
+    piecesRoue.forEach((p, i) => {
+      const construite = i < visibles;
+      const cle = `${p.parent.id}-${construite}`;
+      const paquet = paquets.get(cle) ?? { parent: p.parent, construite, geometries: [] };
+      paquet.geometries.push(p.geometrie);
+      paquets.set(cle, paquet);
     });
+    for (const { parent, construite, geometries } of paquets.values()) {
+      const fusion = mergeGeometries(geometries);
+      if (!fusion) continue;
+      const m = new THREE.Mesh(fusion, construite ? roueConstruite : roueFantome);
+      m.userData.garder = true;
+      parent.add(m);
+      maillagesRoue.push(m);
+    }
     roueFinie = n >= sur;
   }
   function chantier(x: number, z: number, ry: number): void {
@@ -431,30 +505,26 @@ export function construireFete(tenue = 0): Fete {
     ampoule(g, [-2.95, 3.72, 2.3]);
     ampoule(g, [-1.45, 3.72, 2.3]);
 
-    const fantome = atelier.materiau(
-      new THREE.MeshBasicMaterial({ color: COULEURS.fantome, transparent: true, opacity: 0.3, depthWrite: false }),
-    );
-    // Chaque pièce garde son propre maillage : elle passe de fantôme à construite.
-    const solide = (couleur: number): THREE.Material =>
-      atelier.materiau(new THREE.MeshStandardMaterial({ color: couleur, roughness: 0.55 }));
+    // Les pièces sont gardées comme géométries ; construireRoue les regroupe en quelques
+    // maillages (fantômes / construites) pour rester sous le budget d'appels de dessin.
     const couleursCabines = [COULEURS.bonbon1, COULEURS.bonbon2, COULEURS.enseigne, COULEURS.bonbon3];
-    const piece = (parent: THREE.Object3D, taille: Vec3, position: Vec3, construite: THREE.Material, rz = 0): void => {
-      const m = new THREE.Mesh(atelier.suivre(new THREE.BoxGeometry(...taille)), fantome);
-      m.position.set(...position);
-      m.rotation.z = rz;
-      m.userData.garder = true;
-      m.userData.construite = construite;
-      parent.add(m);
-      piecesRoue.push(m);
+    const piece = (parent: THREE.Object3D, taille: Vec3, position: Vec3, couleur: number, rz = 0): void => {
+      const geometrie = new THREE.BoxGeometry(...taille);
+      geometrie.rotateZ(rz);
+      geometrie.translate(...position);
+      const c = new THREE.Color(couleur);
+      const nombre = geometrie.getAttribute('position').count;
+      geometrie.setAttribute('color', new THREE.Float32BufferAttribute(Array.from({ length: nombre }, () => [c.r, c.g, c.b]).flat(), 3));
+      piecesRoue.push({ parent, geometrie: atelier.suivre(geometrie) });
     };
-    const metal = solide(0xe8e2f2);
+    const metal = 0xe8e2f2;
     piece(g, [0.26, 4.5, 0.26], [0.75, 2.1, -0.5], metal, 0.343);
     piece(g, [0.26, 4.5, 0.26], [-0.75, 2.1, -0.5], metal, -0.343);
     const roue = atelier.mobile(g, [0, 4.2, -0.5]);
     for (let i = 0; i < 6; i++) piece(roue, [5.8, 0.12, 0.12], [0, 0, 0], metal, (i * Math.PI) / 6);
     for (let i = 0; i < 12; i++) {
       const a = (i * Math.PI) / 6;
-      piece(roue, [0.62, 0.62, 0.5], [Math.cos(a) * 2.9, Math.sin(a) * 2.9, 0], solide(couleursCabines[i % 4] ?? 0xffffff));
+      piece(roue, [0.62, 0.62, 0.5], [Math.cos(a) * 2.9, Math.sin(a) * 2.9, 0], couleursCabines[i % 4] ?? 0xffffff);
     }
     animations.push((temps, delta) => {
       // Elle tourne doucement en chantier, franchement une fois finie.
@@ -541,13 +611,14 @@ export function construireFete(tenue = 0): Fete {
   // --- Assemblage -------------------------------------------------------------
   stand('confiserie', -6.6, -1.5, 0.5, garnirConfiserie);
   stand('chamboule', 0, -5, 0, garnirChamboule);
+  stand('horloge', -11.6, 1.2, 0.8, garnirHorloge);
   chantier(6.9, -1.5, -0.5);
   chapiteau(-14, -16);
   chapiteau(1, -20);
   chapiteau(15, -16);
   arbre(-12, -7, 1.1);
   arbre(12.5, -8, 1.2);
-  arbre(-14, 2.5, 1);
+  arbre(-16, 6, 1);
   arbre(14, 3, 0.9);
   arbre(-6.5, -13, 1.3);
   arbre(7.5, -13.5, 1.15);
@@ -697,11 +768,13 @@ export function construireFete(tenue = 0): Fete {
     racine,
     stands,
     vues: {
-      place: { position: new THREE.Vector3(0, 7.2, 17.5), cible: new THREE.Vector3(0, 2.2, -1.5) },
+      // Assez large pour voir les quatre stands, horloge comprise.
+      place: { position: new THREE.Vector3(-1.6, 8.6, 21.5), cible: new THREE.Vector3(-1.6, 2.2, -2) },
       // Assez bas pour voir la pyramide sous la toile du stand.
       chamboule: { position: new THREE.Vector3(3.1, 2.9, 5.2), cible: new THREE.Vector3(1.4, 2.5, -4.8) },
       confiserie: vuesStand.confiserie ?? { position: new THREE.Vector3(), cible: new THREE.Vector3() },
       chantier: vuesStand.chantier ?? { position: new THREE.Vector3(), cible: new THREE.Vector3() },
+      horloge: vuesStand.horloge ?? { position: new THREE.Vector3(), cible: new THREE.Vector3() },
     },
     construireRoue,
     habiller,
@@ -714,6 +787,7 @@ export function construireFete(tenue = 0): Fete {
       chamboule: vuesForain.chamboule ?? { position: new THREE.Vector3(), cible: new THREE.Vector3() },
       confiserie: vuesForain.confiserie ?? { position: new THREE.Vector3(), cible: new THREE.Vector3() },
       chantier: vuesForain.chantier ?? { position: new THREE.Vector3(), cible: new THREE.Vector3() },
+      horloge: vuesForain.horloge ?? { position: new THREE.Vector3(), cible: new THREE.Vector3() },
     },
     saluerForain(id) {
       if (finsDeSalut.has(id)) finsDeSalut.set(id, maintenant + DUREE_SALUT);

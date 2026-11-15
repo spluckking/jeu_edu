@@ -186,7 +186,10 @@ LES EXERCICES GÉNÉRÉS
 LA DÉTENTE
 - Des moments de calme guidés, adaptés à son âge : respiration en cohérence cardiaque
   (un ballon qui gonfle et dégonfle), pleine conscience courte (écouter les sons de la
-  fête, sentir son corps). Quelques minutes, jamais obligatoires, jamais notés.
+  fête, sentir son corps). Jamais notés.
+- Pause calme obligatoire au milieu de la séance du jour : quand la moitié du travail
+  du jour est faite, à la fin de la manche en cours, environ une minute et demie. Les
+  deux exercices alternent d'un jour à l'autre.
 
 LES FORAINS ET LES HISTOIRES
 - Chaque stand et chaque chantier a son forain. L'enfant leur donne un prénom pendant
