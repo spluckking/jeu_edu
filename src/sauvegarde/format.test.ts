@@ -11,6 +11,11 @@ describe('migrations de la sauvegarde', () => {
     expect(migrer(structuredClone(sauvegarde))).toEqual(sauvegarde);
   });
 
+  it('une sauvegarde de version 2 garde prénoms et lectures, et démarre sans ticket', () => {
+    const v2 = { version: 2, arrivees: {}, etats: {}, journal: [], forains: { chamboule: 'Léon' }, lectures: {} };
+    expect(migrer(v2)).toEqual({ ...sauvegardeNeuve(), forains: { chamboule: 'Léon' } });
+  });
+
   it('une sauvegarde de version 1 garde sa progression et reçoit les prénoms et lectures', () => {
     const v1 = { version: 1, arrivees: { essai: '2026-11-14' }, etats: {}, journal: [] };
     expect(migrer(v1)).toEqual({ ...sauvegardeNeuve(), arrivees: { essai: '2026-11-14' } });

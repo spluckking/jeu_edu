@@ -75,7 +75,7 @@ L'ensemble des éléments dont la semaine prioritaire est passée. Ils reviennen
 _Avoid_ : fonds, stock, pile, anciens contenus
 
 **Exercice généré** :
-Un exercice que le jeu fabrique lui-même à partir de règles (calcul, problème, logique), au niveau début de CE2. Il ne vient pas d'un contenu et n'est pas un élément à retenir.
+Un exercice que le jeu fabrique lui-même à partir de règles (calcul, problème, logique), au niveau début de CE2. Il ne vient pas d'un contenu et n'est pas un élément à retenir. Dans la séance du jour, ce sont les défis du forain du chantier.
 _Avoid_ : exercice aléatoire, question automatique
 
 ### La lecture

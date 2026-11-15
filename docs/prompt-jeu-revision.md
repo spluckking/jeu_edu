@@ -179,6 +179,14 @@ LES EXERCICES GÉNÉRÉS
   fois. Niveau début de CE2, puis adaptatif : plus dur après 3 réussites, plus facile
   après 2 erreurs.
 - Les problèmes font partie de la séance du jour. Logique et dextérité relèvent du jeu libre.
+- À venir, toujours adaptés à son âge : exercices de la vie courante (lire l'heure, se
+  repérer dans la journée et la semaine, monnaie, mesures), petites questions de logique,
+  de mécanique et de sciences du quotidien.
+
+LA DÉTENTE
+- Des moments de calme guidés, adaptés à son âge : respiration en cohérence cardiaque
+  (un ballon qui gonfle et dégonfle), pleine conscience courte (écouter les sons de la
+  fête, sentir son corps). Quelques minutes, jamais obligatoires, jamais notés.
 
 LES FORAINS ET LES HISTOIRES
 - Chaque stand et chaque chantier a son forain. L'enfant leur donne un prénom pendant
@@ -201,6 +209,12 @@ LES RÉCOMPENSES
 - Lots : gagnés avec les exercices générés de la séance du jour. Ils personnalisent le
   personnage ; l'enfant les choisit dans une vitrine.
 - Un calendrier de la semaine montre sa régularité, sans rien qui se perde.
+- Barème retenu : 3 tickets par manche terminée (« Cette semaine » ou « Mémoire »), 2 de
+  plus quand la séance du jour est finie ; jamais par bonne réponse. La grande roue compte
+  10 pièces à 8 tickets (environ deux semaines de séances régulières).
+- Exercices générés : 5 par séance, les défis du forain du chantier (additions,
+  soustractions, problèmes d'une phrase), niveau adaptatif. Une séance finie donne un lot
+  à choisir dans la vitrine : tenue ou couleur du personnage.
 
 LE POSITIONNEMENT
 Pendant les premiers jours, le jeu découvre ce que l'enfant sait déjà et comment il tient

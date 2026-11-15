@@ -22,6 +22,26 @@ import {
 import { chamboule } from './stands/chamboule.ts';
 import { confiserie } from './stands/confiserie.ts';
 import type { JeuDeStand } from './stands/stand.ts';
+import { creerDefis } from './stands/defis.ts';
+import { ajusterNiveau } from './exercices/generateur.ts';
+import {
+  BONUS_SEANCE,
+  choisirLot,
+  DEFIS_PAR_SEANCE,
+  journeeNeuve,
+  lot,
+  LOTS,
+  peutConstruire,
+  PIECES_ROUE,
+  porter,
+  PRIX_PIECE,
+  semaineDe,
+  TICKETS_PAR_MANCHE,
+  type Garderobe,
+  type Journee,
+} from './recompenses/recompenses.ts';
+import { ouvrirVitrine } from './ui/vitrine.ts';
+import { musique } from './son/musique.ts';
 import { jouerIntroduction } from './histoire/introduction.ts';
 import { chargerHistoires, METIERS, PROPOSITIONS } from './histoire/lecture.ts';
 import { suiviNeuf, type Sauvegarde } from './sauvegarde/format.ts';
@@ -58,6 +78,14 @@ const ui = {
   correction: el<HTMLParagraphElement>('correction'),
   clavier: el<HTMLDivElement>('clavier'),
   continuer: el<HTMLButtonElement>('continuer'),
+  ticketsNombre: el<HTMLSpanElement>('tickets-nombre'),
+  tickets: el<HTMLParagraphElement>('tickets'),
+  calendrier: el<HTMLOListElement>('calendrier'),
+  garderobe: el<HTMLButtonElement>('garderobe'),
+  construction: el<HTMLDivElement>('construction'),
+  constructionTexte: el<HTMLParagraphElement>('construction-texte'),
+  constructionPieces: el<HTMLOListElement>('construction-pieces'),
+  construire: el<HTMLButtonElement>('construire'),
   entree: el<HTMLDivElement>('entree'),
   entrer: el<HTMLButtonElement>('entrer'),
 };
@@ -101,8 +129,27 @@ function revisions(jeu: JeuDeStand): Revisions {
   return revisionsDuJour(aujourdhui(), suivis(jeu.type), sauvegarde.etats);
 }
 
-const JEUX: JeuDeStand[] = [chamboule, confiserie];
+// --- La séance du jour ----------------------------------------------------------------------
+function journee(): Journee {
+  return (sauvegarde.journees[aujourdhui()] ??= journeeNeuve());
+}
+const defisRestants = (): number => Math.max(0, DEFIS_PAR_SEANCE - journee().defis);
+
+const defis = creerDefis({
+  niveau: () => sauvegarde.niveauDefis.niveau,
+  gens: () => [
+    { nom: nom('chamboule'), feminin: false, objets: 'ballons' },
+    { nom: nom('confiserie'), feminin: true, objets: 'bonbons' },
+    { nom: nom('chantier'), feminin: false, objets: 'boulons' },
+  ],
+});
+// Les places des défis : l'exercice est fabriqué au moment de le poser.
+for (let i = 0; i < DEFIS_PAR_SEANCE; i++) elements.set(`defi-${i}`, { type: 'defi', id: `defi-${i}` });
+
+const JEUX: JeuDeStand[] = [chamboule, confiserie, defis];
+/** Le stand a encore quelque chose à faire dans la séance du jour : il est allumé. */
 const aReviser = (jeu: JeuDeStand): boolean => {
+  if (jeu.type === 'defi') return defisRestants() > 0;
   const r = revisions(jeu);
   return r.semaine.length + r.memoire.length > 0;
 };
@@ -207,16 +254,139 @@ function nom(id: IdStand): string {
 const LIEU: Record<IdStand, string> = { chamboule: 'au chamboule-tout', confiserie: 'à la confiserie', chantier: 'au chantier' };
 
 function messageDeLaPlace(): string {
-  const allumes = JEUX.filter(aReviser);
-  const [premier, second] = allumes;
-  if (!premier) return 'Tout est révisé pour aujourd’hui. Tu peux jouer librement !';
-  if (!second) return `Va ${LIEU[premier.id]}, ${nom(premier.id)} t’attend !`;
-  return `${nom(premier.id)} et ${nom(second.id)} t’attendent : leurs stands brillent !`;
+  const allumes = JEUX.filter(aReviser).map((j) => j.id);
+  const [premier] = allumes;
+  if (!premier) return 'Séance finie pour aujourd’hui. Tu peux jouer librement !';
+  if (allumes.length === 1) return `Va ${LIEU[premier]}, ${nom(premier)} t’attend !`;
+  const noms = allumes.map(nom);
+  return `${noms.slice(0, -1).join(', ')} et ${noms.at(-1) ?? ''} t’attendent : leurs stands brillent !`;
 }
 
 function mettreAJourPlace(): void {
   for (const jeu of JEUX) fete.allumer(jeu.id, aReviser(jeu));
+  majHud();
 }
+
+// --- Tickets, calendrier, lots ---------------------------------------------------------------
+const JOURS_COURTS = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
+
+function majHud(): void {
+  ui.ticketsNombre.textContent = String(sauvegarde.tickets);
+  const jour = aujourdhui();
+  ui.calendrier.replaceChildren(
+    ...semaineDe(jour).map((j, i) => {
+      const li = document.createElement('li');
+      li.textContent = JOURS_COURTS[i] ?? '';
+      if (sauvegarde.journees[j]?.finie) li.classList.add('fait');
+      if (j === jour) li.classList.add('aujourdhui');
+      return li;
+    }),
+  );
+}
+
+function gagnerTickets(nombre: number): void {
+  sauvegarde.tickets += nombre;
+  journee().ticketsGagnes += nombre;
+  sauver();
+  majHud();
+  ui.tickets.classList.remove('gagne');
+  void ui.tickets.offsetWidth;
+  ui.tickets.classList.add('gagne');
+}
+
+function habiller(g: Garderobe): void {
+  const tenue = lot(g.porte.tenue)?.valeur ?? 0;
+  const maillot = lot(g.porte.maillot)?.valeur ?? 0xff5a6e;
+  fete.habiller(tenue, maillot);
+}
+
+/** Toutes les révisions et les défis du jour sont faits : bonus, puis un lot dans la vitrine. */
+async function finDeSeance(): Promise<boolean> {
+  const j = journee();
+  if (j.finie || JEUX.some(aReviser)) return false;
+  j.finie = true;
+  gagnerTickets(BONUS_SEANCE);
+  bruitage.finDeManche();
+  const reste = LOTS.some((l) => !sauvegarde.garderobe.possedes.includes(l.id));
+  if (reste && !j.lotChoisi) {
+    await ouvrirVitrine({
+      titre: 'Séance finie, bravo !',
+      texte: `Tu as gagné ${j.ticketsGagnes} tickets aujourd’hui. Choisis ton lot dans la vitrine.`,
+      garderobe: sauvegarde.garderobe,
+      mode: 'choisir',
+      quandChoisi(id) {
+        sauvegarde.garderobe = choisirLot(sauvegarde.garderobe, id);
+        j.lotChoisi = true;
+        sauver();
+        habiller(sauvegarde.garderobe);
+        return sauvegarde.garderobe;
+      },
+      fermer: 'Jouer librement',
+    });
+  }
+  sauver();
+  return true;
+}
+
+ui.garderobe.addEventListener('click', () => {
+  if (dansUnStand || enCinema) return;
+  bruitage.touche();
+  void ouvrirVitrine({
+    titre: 'Mes lots',
+    texte: 'Touche un lot pour que ton personnage le porte.',
+    garderobe: sauvegarde.garderobe,
+    mode: 'porter',
+    quandChoisi(id) {
+      sauvegarde.garderobe = porter(sauvegarde.garderobe, id);
+      sauver();
+      habiller(sauvegarde.garderobe);
+      return sauvegarde.garderobe;
+    },
+    fermer: 'Fermer',
+  });
+});
+
+// --- La grande roue -------------------------------------------------------------------------
+function majConstruction(): void {
+  const pieces = sauvegarde.roue;
+  ui.constructionPieces.replaceChildren(
+    ...Array.from({ length: PIECES_ROUE }, (_, i) => {
+      const li = document.createElement('li');
+      if (i < pieces) li.className = 'faite';
+      return li;
+    }),
+  );
+  if (pieces >= PIECES_ROUE) {
+    ui.constructionTexte.textContent = 'La grande roue est finie !';
+    ui.construire.hidden = true;
+    return;
+  }
+  ui.constructionTexte.textContent = `Grande roue : ${pieces} pièce${pieces > 1 ? 's' : ''} sur ${PIECES_ROUE}.`;
+  ui.construire.hidden = false;
+  ui.construire.textContent = `Construire une pièce : ${PRIX_PIECE} tickets`;
+  ui.construire.disabled = !peutConstruire(sauvegarde.tickets, pieces);
+}
+
+ui.construire.addEventListener('click', () => {
+  if (!peutConstruire(sauvegarde.tickets, sauvegarde.roue)) return;
+  sauvegarde.tickets -= PRIX_PIECE;
+  sauvegarde.roue += 1;
+  sauver();
+  fete.construireRoue(sauvegarde.roue, PIECES_ROUE);
+  fete.saluerForain('chantier');
+  bruitage.finDeManche();
+  majHud();
+  majConstruction();
+  parler(
+    sauvegarde.roue >= PIECES_ROUE
+      ? `${nom('chantier')} : « La grande roue est finie ! Merci pour ton aide ! »`
+      : `${nom('chantier')} : « Une pièce de plus, merci ! »`,
+    false,
+  );
+});
+
+fete.construireRoue(sauvegarde.roue, PIECES_ROUE);
+habiller(sauvegarde.garderobe);
 mettreAJourPlace();
 
 // --- Toucher un stand ------------------------------------------------------------------
@@ -258,8 +428,8 @@ function toucherStand(stand: Stand): void {
 }
 
 // --- Le déroulé commun des stands de révision ----------------------------------------------
-type TypeManche = 'semaine' | 'memoire' | 'libre';
-const NOMS: Record<TypeManche, string> = { semaine: 'Cette semaine', memoire: 'Mémoire', libre: 'Pour le plaisir' };
+type TypeManche = 'semaine' | 'memoire' | 'libre' | 'defis';
+const NOMS: Record<TypeManche, string> = { semaine: 'Cette semaine', memoire: 'Mémoire', libre: 'Pour le plaisir', defis: 'Défis du jour' };
 
 let jeu: JeuDeStand = chamboule;
 let manche: Manche | null = null;
@@ -270,6 +440,7 @@ let debutQuestion = 0;
 let attente = false;
 
 function prochaineManche(): TypeManche {
+  if (jeu.type === 'defi') return defisRestants() > 0 ? 'defis' : 'libre';
   const r = revisions(jeu);
   if (r.semaine.length > 0) return 'semaine';
   if (r.memoire.length > 0) return 'memoire';
@@ -280,7 +451,7 @@ function ouvrirStand(nouveau: JeuDeStand): void {
   jeu = nouveau;
   dansUnStand = true;
   fete.calme(true);
-  deplacerCamera(fete.vues[jeu.id === 'confiserie' ? 'confiserie' : 'chamboule']);
+  deplacerCamera(fete.vues[jeu.id]);
   bruitage.ouverture();
   ui.stand.classList.toggle('large', jeu.large);
   ui.stand.hidden = false;
@@ -289,6 +460,7 @@ function ouvrirStand(nouveau: JeuDeStand): void {
 }
 
 function fermerStand(): void {
+  musique.arreter();
   dansUnStand = false;
   manche = null;
   ui.stand.hidden = true;
@@ -302,35 +474,52 @@ function elementsDuStand(): string[] {
   return [...elements.values()].filter((e) => e.type === jeu.type).map((e) => e.id);
 }
 
-function montrerCarte(type: TypeManche, apresUneManche: boolean): void {
+/** gain : tickets gagnés avec la manche qui vient de finir. */
+function montrerCarte(type: TypeManche, apresUneManche: boolean, gain = 0): void {
   typeManche = type;
   ui.exercice.hidden = true;
   ui.carte.hidden = false;
   ui.progres.replaceChildren();
   ui.mancheNom.textContent = '';
   const r = revisions(jeu);
-  const nombre = Math.min(type === 'semaine' ? r.semaine.length : type === 'memoire' ? r.memoire.length : 8, 8);
+  const nombre =
+    type === 'defis' ? defisRestants() : Math.min(type === 'semaine' ? r.semaine.length : type === 'memoire' ? r.memoire.length : 8, 8);
   ui.carteTitre.textContent = apresUneManche ? 'Bravo !' : jeu.titre;
-  if (type === 'libre') {
-    ui.carteTexte.textContent = 'Tout est révisé pour aujourd’hui. Tu peux jouer pour le plaisir.';
-  } else {
-    ui.carteTexte.textContent =
-      type === 'semaine'
-        ? `Manche « Cette semaine » : ${jeu.unite(nombre)}.`
-        : `Manche « Mémoire » : ${jeu.unite(nombre)} pour ne pas oublier.`;
-  }
+  const texte =
+    type === 'libre'
+      ? jeu.type === 'defi'
+        ? 'Les défis du jour sont faits. Tu peux t’entraîner pour le plaisir.'
+        : 'Tout est révisé ici pour aujourd’hui. Tu peux jouer pour le plaisir.'
+      : type === 'defis'
+        ? `${nom('chantier')} te lance ${jeu.unite(nombre)}.`
+        : type === 'semaine'
+          ? `Manche « Cette semaine » : ${jeu.unite(nombre)}.`
+          : `Manche « Mémoire » : ${jeu.unite(nombre)} pour ne pas oublier.`;
+  ui.carteTexte.textContent = gain > 0 ? `Tu gagnes ${gain} tickets ! ${texte}` : texte;
   ui.carteBouton.textContent = type === 'libre' ? 'Jouer' : 'C’est parti !';
   ui.carteBouton.disabled = elementsDuStand().length === 0;
   ui.carteRetour.hidden = !apresUneManche;
+  // Au chantier, on construit aussi la grande roue avec les tickets.
+  ui.construction.hidden = jeu.id !== 'chantier';
+  if (jeu.id === 'chantier') majConstruction();
   const phrase = apresUneManche
-    ? `Bravo, manche finie ! ${type === 'libre' ? 'Tu peux encore jouer pour le plaisir.' : 'Encore une manche ?'}`
-    : ui.carteTexte.textContent;
+    ? `Bravo, manche finie ! ${gain > 0 ? `Tu gagnes ${gain} tickets. ` : ''}${type === 'libre' ? 'Tu peux encore jouer pour le plaisir.' : 'Encore une manche ?'}`
+    : texte;
   parler(phrase, false);
 }
 
 function lancerManche(): void {
   const r = revisions(jeu);
-  const ids = typeManche === 'semaine' ? r.semaine : typeManche === 'memoire' ? r.memoire : elementsDuStand();
+  const ids =
+    typeManche === 'semaine'
+      ? r.semaine
+      : typeManche === 'memoire'
+        ? r.memoire
+        : typeManche === 'defis'
+          ? elementsDuStand().slice(0, defisRestants())
+          : elementsDuStand();
+  ui.construction.hidden = true;
+  musique.demarrer();
   manche = nouvelleManche(ids, Math.random);
   ui.carte.hidden = true;
   ui.exercice.hidden = false;
@@ -412,7 +601,11 @@ function valider(): void {
   const aide = niveauIndice > 0;
   const duree = Math.round(performance.now() - debutQuestion);
 
-  if (typeManche !== 'libre') {
+  if (jeu.type === 'defi') {
+    // Un exercice généré n'est pas un élément à retenir : seul le niveau s'adapte.
+    sauvegarde.niveauDefis = ajusterNiveau(sauvegarde.niveauDefis, reussi);
+    if (reussi && typeManche === 'defis') journee().defis += 1;
+  } else if (typeManche !== 'libre') {
     sauvegarde.etats[e.id] = enregistrer(sauvegarde.etats[e.id] ?? etatNeuf(), {
       jour: aujourdhui(),
       reussi,
@@ -427,7 +620,7 @@ function valider(): void {
     instant: new Date().toISOString(),
     stand: jeu.id,
     manche: typeManche,
-    element: e.id,
+    element: jeu.type === 'defi' ? (defis.exercice()?.id ?? e.id) : e.id,
     reponse,
     reussi,
     aide,
@@ -464,10 +657,23 @@ function valider(): void {
 function suite(): void {
   if (!manche) return;
   if (!mancheFinie(manche)) return poserQuestion();
+  // Défi raté deux fois : il a été retiré de la manche. On enchaîne sur un nouveau défi
+  // (fabriqué à un niveau plus facile) jusqu'à en réussir 5.
+  if (typeManche === 'defis' && defisRestants() > 0) return lancerManche();
+  musique.arreter();
   bruitage.finDeManche();
   fete.saluer();
+  // Une manche de révision terminée rapporte des tickets ; le jeu libre, non.
+  const gain = typeManche === 'semaine' || typeManche === 'memoire' ? TICKETS_PAR_MANCHE : 0;
+  if (gain > 0) gagnerTickets(gain);
   mettreAJourPlace();
-  montrerCarte(prochaineManche(), true);
+  montrerCarte(prochaineManche(), true, gain);
+  void finDeSeance().then((finie) => {
+    if (finie) {
+      majHud();
+      if (jeu.id === 'chantier') majConstruction();
+    }
+  });
 }
 
 ui.continuer.addEventListener('click', () => {
