@@ -8,9 +8,15 @@ export interface Entree {
   racine: THREE.Group;
   obstacles: THREE.Box3[];
   mettreAJour(temps: number): void;
+  /** Vrai si ce point est dans la fête (ou sur l'allée d'arrivée) : on ne sort pas dans le vide. */
+  dansLaFete(x: number, z: number): boolean;
 }
 
 const Z = 12;
+/** Les palissades : côtés en ±BORD, fond en FOND ; l'allée d'arrivée va jusqu'à FIN_ALLEE. */
+const BORD = 18;
+const FOND = -27;
+const FIN_ALLEE = 33;
 
 function enseigne(texte: string): THREE.Mesh {
   const c = document.createElement('canvas');
@@ -86,18 +92,33 @@ export function construireEntree(): Entree {
     obstacles.push(new THREE.Box3(new THREE.Vector3(signe < 0 ? -18 : 6.5, 0, Z - 0.3), new THREE.Vector3(signe < 0 ? -6.5 : 18, 2, Z + 0.3)));
   }
   // L'allée d'arrivée et ses lampadaires.
-  f([3.4, 0.06, 22], [0, 0.03, Z + 11], 'allee');
+  f([3.4, 0.06, 23], [0, 0.03, Z + 11.5], 'allee');
   for (let i = 0; i < 4; i++) {
     for (const x of [-2.6, 2.6]) {
       f([0.16, 3, 0.16], [x, 1.5, Z + 4 + i * 5], 'poteau', { forme: 'tube' });
       ampoule(x, 3.15, Z + 4 + i * 5, i + (x > 0 ? 1 : 0));
     }
   }
+  // Les palissades qui ferment la fête sur les côtés et au fond.
+  for (let z = Z - 0.3; z > FOND; z -= 0.6) {
+    for (const x of [-BORD, BORD]) f([0.14, 1.6, 0.5], [x, 0.8, z], Math.round(z / 0.6) % 2 === 0 ? 'barriereA' : 'barriereB');
+  }
+  for (let x = -BORD; x <= BORD; x += 0.6) f([0.5, 1.6, 0.14], [x, 0.8, FOND], Math.round(x / 0.6) % 2 === 0 ? 'barriereA' : 'barriereB');
+  // Des haies le long de l'allée d'arrivée, et au bout.
+  for (let z = Z + 1.5; z <= FIN_ALLEE; z += 1.4) {
+    for (const x of [-2.9, 2.9]) f([1.2, 1, 1.2], [x, 0.5, z], 'bonbon3', { forme: 'boule' });
+  }
+  for (let x = -2.2; x <= 2.2; x += 1.1) f([1.2, 1, 1.2], [x, 0.5, FIN_ALLEE + 0.8], 'bonbon3', { forme: 'boule' });
   atelier.fusionner(racine);
 
   return {
     racine,
     obstacles,
     mettreAJour() {},
+    dansLaFete(x, z) {
+      const place = Math.abs(x) <= BORD - 0.6 && z >= FOND + 0.6 && z <= Z - 0.4;
+      const allee = Math.abs(x) <= 2.2 && z >= Z - 0.4 && z <= FIN_ALLEE;
+      return place || allee;
+    },
   };
 }
