@@ -65,7 +65,7 @@ import { construireEntree } from './scene/entree.ts';
 import { surveillerModeApp } from './app/modeApp.ts';
 
 surveillerModeApp();
-import { CameraSuivie } from './scene/suivi.ts';
+import { CameraHaute } from './scene/suivi.ts';
 import { Obstacle } from './scene/obstacles.ts';
 import { creerCommandes } from './controles/joystick.ts';
 import { basculerMuet, bruitage, demarrerSon, estMuet, reglerVolumes } from './son/bruitages.ts';
@@ -585,7 +585,6 @@ let bienvenue = true;
 let standProche: Stand | null = null;
 
 const VITESSE = 5;
-const CHAMP_PROMENADE = 58;
 const RAYON_PERSONNAGE = 0.45;
 /** Le décor qu'on ne traverse pas : chapiteaux, arbres, poteaux des guirlandes. */
 const DECOR: Array<[number, number, number]> = [
@@ -612,8 +611,9 @@ const obstacles: Obstacle[] = [
   ...obstaclesEntree,
   ...DECOR.map(([x, z, r]) => Obstacle.boite(new THREE.Box3(new THREE.Vector3(x - r, 0, z - r), new THREE.Vector3(x + r, 4, z + r)))),
 ];
-// La caméra ne bute que sur les stands et l'entrée (le petit décor ne la gêne pas).
-const suivi = new CameraSuivie([...obstaclesStands, ...obstaclesEntree]);
+// Vue haute et fixe : on ne tourne plus la caméra au doigt.
+const suivi = new CameraHaute();
+ui.zoneRegard.hidden = true;
 const commandes = creerCommandes(ui.zoneStick, ui.joystick, ui.zoneRegard);
 const heros = (): THREE.Object3D => fete.heros();
 
@@ -643,8 +643,7 @@ function titreDuStand(s: Stand): string {
 
 /** La caméra revient derrière le personnage, en douceur. */
 function retourPromenade(duree = 1.1): void {
-  suivi.placerDerriere(heros().rotation.y);
-  const p = suivi.pose(heros(), heros().rotation.y, 0, 0);
+  const p = suivi.pose(heros(), 0);
   deplacerCamera({ position: p.position, cible: p.cible }, duree);
   modeSuivi = true;
 }
@@ -654,9 +653,11 @@ function arriverALEntree(): void {
   const h = heros();
   h.position.set(0, 0.06, 27);
   h.rotation.y = Math.PI;
-  suivi.placerDerriere(Math.PI);
-  const p = suivi.pose(h, Math.PI, 0, 0);
+  suivi.viser(null);
+  const p = suivi.pose(h, 0);
   trajet = null;
+  camera.fov = p.champ;
+  camera.updateProjectionMatrix();
   poser({ position: p.position, cible: p.cible });
   modeSuivi = true;
   bienvenue = false;
@@ -672,14 +673,7 @@ function promenade(delta: number): void {
     return;
   }
   ui.zoneStick.hidden = false;
-  // Champ de vision un peu plus large à l'épaule, pour bien voir la fête.
-  if (Math.abs(camera.fov - CHAMP_PROMENADE) > 0.1) {
-    camera.fov += (CHAMP_PROMENADE - camera.fov) * Math.min(1, delta * 3);
-    camera.updateProjectionMatrix();
-  }
   const h = heros();
-  const regard = commandes.prendreRegard();
-  suivi.tourner(regard.x, regard.y);
   const force = Math.min(1, Math.hypot(commandes.x, commandes.y));
   if (force > 0.02) {
     const { avant, droite } = suivi.axes();
@@ -697,7 +691,14 @@ function promenade(delta: number): void {
     h.rotation.y += ecart * Math.min(1, delta * 10);
   }
   fete.marcheLibre(force);
-  const pose = suivi.pose(h, h.rotation.y, commandes.y > -0.3 ? force : 0, delta);
+  // Devant un stand, la caméra descend le montrer de trois quarts.
+  suivi.viser(standProche);
+  entree.suivre(h.position.x, h.position.z);
+  const pose = suivi.pose(h, delta);
+  if (Math.abs(camera.fov - pose.champ) > 0.05) {
+    camera.fov = pose.champ;
+    camera.updateProjectionMatrix();
+  }
   poser({ position: pose.position, cible: pose.cible });
 
   // En passant la grande porte.
@@ -734,7 +735,6 @@ if (new URLSearchParams(location.search).has('essai')) {
       placer(x: number, z: number, cap: number): void {
         heros().position.set(x, 0.06, z);
         heros().rotation.y = cap;
-        suivi.placerDerriere(cap);
       },
       /** Les approches des stands : là où le personnage se trouve en sortant. */
       approches(): Array<[string, number, number]> {

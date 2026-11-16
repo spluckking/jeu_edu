@@ -1,69 +1,59 @@
-// La caméra de promenade : à l'épaule, derrière le personnage. Elle revient d'elle-même dans son
-// dos quand il avance, et se rapproche si un stand ou l'entrée se met entre eux.
+// La caméra de promenade : haute et toujours dans le même axe, comme dans les jeux de vie
+// « douillets ». Elle suit le personnage sans tourner, et quand il arrive devant un stand,
+// elle descend se placer de trois quarts pour montrer le comptoir et le forain.
 
 import * as THREE from 'three';
-import type { Obstacle } from './obstacles.ts';
 
-export const DISTANCE = 5.2;
-export const TANGAGE = 0.2;
-const HAUTEUR = 1.9;
-const TANGAGE_MIN = 0.05;
-const TANGAGE_MAX = 1.0;
+/** Distance, hauteur (angle) et champ de vision de la vue haute. */
+export const DISTANCE = 18;
+export const TANGAGE = 0.56;
+export const CHAMP_HAUT = 34;
+/** Champ de vision pendant le zoom sur un stand. */
+export const CHAMP_STAND = 42;
 
-export class CameraSuivie {
-  lacet = 0;
-  tangage = TANGAGE;
-  private distance = DISTANCE;
-  /** Temps pendant lequel la caméra reste où l'enfant l'a tournée. */
-  private tirage = 0;
+/** Ce qu'il faut savoir d'un stand pour le cadrer : où l'on se tient, et vers où l'on regarde. */
+export interface Cadrage {
+  approche: THREE.Vector3;
+  regard: number;
+}
+
+export class CameraHaute {
+  /** 0 : vue haute ; 1 : zoom sur le stand. */
+  zoom = 0;
+  private stand: Cadrage | null = null;
+  private readonly position = new THREE.Vector3();
   private readonly cible = new THREE.Vector3();
-  private readonly direction = new THREE.Vector3();
-  private readonly rayon = new THREE.Ray();
+  private readonly zoomPos = new THREE.Vector3();
+  private readonly zoomCible = new THREE.Vector3();
 
-  constructor(private readonly obstacles: Obstacle[]) {}
-
-  tourner(dx: number, dy: number): void {
-    if (dx === 0 && dy === 0) return;
-    this.lacet -= dx * 0.006;
-    this.tangage = Math.min(TANGAGE_MAX, Math.max(TANGAGE_MIN, this.tangage + dy * 0.004));
-    this.tirage = 1.5;
-  }
-
-  /** Avant et droite au sol, pour orienter le joystick par rapport à la caméra. */
+  /** Le joystick va toujours dans le sens de l'écran : vers le haut = vers le fond de la fête. */
   axes(): { avant: { x: number; z: number }; droite: { x: number; z: number } } {
-    const avant = { x: -Math.sin(this.lacet), z: -Math.cos(this.lacet) };
-    return { avant, droite: { x: -avant.z, z: avant.x } };
+    return { avant: { x: 0, z: -1 }, droite: { x: 1, z: 0 } };
   }
 
-  /** Place la caméra derrière ce cap (au départ, ou après un stand). */
-  placerDerriere(cap: number): void {
-    this.lacet = cap + Math.PI;
-    this.tangage = TANGAGE;
-    this.distance = DISTANCE;
+  /** Le stand à cadrer (ou aucun). */
+  viser(stand: Cadrage | null): void {
+    this.stand = stand;
   }
 
-  /** Pose voulue de la caméra pour ce personnage (position, point visé). */
-  pose(heros: THREE.Object3D, cap: number, enMarche: number, dt: number): { position: THREE.Vector3; cible: THREE.Vector3 } {
-    this.tirage -= dt;
-    if (enMarche > 0.02 && this.tirage <= 0) {
-      let ecart = cap + Math.PI - this.lacet;
-      ecart = Math.atan2(Math.sin(ecart), Math.cos(ecart));
-      this.lacet += ecart * Math.min(1, dt * 1.6 * enMarche);
+  /** Pose voulue pour ce personnage. Avec dt = 0, la pose est prise d'un coup. */
+  pose(heros: THREE.Object3D, dt: number): { position: THREE.Vector3; cible: THREE.Vector3; champ: number } {
+    const p = heros.position;
+    const voulu = this.stand ? 1 : 0;
+    this.zoom = dt <= 0 ? voulu : this.zoom + (voulu - this.zoom) * Math.min(1, dt * 2.5);
+    this.position.set(p.x, 0.8 + Math.sin(TANGAGE) * DISTANCE, p.z + Math.cos(TANGAGE) * DISTANCE);
+    this.cible.set(p.x, 0.8, p.z - 1.2);
+    if (this.stand && this.zoom > 0.001) {
+      // Le comptoir est devant l'approche ; la caméra se met en retrait, en hauteur et sur le côté.
+      const sx = Math.sin(this.stand.regard);
+      const sz = Math.cos(this.stand.regard);
+      const a = this.stand.approche;
+      this.zoomCible.set(a.x + sx * 2.2, 1.3, a.z + sz * 2.2);
+      this.zoomPos.set(a.x - sx * 6 + sz * 2.6, 4.6, a.z - sz * 6 - sx * 2.6);
+      const u = this.zoom * this.zoom * (3 - 2 * this.zoom);
+      this.position.lerp(this.zoomPos, u);
+      this.cible.lerp(this.zoomCible, u);
     }
-    this.cible.set(heros.position.x, heros.position.y + HAUTEUR, heros.position.z);
-    const cp = Math.cos(this.tangage);
-    this.direction.set(Math.sin(this.lacet) * cp, Math.sin(this.tangage), Math.cos(this.lacet) * cp);
-    this.rayon.set(this.cible, this.direction);
-    let proche = DISTANCE;
-    for (const o of this.obstacles) {
-      const d = o.distanceRayon(this.rayon);
-      if (d !== null) proche = Math.min(proche, d);
-    }
-    const voulue = Math.max(1.5, proche - 0.4);
-    this.distance = voulue < this.distance ? voulue : this.distance + (voulue - this.distance) * Math.min(1, dt * 3);
-    return {
-      position: this.cible.clone().addScaledVector(this.direction, this.distance),
-      cible: this.cible.clone().setY(this.cible.y + 0.2),
-    };
+    return { position: this.position.clone(), cible: this.cible.clone(), champ: CHAMP_HAUT + (CHAMP_STAND - CHAMP_HAUT) * this.zoom };
   }
 }
