@@ -256,9 +256,9 @@ scene.background = (() => {
   const c = toile.getContext('2d');
   if (c) {
     const degrade = c.createLinearGradient(0, 0, 0, 256);
-    degrade.addColorStop(0, '#3fa0ff');
-    degrade.addColorStop(0.62, '#cfeeff');
-    degrade.addColorStop(1, '#cfeeff');
+    degrade.addColorStop(0, '#6cc3ff');
+    degrade.addColorStop(0.6, '#d9f1ff');
+    degrade.addColorStop(1, '#eef8ff');
     c.fillStyle = degrade;
     c.fillRect(0, 0, 2, 256);
   }
@@ -266,10 +266,12 @@ scene.background = (() => {
   texture.colorSpace = THREE.SRGBColorSpace;
   return texture;
 })();
-scene.fog = new THREE.Fog(0xcfeeff, 34, 82);
-scene.add(new THREE.HemisphereLight(0xdff1ff, 0xffe2b8, 1.7));
-const soleil = new THREE.DirectionalLight(0xfff2d8, 2.0);
-soleil.position.set(6, 12, 9);
+// Lumière douce : beaucoup de ciel, un soleil chaud venu de la gauche, du brouillard bleu pâle
+// au loin. Avec l'ombrage en aplats, rien n'est jamais noir.
+scene.fog = new THREE.Fog(0xe2f4ff, 38, 90);
+scene.add(new THREE.HemisphereLight(0xeaf6ff, 0xdcefc6, 2.1));
+const soleil = new THREE.DirectionalLight(0xfff1dc, 1.7);
+soleil.position.set(-6, 12, 9);
 scene.add(soleil);
 
 const fete = construireFete(0);

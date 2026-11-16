@@ -92,7 +92,7 @@ export function construireEntree(): Entree {
     obstacles.push(new THREE.Box3(new THREE.Vector3(signe < 0 ? -BORD : 6.5, 0, Z - 0.3), new THREE.Vector3(signe < 0 ? -6.5 : BORD, 2, Z + 0.3)));
   }
   // L'allée d'arrivée et ses lampadaires.
-  f([3.4, 0.06, 23], [0, 0.03, Z + 11.5], 'allee');
+  atelier.sol(racine, 3.4, 23, 0, 0.03, Z + 11.5, 'dalles');
   for (let i = 0; i < 4; i++) {
     for (const x of [-2.6, 2.6]) {
       f([0.16, 3, 0.16], [x, 1.5, Z + 4 + i * 5], 'poteau', { forme: 'tube' });

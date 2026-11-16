@@ -86,6 +86,12 @@ await attendre(2000);
 await photo('03-promenade-centre');
 mesures.centre = await ips(4);
 mesures.appelsCentre = await page.evaluate(() => Number(document.body.dataset.appels));
+// RAPIDE=1 : seulement l'accueil, la porte et la promenade (pour itérer sur le décor).
+if (process.env.RAPIDE) {
+  console.log(JSON.stringify({ mesures, erreurs }, null, 2));
+  await navigateur.close();
+  process.exit(0);
+}
 
 const STANDS = ['chamboule', 'confiserie', 'chantier', 'horloge', 'peche'];
 let n = 4;

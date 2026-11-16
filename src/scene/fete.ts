@@ -115,12 +115,12 @@ export function construireFete(tenue = 0): Fete {
   };
 
   // --- Sol et allées -------------------------------------------------------
-  f(racine, [90, 0.4, 90], [0, -0.2, 0], 'sol');
-  f(racine, [3.4, 0.06, 14], [0, 0.03, 5], 'allee');
-  f(racine, [34, 0.07, 3.6], [0, 0.035, -1], 'allee');
+  atelier.sol(racine, 140, 140, 0, 0, 0, 'herbe');
+  atelier.sol(racine, 3.4, 14, 0, 0.03, 5, 'dalles');
+  atelier.sol(racine, 34, 3.6, 0, 0.035, -1, 'dalles');
   // L'allée vers le fond de la fête, à droite du chamboule-tout, puis celle du fond.
-  for (const x of [-5.5, 5.5]) f(racine, [3, 0.065, 22], [x, 0.033, -12], 'allee');
-  f(racine, [30, 0.068, 3.4], [0, 0.034, -22.5], 'allee');
+  for (const x of [-5.5, 5.5]) atelier.sol(racine, 3, 22, x, 0.033, -12, 'dalles');
+  atelier.sol(racine, 30, 3.4, 0, 0.034, -22.5, 'dalles');
 
   // --- Stand générique -----------------------------------------------------
   const stands: Stand[] = [];

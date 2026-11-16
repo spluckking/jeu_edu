@@ -6,6 +6,7 @@
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import { plaque, texturesDouillettes } from './textures.ts';
 
 export type Vec3 = [number, number, number];
 
@@ -21,31 +22,31 @@ export interface Options {
   lumineux?: boolean;
 }
 
-/** Palette du style « Jouet tout doux ». */
+/** Palette du style « douillet » (adoucie encore vers le crème par teinte()). */
 export const COULEURS = {
-  sol: 0x6fd05a,
-  allee: 0xf6dc9c,
-  bois: 0xd99a5b,
-  comptoir: 0xff8552,
-  toileA: 0xff5a6e,
+  sol: 0x8fd47a,
+  allee: 0xf3dfbd,
+  bois: 0xe0ad7a,
+  comptoir: 0xffa07a,
+  toileA: 0xff7f9a,
   toileB: 0xfffaf0,
-  enseigne: 0xffd447,
+  enseigne: 0xffd65c,
   boite: 0xc9d6e6,
-  bonbon1: 0xff7ac0,
-  bonbon2: 0x4cc4ff,
-  bonbon3: 0x93e052,
-  barriereA: 0xffd447,
-  barriereB: 0x6a70a8,
+  bonbon1: 0xff8fc8,
+  bonbon2: 0x7fcdf5,
+  bonbon3: 0xa6e07a,
+  barriereA: 0xffb3c7,
+  barriereB: 0xfff6ee,
   fantome: 0x8a96e8,
   peau: 0xffd2a8,
-  maillot: 0x4cb0ff,
-  pantalon: 0x5a64c8,
-  casquette: 0xff5a6e,
-  poteau: 0xb9793f,
+  maillot: 0x6fb8ff,
+  pantalon: 0x7a84d8,
+  casquette: 0xff7f9a,
+  poteau: 0xd4a373,
   sombre: 0x2b2233,
   blanc: 0xffffff,
   or: 0xffcf3a,
-  rouge: 0xe0424b,
+  rouge: 0xf0606a,
   cheveux: 0x5a3a22,
 } as const;
 
@@ -53,8 +54,14 @@ export type Peinture = keyof typeof COULEURS | number;
 
 export const AMPOULES = [0xffd447, 0xff5a6e, 0x4cc4ff, 0x93e052];
 
+const CREME = new THREE.Color(0xfff6ea);
+
+/** Style « douillet » : chaque couleur est adoucie vers le crème, ce qui donne des tons pastel. */
 function teinte(peinture: Peinture): THREE.Color {
-  return new THREE.Color(typeof peinture === 'number' ? peinture : COULEURS[peinture]);
+  const c = new THREE.Color(typeof peinture === 'number' ? peinture : COULEURS[peinture]);
+  // Les teintes très sombres (yeux, moustaches) gardent leur contraste.
+  const clarte = c.r * 0.3 + c.g * 0.59 + c.b * 0.11;
+  return c.lerp(CREME, clarte < 0.2 ? 0.05 : 0.3);
 }
 
 /** Une couleur plus sombre, pour détacher un détail de son support. */
@@ -63,19 +70,23 @@ export function ombree(peinture: Peinture, facteur = 0.72): number {
 }
 
 export class Atelier {
-  readonly mat = new THREE.MeshPhysicalMaterial({
-    vertexColors: true,
-    roughness: 0.75,
-    metalness: 0,
-    // Le reflet de velours éclaircit le bord des formes, comme sur une peluche.
-    sheen: 0.8,
-    sheenRoughness: 0.5,
-    sheenColor: new THREE.Color(0xffffff),
-  });
+  readonly textures = texturesDouillettes();
+  // Ombrage en trois aplats doux (toon) : l'effet « jouet peint », et bien moins coûteux pour
+  // la tablette que l'ancien matériau physique à reflet de velours.
+  readonly mat = new THREE.MeshToonMaterial({ vertexColors: true, gradientMap: this.textures.degrade });
   readonly lumiere = new THREE.MeshBasicMaterial({ vertexColors: true });
-  readonly fil = new THREE.LineBasicMaterial({ color: COULEURS.poteau });
+  readonly fil = new THREE.LineBasicMaterial({ color: 0xfffaf2 });
+  readonly matHerbe = new THREE.MeshToonMaterial({ map: this.textures.herbe, gradientMap: this.textures.degrade });
+  readonly matDalles = new THREE.MeshToonMaterial({ map: this.textures.dalles, gradientMap: this.textures.degrade });
   private readonly geometries: THREE.BufferGeometry[] = [];
-  private readonly materiaux: THREE.Material[] = [this.mat, this.lumiere, this.fil];
+  private readonly materiaux: THREE.Material[] = [this.mat, this.lumiere, this.fil, this.matHerbe, this.matDalles];
+
+  /** Un sol plat texturé (herbe fleurie ou dalles), à plat sur y. */
+  sol(parent: THREE.Object3D, largeur: number, profondeur: number, x: number, y: number, z: number, genre: 'herbe' | 'dalles'): THREE.Mesh {
+    const m = new THREE.Mesh(this.suivre(plaque(largeur, profondeur, x, y, z)), genre === 'herbe' ? this.matHerbe : this.matDalles);
+    parent.add(m);
+    return m;
+  }
 
   suivre<T extends THREE.BufferGeometry>(geometrie: T): T {
     this.geometries.push(geometrie);
@@ -198,5 +209,6 @@ export class Atelier {
   liberer(): void {
     for (const geometrie of this.geometries) geometrie.dispose();
     for (const materiau of this.materiaux) materiau.dispose();
+    this.textures.liberer();
   }
 }
