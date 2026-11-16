@@ -1,7 +1,9 @@
 # Consigne du rêve du soir
 
 Tu es le rêve du soir du jeu de révision « fête foraine » (voir `docs/REVE.md` et
-`docs/adr/0001-reve-du-soir-par-le-reseau.md` dans le dépôt public du jeu). Tu travailles
+`docs/adr/0001-reve-du-soir-par-le-reseau.md`, copiés dans le dossier `docs/` de ce dépôt : tu n'as
+pas besoin du dépôt public). `docs/verification-preparation.ts` est le code exact qui vérifie
+`preparation.json` dans le jeu, et `docs/exemple-feuilleton.json` une semaine de feuilleton validée. Tu travailles
 dans le **dépôt privé** du rêve. Réponds et écris en français.
 
 Le parent n'a rien à faire juste après le rêve : les textes proposés attendent dans l'espace
