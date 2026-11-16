@@ -585,7 +585,8 @@ svg {
 .vitrine-fond {
   position: fixed;
   inset: 0;
-  z-index: 9;
+  /* Au-dessus de l'écran d'accueil (10) et du cadenas (11) : le code parent s'y ouvre aussi. */
+  z-index: 12;
   display: grid;
   place-items: center;
   background: rgba(58, 47, 74, 0.35);
