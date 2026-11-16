@@ -45,39 +45,69 @@ export function journeeNeuve(): Journee {
 
 // --- Lots -------------------------------------------------------------------------------
 
-export type GenreLot = 'tenue' | 'maillot';
+/** Les lots sont des accessoires, rangés par place sur le personnage. */
+export const GENRES = ['chapeau', 'lunettes', 'haut', 'chaussures', 'objet'] as const;
+export type GenreLot = (typeof GENRES)[number];
+
+export const NOMS_GENRES: Record<GenreLot, string> = {
+  chapeau: 'Chapeaux',
+  lunettes: 'Lunettes',
+  haut: 'Hauts',
+  chaussures: 'Chaussures',
+  objet: 'Objets',
+};
 
 export interface Lot {
   id: string;
   nom: string;
   genre: GenreLot;
-  /** Tenue : 0 à 3 (voir personne.ts). Maillot : une couleur. */
-  valeur: number;
 }
 
 export const LOTS: readonly Lot[] = [
-  { id: 'tenue-casquette', nom: 'Casquette et sac', genre: 'tenue', valeur: 0 },
-  { id: 'tenue-chapeau', nom: 'Chapeau et ballon', genre: 'tenue', valeur: 1 },
-  { id: 'tenue-couronne', nom: 'Couronne et cape', genre: 'tenue', valeur: 2 },
-  { id: 'tenue-bonnet', nom: 'Bonnet et écharpe', genre: 'tenue', valeur: 3 },
-  { id: 'maillot-rouge', nom: 'Maillot rouge', genre: 'maillot', valeur: 0xff5a6e },
-  { id: 'maillot-bleu', nom: 'Maillot bleu', genre: 'maillot', valeur: 0x4c9cff },
-  { id: 'maillot-vert', nom: 'Maillot vert', genre: 'maillot', valeur: 0x5cc44a },
-  { id: 'maillot-violet', nom: 'Maillot violet', genre: 'maillot', valeur: 0xa77bf0 },
-  { id: 'maillot-orange', nom: 'Maillot orange', genre: 'maillot', valeur: 0xff9a3a },
-  { id: 'maillot-jaune', nom: 'Maillot jaune', genre: 'maillot', valeur: 0xffd447 },
+  { id: 'chapeau-casquette', nom: 'Casquette', genre: 'chapeau' },
+  { id: 'chapeau-paille', nom: 'Chapeau de paille', genre: 'chapeau' },
+  { id: 'chapeau-bonnet', nom: 'Bonnet à pompon', genre: 'chapeau' },
+  { id: 'chapeau-haut', nom: 'Chapeau haut', genre: 'chapeau' },
+  { id: 'chapeau-magicien', nom: 'Chapeau de magicien', genre: 'chapeau' },
+  { id: 'chapeau-couronne', nom: 'Couronne', genre: 'chapeau' },
+  { id: 'lunettes-rondes', nom: 'Lunettes rondes', genre: 'lunettes' },
+  { id: 'lunettes-soleil', nom: 'Lunettes de soleil', genre: 'lunettes' },
+  { id: 'lunettes-rouges', nom: 'Grosses lunettes rouges', genre: 'lunettes' },
+  { id: 'haut-corail', nom: 'Pull corail', genre: 'haut' },
+  { id: 'haut-bleu', nom: 'Pull bleu', genre: 'haut' },
+  { id: 'haut-menthe', nom: 'T-shirt menthe', genre: 'haut' },
+  { id: 'haut-lilas', nom: 'Sweat lilas', genre: 'haut' },
+  { id: 'haut-orange', nom: 'Pull orange', genre: 'haut' },
+  { id: 'haut-jaune', nom: 'T-shirt jaune', genre: 'haut' },
+  { id: 'haut-mariniere', nom: 'Marinière', genre: 'haut' },
+  { id: 'haut-salopette', nom: 'Salopette', genre: 'haut' },
+  { id: 'chaussures-bottines', nom: 'Bottines', genre: 'chaussures' },
+  { id: 'chaussures-rouges', nom: 'Baskets rouges', genre: 'chaussures' },
+  { id: 'chaussures-pluie', nom: 'Bottes de pluie', genre: 'chaussures' },
+  { id: 'chaussures-bleues', nom: 'Baskets bleues', genre: 'chaussures' },
+  { id: 'objet-sac', nom: 'Sac à dos', genre: 'objet' },
+  { id: 'objet-ballon', nom: 'Ballon', genre: 'objet' },
+  { id: 'objet-sucette', nom: 'Sucette', genre: 'objet' },
+  { id: 'objet-baguette', nom: 'Baguette étoile', genre: 'objet' },
+  { id: 'objet-epuisette', nom: 'Épuisette', genre: 'objet' },
 ];
 
 /** Ce que l'enfant possède dès le début. */
-export const LOTS_DE_DEPART = ['tenue-casquette', 'maillot-rouge'];
+export const LOTS_DE_DEPART = ['chapeau-casquette', 'haut-corail', 'chaussures-bottines', 'objet-sac'];
+
+/** Ce que porte le personnage : un lot par place, ou « rien » (toujours permis). */
+export type Porte = Record<GenreLot, string>;
 
 export interface Garderobe {
   possedes: string[];
-  porte: { tenue: string; maillot: string };
+  porte: Porte;
 }
 
 export function garderobeNeuve(): Garderobe {
-  return { possedes: [...LOTS_DE_DEPART], porte: { tenue: 'tenue-casquette', maillot: 'maillot-rouge' } };
+  return {
+    possedes: [...LOTS_DE_DEPART],
+    porte: { chapeau: 'chapeau-casquette', lunettes: 'rien', haut: 'haut-corail', chaussures: 'chaussures-bottines', objet: 'objet-sac' },
+  };
 }
 
 export function lot(id: string): Lot | undefined {
@@ -99,6 +129,39 @@ export function porter(g: Garderobe, id: string): Garderobe {
   const l = lot(id);
   if (!l || !g.possedes.includes(id)) return g;
   return { ...g, porte: { ...g.porte, [l.genre]: id } };
+}
+
+/** Enlever ce qui est porté à cette place (par exemple : plus de chapeau). */
+export function retirer(g: Garderobe, genre: GenreLot): Garderobe {
+  return { ...g, porte: { ...g.porte, [genre]: 'rien' } };
+}
+
+/**
+ * Les anciens lots (version 6 : tenues et maillots) deviennent des accessoires. Rien de ce que
+ * l'enfant avait gagné ne se perd : chaque ancien lot donne au moins un accessoire.
+ */
+const ANCIENS: Record<string, string[]> = {
+  'tenue-casquette': ['chapeau-casquette', 'objet-sac'],
+  'tenue-chapeau': ['chapeau-haut', 'objet-ballon'],
+  'tenue-couronne': ['chapeau-couronne', 'objet-baguette'],
+  'tenue-bonnet': ['chapeau-bonnet', 'objet-sucette'],
+  'maillot-rouge': ['haut-corail'],
+  'maillot-bleu': ['haut-bleu'],
+  'maillot-vert': ['haut-menthe'],
+  'maillot-violet': ['haut-lilas'],
+  'maillot-orange': ['haut-orange'],
+  'maillot-jaune': ['haut-jaune'],
+};
+
+export function convertirGarderobe(ancienne: unknown): Garderobe {
+  const neuve = garderobeNeuve();
+  if (typeof ancienne !== 'object' || ancienne === null) return neuve;
+  const a = ancienne as { possedes?: unknown; porte?: { tenue?: unknown; maillot?: unknown } };
+  const possedes = new Set(neuve.possedes);
+  for (const id of Array.isArray(a.possedes) ? a.possedes : []) for (const n of ANCIENS[String(id)] ?? []) possedes.add(n);
+  let g: Garderobe = { possedes: [...possedes], porte: { ...neuve.porte } };
+  for (const ancien of [a.porte?.tenue, a.porte?.maillot]) for (const n of ANCIENS[String(ancien)] ?? []) g = porter(g, n);
+  return g;
 }
 
 // --- Grande roue -----------------------------------------------------------------------

@@ -11,7 +11,7 @@ import { plaque, texturesDouillettes } from './textures.ts';
 export type Vec3 = [number, number, number];
 
 /** Forme ronde à la place du bloc arrondi par défaut. */
-export type Forme = 'boule' | 'tube' | 'disque';
+export type Forme = 'boule' | 'tube' | 'disque' | 'cone' | 'anneau' | 'calotte' | 'gelule';
 
 export interface Options {
   forme?: Forme;
@@ -106,6 +106,16 @@ export class Atelier {
         return new THREE.CylinderGeometry(l / 2, l / 2, h, 18).scale(1, 1, p / l);
       case 'disque':
         return new THREE.CylinderGeometry(l / 2, l / 2, p, 18).rotateX(Math.PI / 2).scale(1, h / l, 1);
+      case 'cone':
+        return new THREE.ConeGeometry(0.5, 1, 20).scale(l, h, p);
+      case 'anneau':
+        // Un anneau dans le plan de face (lunettes) ; tourner de rx = π/2 pour le coucher.
+        return new THREE.TorusGeometry(0.5, 0.09, 8, 24).scale(l, h, p);
+      case 'calotte':
+        // Le dessus d'une boule : bonnets, casquettes, cheveux.
+        return new THREE.SphereGeometry(0.5, 20, 10, 0, Math.PI * 2, 0, Math.PI / 2).scale(l, h * 2, p);
+      case 'gelule':
+        return new THREE.CapsuleGeometry(0.5, 1, 4, 14).scale(l, h / 2, p);
       case undefined:
         return new RoundedBoxGeometry(l, h, p, 2, Math.min(Math.min(l, h, p) * 0.4, 0.28));
     }

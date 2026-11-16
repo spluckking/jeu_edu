@@ -42,19 +42,21 @@ import {
   HEURES_PAR_SEANCE,
   PECHES_PAR_SEANCE,
   journeeNeuve,
-  lot,
   LOTS,
   peutConstruire,
   PIECES_ROUE,
   porter,
   PRIX_PIECE,
+  retirer,
   semaineDe,
   TICKETS_PAR_MANCHE,
   TICKETS_HISTOIRE,
   type Garderobe,
+  type GenreLot,
   type Journee,
 } from './recompenses/recompenses.ts';
-import { ouvrirVitrine } from './ui/vitrine.ts';
+import { ouvrirGarderobe, type OptionsGarderobe } from './ui/garderobe.ts';
+import { vignette } from './scene/vignettes.ts';
 import { musique } from './son/musique.ts';
 import { jouerIntroduction } from './histoire/introduction.ts';
 import { chargerHistoires, METIERS, PROPOSITIONS } from './histoire/lecture.ts';
@@ -274,7 +276,7 @@ const soleil = new THREE.DirectionalLight(0xfff1dc, 1.7);
 soleil.position.set(-6, 12, 9);
 scene.add(soleil);
 
-const fete = construireFete(0);
+const fete = construireFete(sauvegarde.garderobe.porte);
 scene.add(fete.racine);
 const entree = construireEntree();
 scene.add(entree.racine);
@@ -479,9 +481,48 @@ function gagnerTickets(nombre: number): void {
 }
 
 function habiller(g: Garderobe): void {
-  const tenue = lot(g.porte.tenue)?.valeur ?? 0;
-  const maillot = lot(g.porte.maillot)?.valeur ?? 0xff5a6e;
-  fete.habiller(tenue, maillot);
+  fete.habiller(g.porte);
+}
+
+/**
+ * La garde-robe : le personnage se tourne vers la caméra, qui le cadre à gauche de l'écran ;
+ * la fête reste vivante derrière lui. Pendant ce temps, on ne se promène pas.
+ */
+async function garderobe(o: Pick<OptionsGarderobe, 'titre' | 'texte' | 'mode' | 'quandChoisi' | 'fermer'>): Promise<void> {
+  enCinema = true;
+  document.body.classList.add('en-garderobe');
+  ui.bulle.hidden = true;
+  const h = heros();
+  h.rotation.y = 0;
+  fete.marcheLibre(0);
+  const l = window.innerWidth;
+  const ha = window.innerHeight;
+  if (l > ha) camera.setViewOffset(l, ha, l * 0.22, 0, l, ha);
+  camera.fov = 34;
+  camera.updateProjectionMatrix();
+  deplacerCamera({ position: h.position.clone().add(new THREE.Vector3(0, 2.3, 8.5)), cible: h.position.clone().add(new THREE.Vector3(0, 1.45, 0)) }, 0.7);
+  try {
+    await ouvrirGarderobe({
+      ...o,
+      garderobe: sauvegarde.garderobe,
+      quandRetire(genre: GenreLot) {
+        sauvegarde.garderobe = retirer(sauvegarde.garderobe, genre);
+        sauver();
+        habiller(sauvegarde.garderobe);
+        return sauvegarde.garderobe;
+      },
+      tourner(angle) {
+        heros().rotation.y += angle;
+      },
+      vignette: (genre, id) => vignette(renderer, genre, id),
+    });
+  } finally {
+    camera.clearViewOffset();
+    document.body.classList.remove('en-garderobe');
+    heros().rotation.y = Math.PI;
+    retourPromenade(0.7);
+    enCinema = false;
+  }
 }
 
 /** Toutes les révisions et les défis du jour sont faits : bonus, puis un lot dans la vitrine. */
@@ -493,10 +534,9 @@ async function finDeSeance(): Promise<boolean> {
   bruitage.finDeManche();
   const reste = LOTS.some((l) => !sauvegarde.garderobe.possedes.includes(l.id));
   if (reste && !j.lotChoisi) {
-    await ouvrirVitrine({
+    await garderobe({
       titre: 'Séance finie, bravo !',
-      texte: `Tu as gagné ${j.ticketsGagnes} tickets aujourd’hui. Choisis ton lot dans la vitrine.`,
-      garderobe: sauvegarde.garderobe,
+      texte: `Tu as gagné ${j.ticketsGagnes} tickets aujourd’hui. Choisis un cadeau pour ton personnage.`,
       mode: 'choisir',
       quandChoisi(id) {
         sauvegarde.garderobe = choisirLot(sauvegarde.garderobe, id);
@@ -517,10 +557,9 @@ async function finDeSeance(): Promise<boolean> {
 ui.garderobe.addEventListener('click', () => {
   if (dansUnStand || enCinema) return;
   bruitage.touche();
-  void ouvrirVitrine({
-    titre: 'Mes lots',
-    texte: 'Touche un lot pour que ton personnage le porte.',
-    garderobe: sauvegarde.garderobe,
+  void garderobe({
+    titre: 'Ma tenue',
+    texte: 'Touche un accessoire pour le mettre.',
     mode: 'porter',
     quandChoisi(id) {
       sauvegarde.garderobe = porter(sauvegarde.garderobe, id);
@@ -528,7 +567,7 @@ ui.garderobe.addEventListener('click', () => {
       habiller(sauvegarde.garderobe);
       return sauvegarde.garderobe;
     },
-    fermer: 'Fermer',
+    fermer: 'C’est parti !',
   });
 });
 
@@ -856,6 +895,9 @@ async function ouvrirStand(nouveau: JeuDeStand): Promise<void> {
   dansUnStand = true;
   champNormal();
   fete.calme(true);
+  // Au stand, on regarde le forain et son comptoir : le personnage, juste devant la caméra,
+  // les cacherait. Il réapparaît en sortant.
+  heros().visible = false;
   deplacerCamera(fete.vues[jeu.id]);
   // Un forain arrivé après l'introduction reçoit son prénom à la première rencontre.
   const presentation = PRESENTATIONS[jeu.id];
@@ -874,6 +916,7 @@ async function ouvrirStand(nouveau: JeuDeStand): Promise<void> {
 function fermerStand(): void {
   musique.arreter();
   dansUnStand = false;
+  heros().visible = true;
   manche = null;
   ui.stand.hidden = true;
   fete.calme(false);

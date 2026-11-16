@@ -1559,3 +1559,188 @@ svg {
   font: 14px/1.3 ui-monospace, monospace;
   pointer-events: none;
 }
+
+/* --- Garde-robe (style douillet) : le personnage à gauche, dans la fête ; le panneau à droite. */
+body.en-garderobe .hud,
+body.en-garderobe #son,
+body.en-garderobe #parent,
+body.en-garderobe .zone-joystick,
+body.en-garderobe #interagir,
+body.en-garderobe #bulle {
+  display: none !important;
+}
+
+.garderobe-fond {
+  position: fixed;
+  inset: 0;
+  z-index: 12;
+  pointer-events: none;
+  /* Un voile chaud sur la droite, sans flou (le flou sur la 3D coûte trop cher à la tablette). */
+  background: linear-gradient(90deg, transparent 38%, rgb(255 236 220 / 0.82) 52%);
+}
+
+.garderobe-fond > * {
+  pointer-events: auto;
+}
+
+.garderobe-panneau {
+  position: absolute;
+  top: 50%;
+  right: 3%;
+  width: min(54%, 640px);
+  max-height: 94%;
+  overflow-y: auto;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.garderobe-titre {
+  margin: 0;
+  font-size: 30px;
+  color: #5a4636;
+}
+
+.garderobe-texte {
+  margin: 0;
+  font-size: 20px;
+  color: #7a6250;
+}
+
+.garderobe-onglets {
+  display: flex;
+  gap: 12px;
+}
+
+.garderobe-onglet {
+  width: 62px;
+  height: 62px;
+  padding: 14px;
+  border: none;
+  border-radius: 50%;
+  background: rgb(255 248 238 / 0.85);
+  color: #a4876b;
+  box-shadow: 0 4px 0 #ead9c2;
+}
+
+.garderobe-onglet svg,
+.garderobe-tourner svg {
+  width: 100%;
+  height: 100%;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.garderobe-onglet.choisi {
+  background: #ffc94a;
+  color: #fff;
+  box-shadow: 0 4px 0 #e0a52a;
+  transform: scale(1.1);
+}
+
+.garderobe-ruban {
+  align-self: flex-start;
+  margin: 4px 0 0;
+  padding: 6px 30px 6px 20px;
+  background: #6aa8ef;
+  color: #fff;
+  font-size: 22px;
+  transform: rotate(-3deg);
+  clip-path: polygon(0 0, 100% 0, 92% 50%, 100% 100%, 0 100%);
+  box-shadow: 0 3px 0 #4b86cc;
+}
+
+.garderobe-grille {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: 12px;
+}
+
+.garderobe-case {
+  position: relative;
+  aspect-ratio: 1;
+  min-width: 72px;
+  padding: 4px;
+  border: 4px solid transparent;
+  border-radius: 20px;
+  background: #fff8ee;
+  box-shadow: 0 4px 0 #ead9c2;
+}
+
+.garderobe-case:disabled {
+  opacity: 0.4;
+}
+
+.garderobe-case img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.garderobe-rien {
+  font-size: 18px;
+  color: #b49c84;
+}
+
+.garderobe-case.choisie {
+  border-color: #fff;
+  background: #fffdf8;
+  box-shadow: 0 0 0 3px #ffc94a, 0 4px 0 #ead9c2;
+}
+
+.garderobe-case.choisie::after {
+  content: '✓';
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: #8acb52;
+  color: #fff;
+  font-size: 19px;
+  line-height: 30px;
+  border: 3px solid #fff;
+}
+
+.garderobe-valider {
+  align-self: flex-end;
+  min-width: 220px;
+  margin-top: 6px;
+  background: #8acb52;
+  box-shadow: 0 5px 0 #6aa53c;
+}
+
+.garderobe-tourner {
+  position: absolute;
+  left: 24px;
+  bottom: 24px;
+  display: flex;
+  gap: 14px;
+}
+
+.garderobe-tourner .bouton-rond {
+  width: 62px;
+  height: 62px;
+  padding: 15px;
+}
+
+@media (orientation: portrait) {
+  .garderobe-fond {
+    background: linear-gradient(180deg, transparent 40%, rgb(255 236 220 / 0.9) 50%);
+  }
+
+  .garderobe-panneau {
+    top: auto;
+    bottom: 2%;
+    right: 3%;
+    left: 3%;
+    width: auto;
+    max-height: 50%;
+    transform: none;
+  }
+}

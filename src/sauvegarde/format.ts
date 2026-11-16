@@ -5,10 +5,10 @@ import { niveauDeDepart, type Niveau } from '../exercices/generateur.ts';
 import type { Noms } from '../histoire/lecture.ts';
 import type { Jour } from '../memoire/jours.ts';
 import type { EtatElement } from '../memoire/moteur.ts';
-import { garderobeNeuve, type Garderobe, type Journee } from '../recompenses/recompenses.ts';
+import { convertirGarderobe, garderobeNeuve, type Garderobe, type Journee } from '../recompenses/recompenses.ts';
 import type { Preparation } from '../reve/preparation.ts';
 
-export const VERSION = 6;
+export const VERSION = 7;
 
 /** Les réglages du parent. */
 export interface Reglages {
@@ -135,6 +135,8 @@ export function migrer(brut: unknown): Sauvegarde {
   if (s.version === 4) s = { ...s, version: 5, niveauPeche: niveauDeDepart() };
   // Version 5 → 6 : l'espace parent (réglages, validations, listes rapides, échange).
   if (s.version === 5) s = { ...s, version: 6, ...parentNeuf() };
+  // Version 6 → 7 : les lots deviennent des accessoires (chapeau, lunettes, haut, chaussures, objet).
+  if (s.version === 6) s = { ...s, version: 7, garderobe: convertirGarderobe(s.garderobe) };
   if (s.version === VERSION) return s as unknown as Sauvegarde;
   // Une version plus récente que ce code : on refuse plutôt que d'écraser des données.
   throw new Error(`Version de sauvegarde inconnue : ${String(s.version)}`);

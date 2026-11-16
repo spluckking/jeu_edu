@@ -1,19 +1,32 @@
 import { describe, expect, it } from 'vitest';
-import { choisirLot, garderobeNeuve, LOTS, peutConstruire, porter, PRIX_PIECE, PIECES_ROUE, semaineDe } from './recompenses.ts';
+import { choisirLot, convertirGarderobe, garderobeNeuve, LOTS, peutConstruire, porter, PRIX_PIECE, PIECES_ROUE, retirer, semaineDe } from './recompenses.ts';
 
 describe('lots', () => {
   it('un lot choisi est possédé et porté', () => {
-    const g = choisirLot(garderobeNeuve(), 'tenue-couronne');
-    expect(g.possedes).toContain('tenue-couronne');
-    expect(g.porte.tenue).toBe('tenue-couronne');
-    expect(g.porte.maillot).toBe('maillot-rouge');
+    const g = choisirLot(garderobeNeuve(), 'chapeau-couronne');
+    expect(g.possedes).toContain('chapeau-couronne');
+    expect(g.porte.chapeau).toBe('chapeau-couronne');
+    expect(g.porte.haut).toBe('haut-corail');
   });
 
-  it('on ne porte qu’un lot possédé', () => {
+  it('on ne porte qu’un lot possédé, et on peut tout enlever', () => {
     const g = garderobeNeuve();
-    expect(porter(g, 'maillot-vert')).toEqual(g);
-    const avec = choisirLot(g, 'maillot-vert');
-    expect(porter(porter(avec, 'maillot-rouge'), 'maillot-vert').porte.maillot).toBe('maillot-vert');
+    expect(porter(g, 'haut-menthe')).toEqual(g);
+    const avec = choisirLot(g, 'haut-menthe');
+    expect(porter(porter(avec, 'haut-corail'), 'haut-menthe').porte.haut).toBe('haut-menthe');
+    expect(retirer(avec, 'chapeau').porte.chapeau).toBe('rien');
+  });
+
+  it('les anciens lots deviennent des accessoires, sans rien perdre', () => {
+    const g = convertirGarderobe({ possedes: ['tenue-casquette', 'maillot-rouge', 'tenue-couronne', 'maillot-vert'], porte: { tenue: 'tenue-couronne', maillot: 'maillot-vert' } });
+    expect(g.possedes).toEqual(expect.arrayContaining(['chapeau-couronne', 'objet-baguette', 'haut-menthe', 'haut-corail', 'chapeau-casquette']));
+    expect(g.porte.chapeau).toBe('chapeau-couronne');
+    expect(g.porte.haut).toBe('haut-menthe');
+    expect(convertirGarderobe(undefined)).toEqual(garderobeNeuve());
+  });
+
+  it('chaque lot de départ existe', () => {
+    for (const id of garderobeNeuve().possedes) expect(LOTS.some((l) => l.id === id)).toBe(true);
   });
 
   it('les identifiants de lots sont uniques', () => {
