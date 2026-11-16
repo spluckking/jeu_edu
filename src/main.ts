@@ -72,7 +72,7 @@ import { CameraHaute } from './scene/suivi.ts';
 import { Obstacle } from './scene/obstacles.ts';
 import { creerCommandes } from './controles/joystick.ts';
 import { basculerMuet, bruitage, demarrerSon, estMuet, reglerVolumes } from './son/bruitages.ts';
-import { dire, reglerVoix } from './son/voix.ts';
+import { dire, reglerVoix, reglerVolumeVoix } from './son/voix.ts';
 
 function el<T extends HTMLElement>(id: string): T {
   const trouve = document.getElementById(id);
@@ -1308,6 +1308,7 @@ async function echanger(): Promise<string> {
 function appliquerReglages(): void {
   reglerVolumes(sauvegarde.reglages.volumeBruitages, sauvegarde.reglages.volumeMusique);
   reglerVoix(sauvegarde.reglages.vitesseVoix);
+  reglerVolumeVoix(sauvegarde.reglages.volumeVoix ?? 1);
   rechargerContenus();
   rechargerFeuilleton();
   sauver();

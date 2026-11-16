@@ -66,3 +66,33 @@ La direction A suit les images d'exemple du parent sans les copier : décor, per
 - un zoom de trois quarts sur le stand dès qu'on s'en approche, avec le bouton « Entrer » ;
 - une garde-robe : le personnage sur un tapis à gauche, des onglets ronds (chapeaux, lunettes, hauts, chaussures, objets), une grille de vignettes avec coche, et les boutons « Mes tenues » et « C'est parti ! » ;
 - un HUD avec une mini-carte ronde, une ligne de quête et des icônes rondes crème.
+
+## Phase 3 — Graphismes
+
+| Passe | Ce qui a changé | i/s (PC de mesure) |
+|---|---|---|
+| 3.1 Lumière | Ciel clair, soleil chaud venu de la gauche, brouillard bleu pâle, ombrage en 3 aplats doux (toon) à la place du matériau physique à reflet de velours | porte : 38 → **60** |
+| 3.2 Matériaux et textures | Palette pastel (toutes les couleurs adoucies vers le crème), herbe semée de fleurs, allées en dalles crème, barrières dragée | 60 |
+| Caméra | Vue haute et fixe en promenade ; zoom de trois quarts en arrivant devant un stand ; regard porté vers la grande porte sur l'allée ; portique masqué une fois dans la fête | 60 (59 appels de dessin à l'arrivée) |
+| 3.3 Effets | Confettis pastel à chaque bonne réponse et en fin de manche, coupés si « moins de mouvement » est demandé | 60 |
+| 3.4 Personnages | Personnages ronds à grosse tête et grands yeux ; accessoires séparés (6 chapeaux, 3 lunettes, 8 hauts, 4 chaussures, 5 objets) ; garde-robe à vignettes ; le personnage s'efface pendant les exercices pour laisser voir le forain | 60 |
+| 3.5 Post-traitement | **Non ajouté.** Un bloom même léger double le coût de chaque image sur tablette ; l'ombrage toon et les couleurs donnent déjà le rendu voulu | — |
+| 3.6 Interface | Palette d'interface pastel, bulle de texte rangée en haut à gauche, joystick crème, **plus aucun flou CSS sur la 3D** (cause des 18 i/s fenêtre ouverte) | 60 |
+
+**Sauvegarde** : version 7. Les anciens lots (tenues, maillots) sont convertis en accessoires sans rien perdre (testé).
+
+## Phase 4 — Voix
+
+- `npm run voix` (`scripts/generer-voix.mjs`) rassemble les phrases connues d'avance et les fait lire par Azure (voix `fr-FR-DeniseNeural` par défaut, débit −6 %, dictée à −28 % avec des pauses). Les MP3 vont dans `public/voix/`, nommés par une empreinte du texte, du mode et de la voix, avec `public/voix/manifest.json`. Seules les phrases nouvelles sont générées, les inutiles sont retirées.
+- **152 phrases, 2,5 Mo** : consignes fixes, pause calme, tables de 0 × 0 à 10 × 10, mots de dictée et corrections.
+- **Trois voix à écouter** dans `docs/voix-essais/` (Denise, Henri, Eloise ; mêmes 4 phrases). Pour changer : `npm run voix -- --voix fr-FR-HenriNeural`.
+- Le jeu joue le MP3 s'il existe, sinon la voix de la tablette (comme avant). Volume de la voix réglable à part dans l'espace parent. Les MP3 sont mis en cache hors ligne par le service worker.
+
+**Textes dynamiques (lus par la voix de la tablette)** :
+- les phrases avec le prénom d'un forain (choisi par l'enfant) ;
+- les messages qui dépendent de la journée (tickets, stands restants) ;
+- les défis du chantier, les questions de l'horloge et les phrases de la pêche, tirés au sort ;
+- le feuilleton (il contient les prénoms des forains) ;
+- les listes de mots ajoutées par le parent sur la tablette.
+
+Proposition : pour les mots ajoutés chaque semaine, lancer `npm run voix` sur le PC quand on les ajoute au dépôt (sans rien de plus). Les faire générer par le rêve du soir demanderait de confier la clé Azure à la routine dans le cloud : à décider (voir `A_VALIDER.md`).

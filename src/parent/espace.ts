@@ -279,7 +279,8 @@ function construire(o: OptionsEspace, fermer: () => void): HTMLElement {
     curseur('Pause proposée après', s.reglages.tempsDeJeu, 10, 60, 5, (v) => ((s.reglages.tempsDeJeu = v), changer()), (v) => `${v} min`),
     curseur('Musique', Math.round(s.reglages.volumeMusique * 100), 0, 100, 10, (v) => ((s.reglages.volumeMusique = v / 100), changer()), (v) => `${v} %`),
     curseur('Bruitages', Math.round(s.reglages.volumeBruitages * 100), 0, 100, 10, (v) => ((s.reglages.volumeBruitages = v / 100), changer()), (v) => `${v} %`),
-    curseur('Vitesse de la voix', s.reglages.vitesseVoix, 0.6, 1.1, 0.05, (v) => ((s.reglages.vitesseVoix = v), changer()), (v) => (v < 0.85 ? 'lente' : v > 0.97 ? 'rapide' : 'normale')),
+    curseur('Voix', Math.round((s.reglages.volumeVoix ?? 1) * 100), 0, 100, 10, (v) => ((s.reglages.volumeVoix = v / 100), changer()), (v) => `${v} %`),
+    curseur('Vitesse de la voix (tablette)', s.reglages.vitesseVoix, 0.6, 1.1, 0.05, (v) => ((s.reglages.vitesseVoix = v), changer()), (v) => (v < 0.85 ? 'lente' : v > 0.97 ? 'rapide' : 'normale')),
   );
   const rejouer = el('button', 'bouton-secondaire', 'Rejouer l’introduction');
   rejouer.addEventListener('click', () => {

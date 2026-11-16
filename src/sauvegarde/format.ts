@@ -21,6 +21,8 @@ export interface Reglages {
   volumeBruitages: number;
   /** Vitesse de la voix (0,6 lent à 1,1 rapide). */
   vitesseVoix: number;
+  /** Volume de la voix, à part (absent dans les sauvegardes d'avant : 1). */
+  volumeVoix?: number;
 }
 
 export function reglagesNeufs(): Reglages {
