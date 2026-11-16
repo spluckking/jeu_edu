@@ -42,7 +42,9 @@ export class CameraHaute {
     const voulu = this.stand ? 1 : 0;
     this.zoom = dt <= 0 ? voulu : this.zoom + (voulu - this.zoom) * Math.min(1, dt * 2.5);
     this.position.set(p.x, 0.8 + Math.sin(TANGAGE) * DISTANCE, p.z + Math.cos(TANGAGE) * DISTANCE);
-    this.cible.set(p.x, 0.8, p.z - 1.2);
+    // Sur l'allée d'arrivée, on regarde plus loin devant : la grande porte reste dans l'image.
+    const avance = 1.2 + Math.min(1, Math.max(0, (p.z - 11) / 8)) * 4.2;
+    this.cible.set(p.x, 0.8 + (avance - 1.2) * 0.3, p.z - avance);
     if (this.stand && this.zoom > 0.001) {
       // Le comptoir est devant l'approche ; la caméra se met en retrait, en hauteur et sur le côté.
       const sx = Math.sin(this.stand.regard);

@@ -57,6 +57,7 @@ import {
 } from './recompenses/recompenses.ts';
 import { ouvrirGarderobe, type OptionsGarderobe } from './ui/garderobe.ts';
 import { vignette } from './scene/vignettes.ts';
+import { confettis } from './ui/confettis.ts';
 import { musique } from './son/musique.ts';
 import { jouerIntroduction } from './histoire/introduction.ts';
 import { chargerHistoires, METIERS, PROPOSITIONS } from './histoire/lecture.ts';
@@ -532,6 +533,7 @@ async function finDeSeance(): Promise<boolean> {
   j.finie = true;
   gagnerTickets(BONUS_SEANCE);
   bruitage.finDeManche();
+  confettis(48);
   const reste = LOTS.some((l) => !sauvegarde.garderobe.possedes.includes(l.id));
   if (reste && !j.lotChoisi) {
     await garderobe({
@@ -600,6 +602,7 @@ ui.construire.addEventListener('click', () => {
   fete.construireRoue(sauvegarde.roue, PIECES_ROUE);
   fete.saluerForain('chantier');
   bruitage.finDeManche();
+  confettis(48);
   majHud();
   majConstruction();
   parler(
@@ -744,6 +747,8 @@ function promenade(delta: number): void {
   if (!bienvenue && h.position.z < 11.5) {
     bienvenue = true;
     bruitage.finDeManche();
+    confettis(48);
+  confettis(48);
     parler('Bienvenue à la fête foraine !');
     window.setTimeout(() => {
       if (!dansUnStand && !enCinema) parler(messageDeLaPlace());
@@ -1106,6 +1111,8 @@ function valider(): void {
     jeu.reussite(fete);
     fete.saluer();
     bruitage.reussite();
+    const r = ui.question.getBoundingClientRect();
+    confettis(22, { x: r.left + r.width / 2, y: r.top + r.height / 2 });
     manche = avancer(manche, true);
     majProgres();
     window.setTimeout(() => void suite(), 1500);
@@ -1132,6 +1139,7 @@ async function suite(): Promise<void> {
   if (typeManche === 'defis' && (restants(jeu) ?? 0) > 0) return lancerManche();
   musique.arreter();
   bruitage.finDeManche();
+  confettis(48);
   fete.saluer();
   // Une manche de révision terminée rapporte des tickets ; le jeu libre, non.
   const gain = typeManche === 'semaine' || typeManche === 'memoire' ? TICKETS_PAR_MANCHE : 0;
