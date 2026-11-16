@@ -115,3 +115,48 @@ Le parent a demandé que je génère moi-même musiques et bruitages avec son co
 - Lecteur prêt : chaque morceau boucle avec un fondu enchaîné de 2,5 s, et changer de moment fond un morceau dans l'autre. Tant qu'un fichier manque, la musique fabriquée joue comme avant (exercices, détente).
 - Volumes séparés : musique, bruitages, voix (espace parent).
 - Budget : environ 3,5 Mo pour 4 minutes de musique à 96 kbit/s, et 90 ko de bruitages. Le tout est mis en cache hors ligne.
+
+## Phase 6 — Améliorations générales
+
+- Bug corrigé : la fenêtre du code parent passait derrière l'écran d'accueil.
+- Bug corrigé : chute des i/s quand une fenêtre s'ouvrait (flou CSS sur la 3D).
+- Bug corrigé : la tête du personnage masquait le comptoir dans les stands (il s'efface pendant l'exercice).
+- Ressenti : confettis, scintillement des tickets gagnés, bruitages enregistrés, musiques par moment (dès qu'elles existent).
+- Mise à jour : plus de rechargement automatique en plein exercice. Un bandeau « Une nouvelle version du jeu est prête » propose « Mettre à jour » ou « Plus tard », seulement hors des stands ; sinon elle s'installe au lancement suivant.
+- Vérifié sur la version construite : service worker actif, jeu, voix et bruitages disponibles **hors ligne** après un premier chargement.
+- `README.md` réécrit : commandes, génération des voix et des sons.
+
+## Rapport final
+
+### Mesures (PC de mesure : Intel UHD 630, rendu 2 800 × 1 870 px)
+
+| Moment | Avant | Après |
+|---|---|---|
+| Arrivée à la porte | 38 i/s, 193 appels | **60 i/s**, 190 appels |
+| Milieu de la fête | 60 i/s, 128 appels | 60 i/s, 133 appels |
+| Exercice au stand | 60 i/s | 60 i/s |
+| Introduction | 37 i/s | **60 i/s** |
+| Fenêtre ouverte (lots) | 18 i/s, gel de 0,9 s | 58 i/s (garde-robe, vignettes calculées au premier affichage) |
+| Hors ligne complet | 0,2 Mo en cache | 3,4 Mo en cache (dont 2,5 Mo de voix) |
+
+Captures : `docs/captures/avant/` et `docs/captures/apres/` (mêmes écrans, mêmes noms). Maquette : `docs/captures/maquette/`.
+
+### Ce qui reste
+
+- **Mesurer sur la tablette** avec `?fps` : à la porte, la vue d'ensemble dépasse le budget de 150 appels de dessin (190). Si la tablette n'y tient pas 60 i/s, prochaine étape : fusionner l'allée et ses haies.
+- **Musiques** : ajouter la permission « Music generation » à la clé ElevenLabs, puis `npm run sons`.
+- **Choisir la voix** parmi les trois essais (`docs/voix-essais/`).
+- Phrases dynamiques (prénoms, défis tirés au sort) : toujours lues par la voix de la tablette.
+
+### Checklist sur la tablette (à faire avec l'enfant)
+
+1. Ouvrir le jeu : le bandeau « nouvelle version » peut apparaître ; toucher « Mettre à jour ».
+2. Vérifier que la progression, les tickets et les lots sont toujours là (migration vers la version 7). Les anciens lots sont devenus des accessoires.
+3. Entrer : la grande porte se voit au fond ; avancer au joystick (vers le haut = vers le fond de la fête).
+4. S'approcher d'un stand : la caméra zoome, le bouton « Entrer » apparaît.
+5. Faire une manche : voix enregistrée sur les tables (« 7 fois 8 ») et la dictée, confettis sur les bonnes réponses, bruitages nouveaux.
+6. Ouvrir la garde-robe (icône t-shirt) : changer chapeau, lunettes, haut, chaussures, objet ; tourner le personnage.
+7. Finir la séance : choisir un cadeau parmi les accessoires pas encore gagnés.
+8. Espace parent : régler les volumes musique, bruitages et voix séparément.
+9. Mode avion, relancer le jeu : tout doit marcher.
+10. Ajouter `?fps` à l'adresse et noter les i/s à la porte, au milieu et dans un stand.

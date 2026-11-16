@@ -115,7 +115,7 @@ export function construireFete(depart?: Accessoires): Fete {
   };
 
   // --- Sol et allées -------------------------------------------------------
-  atelier.sol(racine, 140, 140, 0, 0, 0, 'herbe');
+  atelier.sol(racine, 320, 320, 0, 0, 0, 'herbe');
   atelier.sol(racine, 3.4, 14, 0, 0.03, 5, 'dalles');
   atelier.sol(racine, 34, 3.6, 0, 0.035, -1, 'dalles');
   // L'allée vers le fond de la fête, à droite du chamboule-tout, puis celle du fond.
