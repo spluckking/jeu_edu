@@ -1774,3 +1774,24 @@ body.en-garderobe #bulle {
     opacity: 0;
   }
 }
+
+/* Bandeau « nouvelle version prête » (src/app/miseAJour.ts). */
+.mise-a-jour {
+  position: fixed;
+  left: 50%;
+  bottom: calc(18px + env(safe-area-inset-bottom));
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 14px 10px 22px;
+  border-radius: 24px;
+  background: var(--papier);
+  box-shadow: 0 4px 0 #ead9c2, var(--ombre);
+  font-size: 1.15rem;
+  transform: translateX(-50%);
+}
+
+.mise-a-jour button {
+  min-height: 56px;
+}

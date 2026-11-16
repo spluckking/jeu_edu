@@ -66,6 +66,7 @@ import { ecrireSauvegarde, lireSauvegarde } from './sauvegarde/stockage.ts';
 import { construireFete, type IdStand, type PoseCamera, type Stand } from './scene/fete.ts';
 import { construireEntree } from './scene/entree.ts';
 import { surveillerModeApp } from './app/modeApp.ts';
+import { surveillerMiseAJour } from './app/miseAJour.ts';
 
 surveillerModeApp();
 import { CameraHaute } from './scene/suivi.ts';
@@ -1346,3 +1347,6 @@ document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible' && !dansUnStand) mettreAJourPlace();
   if (document.visibilityState === 'hidden') void echanger();
 });
+
+// Une nouvelle version se propose seulement hors des stands, des cinématiques et de la garde-robe.
+if (import.meta.env.PROD) surveillerMiseAJour(() => !dansUnStand && !enCinema);
