@@ -42,3 +42,27 @@ Branche `amelioration`. Une section par phase, complétée au fil de l'eau.
 ### Captures de référence
 
 `docs/captures/avant/`, prises par `node scripts/captures.mjs docs/captures/avant` (Playwright, 1 600 × 1 068 CSS, ×2, sauvegarde d'essai locale) : accueil, porte, promenade, devant un stand, les cinq stands et leurs exercices, lots, histoire du jour, espace parent, pause calme, introduction. Les mesures brutes sont dans `mesures.json`.
+
+## Phase 1 — Skills
+
+18 skills audités et copiés dans `.claude/skills/` depuis un commit figé : les 12 `threejs-*` (sauf React), plus `game-feel`, `game-ui-ux`, `audio-design`, `performance-optimization`, `save-systems` et `procedural-gen`. `create-game-assets` est écarté : il sert à générer des images, ce qui est inutile pour un jeu dessiné en code. Le détail de l'audit est dans `.claude/skills/PROVENANCE.md`.
+
+## Phase 2 — Direction visuelle
+
+Trois directions possibles, toutes dessinées en code (pas de modèle à télécharger) :
+
+| | A. Douillet pastel (retenue) | B. Jouet vif (l'actuel, poli) | C. Livre d'images |
+|---|---|---|---|
+| Esprit | Jeux de vie « cosy » : herbe fleurie, couleurs crème et dragée, personnages ronds à grosse tête | Plastique brillant, couleurs primaires | Aquarelle, contours dessinés, papier |
+| Palette | crème `#fff8ee`, dragée `#f6b3c9`, menthe `#b6e3c8`, ciel `#9fd6f0`, beurre `#ffe27a`, lilas `#c8a7f0` | rouge, jaune, bleu marine, vert vif | tons délavés, contour brun |
+| Éclairage | ombrage en 3 aplats doux (toon), ciel dégradé, ombres rondes sous les objets | lumière physique avec reflet de velours | aplats, texture papier |
+| Caméra | haute et fixe en promenade, zoom de trois quarts devant un stand | à l'épaule | haute |
+| Coût | **plus léger qu'aujourd'hui** : le matériau toon coûte moins cher que le matériau physique à reflet de velours | actuel | contours = un passage de rendu en plus |
+
+La direction A suit les images d'exemple du parent sans les copier : décor, personnages et interface sont originaux.
+
+**Maquette** : `prototypes/style-douillet/` (captures dans `docs/captures/maquette/`) :
+- une promenade en vue haute, où l'on voit l'herbe fleurie, l'allée en dalles, le manège de tasses, les distributeurs et la barrière dragée ;
+- un zoom de trois quarts sur le stand dès qu'on s'en approche, avec le bouton « Entrer » ;
+- une garde-robe : le personnage sur un tapis à gauche, des onglets ronds (chapeaux, lunettes, hauts, chaussures, objets), une grille de vignettes avec coche, et les boutons « Mes tenues » et « C'est parti ! » ;
+- un HUD avec une mini-carte ronde, une ligne de quête et des icônes rondes crème.
