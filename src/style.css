@@ -1543,3 +1543,19 @@ svg {
     transition: none !important;
   }
 }
+
+/* « ?fps » : compteur de mesure, pour le parent. */
+.compteur-fps {
+  position: fixed;
+  left: 50%;
+  bottom: 8px;
+  z-index: 50;
+  margin: 0;
+  padding: 4px 12px;
+  transform: translateX(-50%);
+  border-radius: 10px;
+  background: rgb(0 0 0 / 0.6);
+  color: #fff;
+  font: 14px/1.3 ui-monospace, monospace;
+  pointer-events: none;
+}

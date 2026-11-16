@@ -312,6 +312,7 @@ function redimensionner(): void {
 window.addEventListener('resize', redimensionner);
 redimensionner();
 
+let compteur: ((maintenant: number) => void) | null = null;
 const mouvementReduit = window.matchMedia('(prefers-reduced-motion: reduce)');
 let precedent = performance.now();
 renderer.setAnimationLoop((maintenant) => {
@@ -330,7 +331,34 @@ renderer.setAnimationLoop((maintenant) => {
   fete.mettreAJour(mouvementReduit.matches ? 0 : horloge, delta);
   renderer.render(scene, camera);
   document.body.dataset.appels = String(renderer.info.render.calls);
+  compteur?.(maintenant);
 });
+
+// « ?fps » : compteur d'images par seconde, pour mesurer sur la tablette (essais du parent).
+compteur = new URLSearchParams(location.search).has('fps')
+  ? (() => {
+      const boite = document.createElement('p');
+      boite.className = 'compteur-fps';
+      document.body.append(boite);
+      let debut = performance.now();
+      let images = 0;
+      let pire = 0;
+      let avant = debut;
+      return (maintenant: number): void => {
+        images++;
+        pire = Math.max(pire, maintenant - avant);
+        avant = maintenant;
+        if (maintenant - debut < 1000) return;
+        const ips = (images * 1000) / (maintenant - debut);
+        const info = renderer.info.render;
+        boite.textContent = `${ips.toFixed(0)} i/s · pire ${pire.toFixed(0)} ms · ${info.calls} appels · ${(info.triangles / 1000).toFixed(0)} k triangles · ${renderer.getPixelRatio()}×`;
+        document.body.dataset.ips = ips.toFixed(1);
+        debut = maintenant;
+        images = 0;
+        pire = 0;
+      };
+    })()
+  : null;
 
 // --- La bulle ----------------------------------------------------------------------
 let minuterieBulle = 0;
