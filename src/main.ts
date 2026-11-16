@@ -476,6 +476,7 @@ function gagnerTickets(nombre: number): void {
   journee().ticketsGagnes += nombre;
   sauver();
   majHud();
+  window.setTimeout(() => bruitage.ticket(), 450);
   ui.tickets.classList.remove('gagne');
   void ui.tickets.offsetWidth;
   ui.tickets.classList.add('gagne');
@@ -852,9 +853,9 @@ function toucherStand(stand: Stand): void {
     void fete.allerAuStand(stand).then(async () => {
       enMarche = false;
       dansUnStand = true;
-      musique.demarrer();
+      musique.demarrer('detente');
       await jouerDetente(id);
-      musique.arreter();
+      musique.demarrer('promenade');
       dansUnStand = false;
       retourPromenade();
       parler(messageDeLaPlace());
@@ -919,7 +920,7 @@ async function ouvrirStand(nouveau: JeuDeStand): Promise<void> {
 }
 
 function fermerStand(): void {
-  musique.arreter();
+  musique.demarrer('promenade');
   dansUnStand = false;
   heros().visible = true;
   manche = null;
@@ -1149,7 +1150,9 @@ async function suite(): Promise<void> {
   const forcee = parametres.has('pause') && !j.pause;
   if (typeManche !== 'libre' && (forcee || pauseDue(j.total ?? 0, j.faites ?? 0, j.pause === true))) {
     ui.stand.hidden = true;
+    musique.demarrer('pause');
     await jouerPause(exerciceDuJour(aujourdhui()), parametres.has('pause-rapide') ? 0.05 : 1);
+    musique.arreter();
     j.pause = true;
     sauver();
     ui.stand.hidden = false;
@@ -1260,6 +1263,7 @@ ui.entrer.addEventListener('click', async () => {
   bruitage.ouverture();
   ui.entree.hidden = true;
   await introduction();
+  musique.demarrer('promenade');
   // On arrive toujours par la grande porte, comme dans un parc d'attractions.
   arriverALEntree();
   parler('Avance avec le joystick et passe la grande porte !');

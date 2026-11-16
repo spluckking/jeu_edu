@@ -96,3 +96,22 @@ La direction A suit les images d'exemple du parent sans les copier : décor, per
 - les listes de mots ajoutées par le parent sur la tablette.
 
 Proposition : pour les mots ajoutés chaque semaine, lancer `npm run voix` sur le PC quand on les ajoute au dépôt (sans rien de plus). Les faire générer par le rêve du soir demanderait de confier la clé Azure à la routine dans le cloud : à décider (voir `A_VALIDER.md`).
+
+## Phase 5 — Musiques et bruitages (ElevenLabs)
+
+Avant : une seule musique, fabriquée dans le code (sinus et triangle, 76 BPM, sans fin), jouée dans les stands et la détente. Cinq bruitages fabriqués dans le code.
+
+Le parent a demandé que je génère moi-même musiques et bruitages avec son compte ElevenLabs. `npm run sons` (`scripts/generer-sons.mjs`) crée ce qui manque dans `public/sons/` ; `npm run sons -- --liste` affiche les descriptions envoyées.
+
+| Fichier | Moment | Ambiance | Tempo | Durée |
+|---|---|---|---|---|
+| `musique-promenade` | dans la fête | joyeuse, ukulélé, glockenspiel, sifflet | 104 | 60 s |
+| `musique-exercice` | dans un stand | calme, lo-fi, piano électrique, marimba | 80 | 60 s |
+| `musique-detente` | autos, trampoline, glaces | funk-pop bondissante, piano jouet | 118 | 60 s |
+| `musique-pause` | pause respiration | ambiance très calme, kalimba, carillons | ~60 | 60 s |
+
+- **Les 6 bruitages sont générés** (touche, ouverture, réussite, erreur douce, fin de manche, ticket : 87 ko en tout) et joués par le jeu. Le son fabriqué reste en repli.
+- **Les 4 musiques ne sont pas générées** : la clé ElevenLabs n'a pas la permission « génération de musique ». Le reste est prêt. Il suffit d'ajouter cette permission à la clé (ElevenLabs → API keys → modifier la clé) et que l'abonnement inclue la musique, puis de lancer `npm run sons`.
+- Lecteur prêt : chaque morceau boucle avec un fondu enchaîné de 2,5 s, et changer de moment fond un morceau dans l'autre. Tant qu'un fichier manque, la musique fabriquée joue comme avant (exercices, détente).
+- Volumes séparés : musique, bruitages, voix (espace parent).
+- Budget : environ 3,5 Mo pour 4 minutes de musique à 96 kbit/s, et 90 ko de bruitages. Le tout est mis en cache hors ligne.
