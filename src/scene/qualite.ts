@@ -166,34 +166,29 @@ export interface Herbe {
   animer(temps: number): void;
 }
 
-/** Une touffe : trois brins croisés, pointus, plus clairs au bout. Hauteur 1, posée sur y = 0. */
+/**
+ * Une touffe de gazon tondu : cinq feuilles courtes et larges, toutes penchées du même côté que
+ * la texture du sol. Hauteur 1 (mise à l'échelle par instance), posée sur y = 0.
+ */
 function touffe(): THREE.BufferGeometry {
   const positions: number[] = [];
   const couleurs: number[] = [];
-  const base = new THREE.Color(0x3e6b2a);
-  const pointe = new THREE.Color(0x9ccf6a);
-  for (let b = 0; b < 3; b++) {
-    const a = (b / 3) * Math.PI + 0.3;
-    const dx = Math.cos(a) * 0.05;
-    const dz = Math.sin(a) * 0.05;
-    const penche = (b - 1) * 0.12;
-    const bas = [-dx, 0, -dz, dx, 0, dz];
-    const mi = [-dx * 0.6 + penche * 0.5, 0.55, -dz * 0.6, dx * 0.6 + penche * 0.5, 0.55, dz * 0.6];
-    const haut = [penche, 1, 0];
-    const tri = (p: number[][], t: number[]): void => {
-      for (const [i, v] of p.entries()) {
-        positions.push(...v);
-        const c = base.clone().lerp(pointe, t[i] ?? 0);
-        couleurs.push(c.r, c.g, c.b);
-      }
-    };
-    const A = bas.slice(0, 3);
-    const B = bas.slice(3, 6);
-    const C = mi.slice(0, 3);
-    const D = mi.slice(3, 6);
-    tri([A, B, D], [0, 0, 0.55]);
-    tri([A, D, C], [0, 0.55, 0.55]);
-    tri([C, D, haut], [0.55, 0.55, 1]);
+  const base = new THREE.Color(0x2a5c10);
+  const pointe = new THREE.Color(0x8ccb36);
+  for (let b = 0; b < 5; b++) {
+    const a = (b / 5) * Math.PI * 2;
+    const ox = Math.cos(a) * 0.09;
+    const oz = Math.sin(a) * 0.09;
+    const travers = a + Math.PI / 2;
+    const lx = Math.cos(travers) * 0.07;
+    const lz = Math.sin(travers) * 0.07;
+    // Penchées vers le même côté (+x, −z), comme une pelouse brossée.
+    const tip = [ox + 0.16, 1, oz - 0.12];
+    for (const [v, t] of [[[ox - lx, 0, oz - lz], 0], [[ox + lx, 0, oz + lz], 0], [tip, 1]] as const) {
+      positions.push(...v);
+      const c = base.clone().lerp(pointe, t);
+      couleurs.push(c.r, c.g, c.b);
+    }
   }
   const g = new THREE.BufferGeometry();
   g.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
@@ -224,8 +219,8 @@ export function semerHerbe(
       vec3 pied = instanceMatrix[3].xyz;
       float souffle = sin(uTemps * 1.6 + pied.x * 0.35 + pied.z * 0.22) * 0.5 + sin(uTemps * 2.7 + pied.x * 0.9) * 0.2;
       float h = position.y * position.y;
-      transformed.x += souffle * 0.22 * h;
-      transformed.z += souffle * 0.12 * h;`,
+      transformed.x += souffle * 0.05 * h;
+      transformed.z += souffle * 0.03 * h;`,
     );
   };
   mat.customProgramCacheKey = () => 'herbe-vent';
@@ -246,11 +241,12 @@ export function semerHerbe(
     if (!libre(x, z)) continue;
     p.set(x, sol(x, z), z);
     q.setFromAxisAngle(new THREE.Vector3(0, 1, 0), hasard() * Math.PI * 2);
-    const hauteur = 0.35 + hasard() * 0.4;
-    const largeur = 0.8 + hasard() * 0.7;
+    // Un gazon tondu : bas (10 à 18 cm) et touffu.
+    const hauteur = 0.07 + hasard() * 0.06;
+    const largeur = 0.7 + hasard() * 0.6;
     s.set(largeur, hauteur, largeur);
     touffes.setMatrixAt(n, m.compose(p, q, s));
-    touffes.setColorAt(n, c.setHSL(0.24 + hasard() * 0.06, 0.45 + hasard() * 0.2, 0.42 + hasard() * 0.18));
+    touffes.setColorAt(n, c.setHSL(0.25 + hasard() * 0.04, 0.55 + hasard() * 0.2, 0.42 + hasard() * 0.14));
     n++;
   }
   touffes.count = n;
@@ -266,8 +262,8 @@ export function semerHerbe(
     const x = (hasard() * 2 - 1) * zone.x;
     const z = zone.zMin + hasard() * (zone.zMax - zone.zMin);
     if (!libre(x, z)) continue;
-    p.set(x, sol(x, z) + 0.32 + hasard() * 0.2, z);
-    s.setScalar(0.8 + hasard() * 0.8);
+    p.set(x, sol(x, z) + 0.12 + hasard() * 0.05, z);
+    s.setScalar(0.5 + hasard() * 0.5);
     fleurs.setMatrixAt(f, m.compose(p, q.identity(), s));
     fleurs.setColorAt(f, c.set(teintes[f % teintes.length] ?? 0xffffff));
     f++;

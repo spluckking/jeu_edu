@@ -133,7 +133,8 @@ export function construireTerrain(herbe: THREE.Texture, dalles: THREE.Texture, p
         '#include <map_fragment>',
         `// Herbe et pavés mélangés selon la carte des chemins, avec un bord irrégulier.
         vec2 sol = vPosMonde.xz;
-        vec4 couleurHerbe = texture2D(map, sol * 0.125);
+        // Une tuile de gazon tous les 3 m : des feuilles d'une quinzaine de centimètres.
+        vec4 couleurHerbe = texture2D(map, sol * 0.33);
         vec4 couleurPaves = texture2D(uDalles, sol * 0.3125);
         float chemin = texture2D(uMasque, (sol - vec2(${CARTE.x0.toFixed(1)}, ${CARTE.z0.toFixed(1)})) / ${CARTE.taille.toFixed(1)}).r;
         chemin = smoothstep(0.38, 0.62, chemin + (bruit3(vPosMonde * 1.3) - 0.5) * 0.45);

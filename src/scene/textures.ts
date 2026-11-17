@@ -26,41 +26,56 @@ function graine(depart: number): () => number {
 
 export function texturesDouillettes(): { herbe: THREE.CanvasTexture; dalles: THREE.CanvasTexture; degrade: THREE.DataTexture; liberer(): void } {
   const haute = qualite === 'haute';
-  // Qualité haute : herbe plus fine et plus variée (touffes, terre, trèfle), pavés irréguliers.
+  // Qualité haute : un gazon tondu, dense, fait de feuilles pointues en couches serrées, toutes
+  // penchées dans le même sens (comme une pelouse brossée par le vent). Raccordable sans couture.
   const herbe = haute
-    ? toile(512, 512, (g) => {
+    ? toile(1024, 1024, (g) => {
         const hasard = graine(7);
-        g.fillStyle = palette.herbe.fond;
-        g.fillRect(0, 0, 512, 512);
-        // Grandes taches de teinte, puis des milliers de petits traits d'herbe.
-        for (let i = 0; i < 70; i++) {
-          g.fillStyle = hasard() > 0.5 ? palette.herbe.clair : palette.herbe.sombre;
-          g.globalAlpha = 0.18;
-          g.beginPath();
-          g.arc(hasard() * 512, hasard() * 512, 20 + hasard() * 60, 0, Math.PI * 2);
-          g.fill();
+        const T = 1024;
+        g.fillStyle = '#2c5e12';
+        g.fillRect(0, 0, T, T);
+        /** Une feuille : pointue, légèrement courbée, plus claire au bout. */
+        const feuille = (x: number, y: number, longueur: number, largeur: number, angle: number, base: string, bout: string): void => {
+          for (const dx of [0, -T, T]) {
+            for (const dy of [0, -T, T]) {
+              const ox = x + dx;
+              const oy = y + dy;
+              if (ox < -longueur || ox > T + longueur || oy < -longueur || oy > T + longueur) continue;
+              const cx = Math.cos(angle);
+              const cy = Math.sin(angle);
+              const px = -cy;
+              const py = cx;
+              const pointe = [ox + cx * longueur, oy + cy * longueur];
+              const courbe = (hasard() - 0.5) * largeur * 1.5;
+              const degrade = g.createLinearGradient(ox, oy, pointe[0] ?? ox, pointe[1] ?? oy);
+              degrade.addColorStop(0, base);
+              degrade.addColorStop(1, bout);
+              g.fillStyle = degrade;
+              g.beginPath();
+              g.moveTo(ox + px * largeur, oy + py * largeur);
+              g.quadraticCurveTo(ox + cx * longueur * 0.55 + px * (largeur + courbe), oy + cy * longueur * 0.55 + py * (largeur + courbe), pointe[0] ?? ox, pointe[1] ?? oy);
+              g.quadraticCurveTo(ox + cx * longueur * 0.5 - px * (largeur - courbe), oy + cy * longueur * 0.5 - py * (largeur - courbe), ox - px * largeur, oy - py * largeur);
+              g.closePath();
+              g.fill();
+            }
+          }
+        };
+        // Trois couches, de la plus sombre (au fond) à la plus claire (au-dessus).
+        const couches: Array<[number, string, string]> = [
+          [5200, '#244f0d', '#3f7e18'],
+          [4200, '#2f6612', '#5a9e22'],
+          [3000, '#3c7a16', '#86c834'],
+        ];
+        for (const [nombre, base, bout] of couches) {
+          for (let i = 0; i < nombre; i++) {
+            // Toutes penchées vers le haut à droite, avec un peu de désordre.
+            const angle = -Math.PI * 0.35 + (hasard() - 0.5) * 0.7;
+            feuille(hasard() * T, hasard() * T, 34 + hasard() * 30, 3.2 + hasard() * 2.6, angle, base, bout);
+          }
         }
-        g.globalAlpha = 1;
-        for (let i = 0; i < 9000; i++) {
-          const x = hasard() * 512;
-          const y = hasard() * 512;
-          const t = hasard();
-          g.strokeStyle = t > 0.66 ? palette.herbe.clair : t > 0.33 ? palette.herbe.sombre : '#7aa850';
-          g.globalAlpha = 0.35 + hasard() * 0.5;
-          g.lineWidth = 1 + hasard();
-          g.beginPath();
-          g.moveTo(x, y);
-          g.lineTo(x + (hasard() - 0.5) * 4, y - 3 - hasard() * 6);
-          g.stroke();
-        }
-        // Un peu de terre qui affleure.
-        for (let i = 0; i < 40; i++) {
-          g.fillStyle = '#6b5a3c';
-          g.globalAlpha = 0.12 + hasard() * 0.12;
-          g.beginPath();
-          g.ellipse(hasard() * 512, hasard() * 512, 3 + hasard() * 9, 2 + hasard() * 6, hasard() * 3, 0, Math.PI * 2);
-          g.fill();
-        }
+        // Quelques reflets clairs sur le bout des feuilles du dessus.
+        g.globalAlpha = 0.5;
+        for (let i = 0; i < 900; i++) feuille(hasard() * T, hasard() * T, 16 + hasard() * 14, 1.6 + hasard() * 1.2, -Math.PI * 0.35 + (hasard() - 0.5) * 0.6, '#6fb82c', '#a8e04a');
         g.globalAlpha = 1;
       })
     : toile(256, 256, (g) => {

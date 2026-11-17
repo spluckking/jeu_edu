@@ -746,7 +746,7 @@ if (qualite === 'haute') {
   scene.add(terrain.racine);
   ombrer(fete.racine);
   ombrer(entree.racine);
-  herbe = semerHerbe((x, z) => terrain.pave(x, z) < 0.2 && enfoncement(x, z) <= 0, 24000, { x: 38, zMin: -56, zMax: 44 }, hauteurSol);
+  herbe = semerHerbe((x, z) => terrain.pave(x, z) < 0.2 && enfoncement(x, z) <= 0, 55000, { x: 38, zMin: -56, zMax: 44 }, hauteurSol);
   scene.add(herbe.racine);
 }
 
