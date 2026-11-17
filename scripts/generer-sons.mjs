@@ -17,27 +17,72 @@ const SORTIE = join(RACINE, 'public', 'sons');
 const FORMAT = 'mp3_44100_96';
 
 /** Les morceaux : une minute chacun, sans voix, pensés pour boucler (le jeu fond la fin dans le début). */
+/** Les morceaux : une minute chacun, sans voix, pensés pour boucler (le jeu fond la fin dans le début).
+ *  Un morceau par lieu : la promenade, chaque stand de révision (calme, pour se concentrer),
+ *  chaque jeu d'adresse (plus rythmé), et la pause respiration. */
 export const MUSIQUES = [
   {
     id: 'musique-promenade',
     ambiance: 'joyeuse et douillette, promenade dans la fête',
     tempo: 104,
     prompt:
-      'Cheerful, cozy modern pop instrumental for a pastel fairground in a children’s game. Ukulele strums, glockenspiel lead melody, soft hand claps, light kick and shaker, warm round bass, a playful whistled hook. Bright and happy but gentle, never hectic. 104 BPM, C major. Instrumental, no vocals. Seamless loop: the ending flows straight back into the beginning.',
+      'Cheerful, cozy modern pop for a colourful fairground in a children’s game. Ukulele strums, glockenspiel lead melody, soft hand claps, light kick and shaker, warm round bass, a playful whistled hook. Bright and happy but gentle, never hectic. 104 BPM, C major. Instrumental, no vocals. Seamless loop: the ending flows straight back into the beginning.',
   },
   {
-    id: 'musique-exercice',
-    ambiance: 'calme et concentrée, pendant les exercices',
-    tempo: 80,
+    id: 'musique-chamboule',
+    ambiance: 'espiègle et concentrée, chamboule-tout (tables)',
+    tempo: 88,
     prompt:
-      'Calm focus music for a child doing maths and spelling exercises. Soft lo-fi, mellow electric piano chords, gentle marimba motif, brushed drums, warm pads. Steady and unobtrusive, no sudden changes, nothing that distracts. 80 BPM, F major. Instrumental, no vocals. Seamless loop: the ending flows straight back into the beginning.',
+      'Playful but focused music for a child practising times tables at a fairground tin-can stall. Light pizzicato strings, soft marimba, gentle woodblock pulse, warm bass. Calm enough to think, a little mischievous. 88 BPM, D major. Instrumental, no vocals. Seamless loop: the ending flows straight back into the beginning.',
   },
   {
-    id: 'musique-detente',
-    ambiance: 'bondissante, pour les autos tamponneuses, le trampoline et le palais des glaces',
-    tempo: 118,
+    id: 'musique-confiserie',
+    ambiance: 'douce comme une boîte à musique, confiserie (dictée)',
+    tempo: 78,
     prompt:
-      'Bouncy, joyful funk-pop for kids’ fairground rides. Clean funky guitar, round synth bass, toy piano, hand claps, cowbell, a catchy bright synth lead. Upbeat and playful, never aggressive. 118 BPM, G major. Instrumental, no vocals. Seamless loop: the ending flows straight back into the beginning.',
+      'Sweet, gentle music for a candy shop in a children’s spelling game. Music box melody, celesta, soft felt piano, light vibraphone, warm pads, very soft brushes. Calm and cosy, nothing distracting. 78 BPM, F major. Instrumental, no vocals. Seamless loop: the ending flows straight back into the beginning.',
+  },
+  {
+    id: 'musique-chantier',
+    ambiance: 'bricoleuse, chantier (défis)',
+    tempo: 92,
+    prompt:
+      'Cheerful workshop music for a children’s puzzle game on a toy construction site. Marimba and xylophone patterns, soft toy percussion like little hammers and blocks, plucked bass, light claps. Curious and motivating, never loud. 92 BPM, G major. Instrumental, no vocals. Seamless loop: the ending flows straight back into the beginning.',
+  },
+  {
+    id: 'musique-horloge',
+    ambiance: 'mécanique et tendre, horloge (heure)',
+    tempo: 84,
+    prompt:
+      'Gentle clockwork music for a children’s clock-reading game. Ticking woodblock pulse, pizzicato strings, music box, soft harp, warm low clarinet. Precise and calm, like a friendly clock shop. 84 BPM, A major. Instrumental, no vocals. Seamless loop: the ending flows straight back into the beginning.',
+  },
+  {
+    id: 'musique-peche',
+    ambiance: 'aquatique et paisible, pêche aux canards (homophones)',
+    tempo: 86,
+    prompt:
+      'Relaxed water-side music for a duck-fishing stall in a children’s game. Ukulele, steel drum, soft bubbles of marimba, gentle shaker, round bass. Sunny and peaceful. 86 BPM, E major. Instrumental, no vocals. Seamless loop: the ending flows straight back into the beginning.',
+  },
+  {
+    id: 'musique-autos',
+    ambiance: 'pétillante et rythmée, autos tamponneuses',
+    tempo: 124,
+    prompt:
+      'Energetic, bouncy funk-pop for a bumper car ride in a children’s game. Funky clean guitar, slap synth bass, toy horns, hand claps, cowbell, bright synth lead. Exciting and fun, never aggressive. 124 BPM, G major. Instrumental, no vocals. Seamless loop: the ending flows straight back into the beginning.',
+  },
+  {
+    id: 'musique-trampoline',
+    ambiance: 'rebondissante, trampoline',
+    tempo: 116,
+    prompt:
+      'Springy, joyful pop for a trampoline game for kids. Bouncy synth bass, plucky synths, glockenspiel hooks, playful boing-like accents, light drums with claps. Light-hearted and airy. 116 BPM, C major. Instrumental, no vocals. Seamless loop: the ending flows straight back into the beginning.',
+  },
+  {
+    id: 'musique-glaces',
+    ambiance: 'mystérieuse et rigolote, palais des glaces',
+    tempo: 100,
+    prompt:
+      'Playful, slightly mysterious music for a hall of mirrors maze in a children’s game. Celesta, vibraphone, soft theremin-like synth, pizzicato strings, light brushed drums. Curious and magical, never scary. 100 BPM, D minor turning to D major. Instrumental, no vocals. Seamless loop: the ending flows straight back into the beginning.',
   },
   {
     id: 'musique-pause',
@@ -55,6 +100,23 @@ export const BRUITAGES = [
   { id: 'bruitage-erreur', duree: 0.8, prompt: 'Gentle soft two-note marimba boop going down, friendly and kind, for a child’s wrong answer. Not negative, not a buzzer, very soft.' },
   { id: 'bruitage-fin', duree: 2.5, prompt: 'Short joyful celebration fanfare for a children’s game: toy trumpet, glockenspiel and a soft confetti pop. Happy and warm, ends cleanly.' },
   { id: 'bruitage-ticket', duree: 0.7, prompt: 'Cute light sparkle sound of collecting a fairground ticket, like a soft coin twinkle, children’s game.' },
+  { id: 'bruitage-pas', duree: 0.5, prompt: 'A single soft cartoon footstep on grass, light and cute, children’s game.' },
+  { id: 'bruitage-porte', duree: 2.5, prompt: 'Welcome to the fair: a small happy crowd cheering softly and a carnival bell ringing twice. Cheerful and short.' },
+  { id: 'bruitage-habiller', duree: 0.8, prompt: 'Soft cloth swish followed by a cute little pop, like putting on a hat, cartoon.' },
+  { id: 'bruitage-indice', duree: 1, prompt: 'Gentle magical hint sparkle, soft harp and twinkle, children’s game.' },
+  { id: 'bruitage-construction', duree: 1.5, prompt: 'Cartoon little hammer taps and a satisfying wooden click, building a toy piece.' },
+  { id: 'bruitage-page', duree: 0.8, prompt: 'Soft paper page turn of a storybook.' },
+  { id: 'bruitage-tamponneuse', duree: 0.7, prompt: 'Cartoon bumper car soft rubber bonk, playful and bouncy.' },
+  { id: 'bruitage-etoile', duree: 0.8, prompt: 'Collecting a star in a children’s game: bright cute twinkle ding.' },
+  { id: 'bruitage-boing', duree: 0.8, prompt: 'Cartoon trampoline boing, springy and bouncy, playful.' },
+  { id: 'bruitage-boing-rate', duree: 0.6, prompt: 'Soft low cartoon spring wobble, gentle, a small missed bounce.' },
+  { id: 'bruitage-mur', duree: 0.5, prompt: 'Soft glass tink of touching a mirror, gentle and clean.' },
+  { id: 'bruitage-reussite-chamboule', duree: 1.4, prompt: 'A soft ball throw then light tin cans tumbling down, cartoon fairground game, joyful.' },
+  { id: 'bruitage-reussite-peche', duree: 1.2, prompt: 'A cute rubber duck squeak and a small water splash, cartoon.' },
+  { id: 'bruitage-reussite-confiserie', duree: 1.2, prompt: 'Candy wrapper crinkle and a sweet sparkly chime, cute.' },
+  { id: 'bruitage-reussite-horloge', duree: 1.3, prompt: 'Cute cuckoo clock chime ding, cheerful and short.' },
+  { id: 'bruitage-reussite-chantier', duree: 1.3, prompt: 'Cartoon toy hammer hit followed by a bright success ding.' },
+  { id: 'ambiance-fete', duree: 20, prompt: 'Distant cheerful fairground ambience: soft crowd murmur, children laughing far away, a very faint carousel organ, birds. Calm, even, loopable.' },
 ];
 
 function lireEnv() {

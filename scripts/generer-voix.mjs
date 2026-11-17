@@ -13,6 +13,7 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { cleVoix, empreinte, normaliserPhrase } from '../src/son/cle-voix.ts';
+import { fichierSalutation, SALUTATIONS } from '../src/son/salutations.ts';
 
 const RACINE = new URL('..', import.meta.url).pathname.replace(/^\/([A-Z]:)/, '$1');
 const SORTIE = join(RACINE, 'public', 'voix');
@@ -94,7 +95,10 @@ function rassemblerPhrases() {
 // --- Azure ---------------------------------------------------------------------------------
 const echapper = (t) => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
-function ssml(texte, mode, nomVoix) {
+function ssml(texte, mode, nomVoix, reglage) {
+  if (reglage) {
+    return `<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="fr-FR"><voice name="${nomVoix}"><prosody rate="${reglage.debit}" pitch="${reglage.hauteur}">${echapper(texte)}</prosody></voice></speak>`;
+  }
   // Dictée : plus lent, et une vraie pause entre le mot, la phrase et le mot répété.
   const corps =
     mode === 'dictee'
@@ -106,7 +110,7 @@ function ssml(texte, mode, nomVoix) {
   return `<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="fr-FR"><voice name="${nomVoix}">${corps}</voice></speak>`;
 }
 
-async function synthetiser(env, texte, mode, nomVoix) {
+async function synthetiser(env, texte, mode, nomVoix, reglage) {
   const adresse = `https://${env.AZURE_SPEECH_REGION}.tts.speech.microsoft.com/cognitiveservices/v1`;
   for (let essai = 0; essai < 6; essai++) {
     const r = await fetch(adresse, {
@@ -117,7 +121,7 @@ async function synthetiser(env, texte, mode, nomVoix) {
         'X-Microsoft-OutputFormat': 'audio-24khz-48kbitrate-mono-mp3',
         'User-Agent': 'generer-voix',
       },
-      body: ssml(texte, mode, nomVoix),
+      body: ssml(texte, mode, nomVoix, reglage),
     });
     if (r.ok) return Buffer.from(await r.arrayBuffer());
     // Offre gratuite : quelques requêtes par minute. On attend et on recommence.
@@ -164,6 +168,18 @@ if (args.includes('--essai')) {
 }
 
 mkdirSync(SORTIE, { recursive: true });
+
+// Les salutations des forains, chacun avec sa voix (--forains : les refaire toutes).
+mkdirSync(join(SORTIE, 'forains'), { recursive: true });
+for (const [forain, d] of Object.entries(SALUTATIONS)) {
+  for (const [rang, phrase] of d.phrases.entries()) {
+    const chemin = join(SORTIE, fichierSalutation(forain, rang));
+    if (existsSync(chemin) && !args.includes('--forains')) continue;
+    writeFileSync(chemin, await synthetiser(env, phrase, 'normal', d.voix, d));
+    console.log('salutation', forain, rang + 1);
+  }
+}
+
 const ancien = existsSync(MANIFESTE) ? JSON.parse(readFileSync(MANIFESTE, 'utf8')) : { voix, fichiers: {} };
 const fichiers = {};
 let generees = 0;

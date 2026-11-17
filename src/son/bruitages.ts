@@ -30,7 +30,31 @@ export function demarrerSon(): void {
 
 // --- Les fichiers enregistrés --------------------------------------------------------------
 const DOSSIER = `${import.meta.env.BASE_URL}sons/`;
-const SONS = ['bruitage-touche', 'bruitage-ouverture', 'bruitage-reussite', 'bruitage-erreur', 'bruitage-fin', 'bruitage-ticket'];
+/** Les bruitages, chargés dès le premier toucher (quelques ko chacun). */
+export type Bruit =
+  | 'pas'
+  | 'porte'
+  | 'habiller'
+  | 'indice'
+  | 'construction'
+  | 'page'
+  | 'tamponneuse'
+  | 'etoile'
+  | 'boing'
+  | 'boing-rate'
+  | 'mur';
+const BRUITS: Bruit[] = ['pas', 'porte', 'habiller', 'indice', 'construction', 'page', 'tamponneuse', 'etoile', 'boing', 'boing-rate', 'mur'];
+const STANDS_REUSSITE = ['chamboule', 'peche', 'confiserie', 'horloge', 'chantier'];
+const SONS = [
+  'bruitage-touche',
+  'bruitage-ouverture',
+  'bruitage-reussite',
+  'bruitage-erreur',
+  'bruitage-fin',
+  'bruitage-ticket',
+  ...BRUITS.map((b) => `bruitage-${b}`),
+  ...STANDS_REUSSITE.map((id) => `bruitage-reussite-${id}`),
+];
 const prets = new Map<string, AudioBuffer>();
 const enCharge = new Map<string, Promise<AudioBuffer | null>>();
 
@@ -147,8 +171,9 @@ export const bruitage = {
     if (jouer('bruitage-ouverture', 0.7)) return;
     [523, 659, 784].forEach((f, i) => note(f, i * 0.08, 0.25, 0.12, 'triangle'));
   },
-  /** Bonne réponse : la balle part, la pyramide tombe, petit carillon. */
-  reussite(): void {
+  /** Bonne réponse : le son du stand (boîtes qui tombent, canard, bonbon…), sinon un carillon. */
+  reussite(stand?: string): void {
+    if (stand && jouer(`bruitage-reussite-${stand}`, 0.8)) return;
     if (jouer('bruitage-reussite', 0.8)) return;
     souffle(0, 0.35, 900, 0.25, 2.5);
     for (let i = 0; i < 5; i++) souffle(0.42 + i * 0.07 + Math.random() * 0.03, 0.12, 1800 + Math.random() * 1500, 0.35);
@@ -166,6 +191,10 @@ export const bruitage = {
     if (jouer('bruitage-fin', 0.8)) return;
     [523, 659, 784, 1047].forEach((f, i) => note(f, i * 0.12, 0.4, 0.14, 'triangle'));
     note(1319, 0.5, 0.7, 0.12);
+  },
+  /** Un bruitage enregistré (rien tant qu'il n'est pas chargé : il n'a pas d'équivalent fabriqué). */
+  son(id: Bruit, force = 0.7): void {
+    jouer(`bruitage-${id}`, force);
   },
   /** Des tickets gagnés : petit scintillement. */
   ticket(): void {

@@ -73,7 +73,7 @@ import { CameraHaute } from './scene/suivi.ts';
 import { Obstacle } from './scene/obstacles.ts';
 import { creerCommandes } from './controles/joystick.ts';
 import { basculerMuet, bruitage, demarrerSon, estMuet, reglerVolumes } from './son/bruitages.ts';
-import { dire, reglerVoix, reglerVolumeVoix } from './son/voix.ts';
+import { dire, reglerVoix, reglerVolumeVoix, saluer } from './son/voix.ts';
 
 function el<T extends HTMLElement>(id: string): T {
   const trouve = document.getElementById(id);
@@ -431,7 +431,7 @@ function mettreAJourPlace(): void {
 
 ui.histoire.addEventListener('click', async () => {
   if (dansUnStand || enCinema || enMarche) return;
-  bruitage.touche();
+  bruitage.son('page', 0.8);
   const episode = histoireDuJour();
   if (!episode) {
     parler('Pas de nouvel épisode aujourd’hui. La suite demain !');
@@ -449,7 +449,6 @@ ui.histoire.addEventListener('click', async () => {
   gagnerTickets(TICKETS_HISTOIRE);
   mettreAJourPlace();
   await finDeSeance();
-  parler(messageDeLaPlace());
 });
 
 // --- Tickets, calendrier, lots ---------------------------------------------------------------
@@ -484,6 +483,7 @@ function gagnerTickets(nombre: number): void {
 }
 
 function habiller(g: Garderobe): void {
+  bruitage.son('habiller', 0.7);
   fete.habiller(g.porte);
 }
 
@@ -598,6 +598,7 @@ function majConstruction(): void {
 
 ui.construire.addEventListener('click', () => {
   if (!peutConstruire(sauvegarde.tickets, sauvegarde.roue)) return;
+  bruitage.son('construction', 0.8);
   sauvegarde.tickets -= PRIX_PIECE;
   sauvegarde.roue += 1;
   sauver();
@@ -626,6 +627,7 @@ let enCinema = false;
 /** La caméra suit le personnage (sinon elle est posée : stand, cinématique, écran d'entrée). */
 let modeSuivi = false;
 let bienvenue = true;
+let distancePas = 0;
 let standProche: Stand | null = null;
 
 const VITESSE = 5;
@@ -735,6 +737,14 @@ function promenade(delta: number): void {
     h.rotation.y += ecart * Math.min(1, delta * 10);
   }
   fete.marcheLibre(force);
+  // Des pas doux dans l'herbe, au rythme de la marche.
+  if (force > 0.2) {
+    distancePas += VITESSE * force * delta;
+    if (distancePas > 1.3) {
+      distancePas = 0;
+      bruitage.son('pas', 0.25 + 0.15 * force);
+    }
+  }
   // Devant un stand, la caméra descend le montrer de trois quarts.
   suivi.viser(standProche);
   entree.suivre(h.position.x, h.position.z);
@@ -748,7 +758,7 @@ function promenade(delta: number): void {
   // En passant la grande porte.
   if (!bienvenue && h.position.z < 11.5) {
     bienvenue = true;
-    bruitage.finDeManche();
+    bruitage.son('porte', 0.8);
     confettis(48);
   confettis(48);
     parler('Bienvenue à la fête foraine !');
@@ -803,39 +813,14 @@ ui.interagir.addEventListener('click', () => {
 });
 
 // --- Le temps de jeu ---------------------------------------------------------------------------
-// On compte le temps où le jeu est ouvert et visible. Après le temps réglé par le parent dans la
-// journée, un forain propose une pause, une seule fois, sans rien couper ni bloquer.
+// On compte le temps où le jeu est ouvert et visible, pour le bilan de l'espace parent. Le jeu ne
+// demande plus d'arrêter : le contrôle parental de la tablette s'en charge.
 const PAS_DE_TEMPS = 5;
 window.setInterval(() => {
   if (document.visibilityState !== 'visible' || !ui.entree.hidden) return;
   const j = journee();
   j.secondes = (j.secondes ?? 0) + PAS_DE_TEMPS;
   if (j.secondes % 30 === 0) sauver();
-  if (j.pauseProposee || j.secondes < sauvegarde.reglages.tempsDeJeu * 60) return;
-  // On attend un moment calme : pas au milieu d'une question ni d'une cinématique.
-  if (enCinema || enMarche || (dansUnStand && !ui.exercice.hidden)) return;
-  j.pauseProposee = true;
-  sauver();
-  const fond = document.createElement('div');
-  fond.className = 'vitrine-fond';
-  const carte = document.createElement('div');
-  carte.className = 'vitrine';
-  const texte = document.createElement('p');
-  texte.className = 'lecture-titre';
-  texte.textContent = `${capitale(nom('chamboule'))} : « Tu joues depuis un bon moment. C’est l’heure de faire une pause : va bouger, boire un verre d’eau, et reviens demain ! »`;
-  const ok = document.createElement('button');
-  ok.type = 'button';
-  ok.className = 'bouton-principal';
-  ok.textContent = 'D’accord';
-  ok.addEventListener('click', () => {
-    bruitage.touche();
-    fond.remove();
-  });
-  carte.append(texte, ok);
-  fond.append(carte);
-  document.body.append(fond);
-  fete.saluerForain('chamboule');
-  dire(texte.textContent);
 }, PAS_DE_TEMPS * 1000);
 
 function toucherStand(stand: Stand): void {
@@ -854,12 +839,11 @@ function toucherStand(stand: Stand): void {
     void fete.allerAuStand(stand).then(async () => {
       enMarche = false;
       dansUnStand = true;
-      musique.demarrer('detente');
+      musique.demarrer(id);
       await jouerDetente(id);
       musique.demarrer('promenade');
       dansUnStand = false;
       retourPromenade();
-      parler(messageDeLaPlace());
     });
     return;
   }
@@ -914,6 +898,12 @@ async function ouvrirStand(nouveau: JeuDeStand): Promise<void> {
     sauver();
   }
   bruitage.ouverture();
+  // Le forain fait signe et dit bonjour, avec sa voix.
+  const forain = jeu.id;
+  fete.saluerForain(forain);
+  window.setTimeout(() => {
+    if (dansUnStand && jeu.id === forain) saluer(forain);
+  }, 450);
   ui.stand.classList.toggle('large', jeu.large);
   ui.stand.hidden = false;
   jeu.construireClavier(ui.clavier, toucher);
@@ -929,7 +919,6 @@ function fermerStand(): void {
   fete.calme(false);
   retourPromenade();
   mettreAJourPlace();
-  parler(messageDeLaPlace());
 }
 
 function elementsDuStand(): string[] {
@@ -985,7 +974,7 @@ function lancerManche(): void {
           ? elementsDuStand().slice(0, restants(jeu) ?? 0)
           : elementsDuStand();
   ui.construction.hidden = true;
-  musique.demarrer();
+  musique.demarrer(jeu.id);
   // Le rêve peut demander de faire passer certains éléments en premier (ceux qui résistent).
   const focus = sauvegarde.preparation?.focus ?? [];
   const choisis = focus.length > 0 ? ordonner(melanger(ids, Math.random), focus).slice(0, 8) : ids;
@@ -1054,6 +1043,7 @@ function montrerIndice(): void {
   if (!e || attente) return;
   const texte = jeu.indice(e, niveauIndice + 1);
   if (texte === null) return;
+  bruitage.son('indice');
   bruitage.touche();
   niveauIndice++;
   ui.indice.textContent = texte;
@@ -1112,7 +1102,7 @@ function valider(): void {
     afficherQuestion('juste');
     jeu.reussite(fete);
     fete.saluer();
-    bruitage.reussite();
+    bruitage.reussite(jeu.id);
     const r = ui.question.getBoundingClientRect();
     confettis(22, { x: r.left + r.width / 2, y: r.top + r.height / 2 });
     manche = avancer(manche, true);

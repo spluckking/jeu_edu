@@ -4,6 +4,7 @@
 
 import { estMuet } from './bruitages.ts';
 import { cleVoix } from './cle-voix.ts';
+import { fichierSalutation, SALUTATIONS } from './salutations.ts';
 
 let voix: SpeechSynthesisVoice | null = null;
 let vitesse = 0.92;
@@ -83,4 +84,24 @@ export function dire(texte: string, dictee = false): void {
       parSynthese(texte, dictee);
     }
   });
+}
+
+// --- Les salutations doublées des forains ---------------------------------------------------
+
+const dernieres = new Map<string, number>();
+let salutation: HTMLAudioElement | null = null;
+
+/** Le forain dit bonjour quand l'enfant entre dans son stand (une phrase au hasard, jamais deux fois de suite). */
+export function saluer(forain: string): void {
+  const d = SALUTATIONS[forain];
+  if (!d || estMuet()) return;
+  let rang = Math.floor(Math.random() * d.phrases.length);
+  if (d.phrases.length > 1 && rang === dernieres.get(forain)) rang = (rang + 1) % d.phrases.length;
+  dernieres.set(forain, rang);
+  salutation?.pause();
+  // Un lecteur à part : une consigne lue ensuite ne coupe pas la salutation.
+  const audio = new Audio(`${DOSSIER}${fichierSalutation(forain, rang)}`);
+  audio.volume = volume;
+  salutation = audio;
+  audio.play().catch(() => undefined);
 }

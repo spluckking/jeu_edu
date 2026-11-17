@@ -77,7 +77,7 @@ function autos(message: (t: string) => void): Jeu {
             a.vx -= (dx / n) * 0.05;
             a.vy -= (dy / n) * 0.05;
             if ((a === moi || b === moi) && bonk <= 0) {
-              bruitage.touche();
+              bruitage.son('tamponneuse', 0.8);
               bonk = 0.5;
             }
           }
@@ -86,7 +86,7 @@ function autos(message: (t: string) => void): Jeu {
       bonk -= dt;
       if (Math.hypot((piece.x - moi.x) * l, (piece.y - moi.y) * h) < 50) {
         etoiles++;
-        bruitage.ouverture();
+        bruitage.son('etoile');
         piece = { x: 0.1 + Math.random() * 0.8, y: 0.15 + Math.random() * 0.7 };
         message(etoiles % 10 === 0 ? `Bravo, ${etoiles} étoiles !` : `Étoiles : ${etoiles}`);
       }
@@ -131,13 +131,13 @@ function trampoline(message: (t: string) => void): Jeu {
       dejaTouche = true;
       if (pres) {
         hauteur = Math.min(8, hauteur + 1);
-        bruitage.ouverture();
+        bruitage.son('boing', 0.8);
         if (hauteur > record) {
           record = hauteur;
           message(hauteur === 8 ? 'Tout là-haut, bravo !' : `Plus haut ! Hauteur ${hauteur}`);
         }
       } else {
-        bruitage.touche();
+        bruitage.son('boing-rate', 0.6);
       }
     },
     dessiner(c, l, h, dt) {
@@ -231,11 +231,11 @@ function glaces(message: (t: string) => void): Jeu {
       if (Math.abs(dx) + Math.abs(dy) !== 1) return;
       const m = dy === -1 ? 0 : dx === 1 ? 1 : dy === 1 ? 2 : 3;
       if (murs[moi.y]?.[moi.x]?.[m]) {
-        bruitage.touche();
+        bruitage.son('mur', 0.6);
         return;
       }
       moi = { x: cx, y: cy };
-      bruitage.touche();
+      bruitage.son('pas', 0.5);
       if (cx === colonnes - 1 && cy === lignes - 1) {
         bruitage.finDeManche();
         message('Bravo, tu as trouvé la sortie ! Un palais plus grand t’attend.');

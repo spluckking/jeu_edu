@@ -276,7 +276,6 @@ function construire(o: OptionsEspace, fermer: () => void): HTMLElement {
   };
   const reglages = el('div');
   reglages.append(
-    curseur('Pause proposée après', s.reglages.tempsDeJeu, 10, 60, 5, (v) => ((s.reglages.tempsDeJeu = v), changer()), (v) => `${v} min`),
     curseur('Musique', Math.round(s.reglages.volumeMusique * 100), 0, 100, 10, (v) => ((s.reglages.volumeMusique = v / 100), changer()), (v) => `${v} %`),
     curseur('Bruitages', Math.round(s.reglages.volumeBruitages * 100), 0, 100, 10, (v) => ((s.reglages.volumeBruitages = v / 100), changer()), (v) => `${v} %`),
     curseur('Voix', Math.round((s.reglages.volumeVoix ?? 1) * 100), 0, 100, 10, (v) => ((s.reglages.volumeVoix = v / 100), changer()), (v) => `${v} %`),
