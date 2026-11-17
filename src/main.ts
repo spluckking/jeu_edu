@@ -47,6 +47,8 @@ import {
   PIECES_ROUE,
   porter,
   PRIX_PIECE,
+  PRIX_MANEGE,
+  accesManege,
   retirer,
   semaineDe,
   TICKETS_PAR_MANCHE,
@@ -751,6 +753,12 @@ if (qualite === 'haute') {
 }
 
 const TITRES_DETENTE: Record<string, string> = { autos: 'Autos tamponneuses', trampoline: 'Trampoline', glaces: 'Palais des glaces' };
+/** Sur le bouton « Entrer » d'un manège : son prix, ou « gratuit » une fois la séance finie. */
+function prixAffiche(s: Stand): string {
+  if (JEUX.some((j) => j.id === s.id)) return '';
+  return journee().finie ? ' · gratuit' : ` · ${PRIX_MANEGE} tickets`;
+}
+
 function titreDuStand(s: Stand): string {
   return JEUX.find((j) => j.id === s.id)?.titre ?? TITRES_DETENTE[s.id] ?? 'Le stand';
 }
@@ -847,7 +855,7 @@ function promenade(delta: number): void {
   }
   if (meilleur !== standProche) {
     standProche = meilleur;
-    if (meilleur) ui.interagirTexte.textContent = eteint(meilleur.id) ? `${titreDuStand(meilleur)} (fermé)` : titreDuStand(meilleur);
+    if (meilleur) ui.interagirTexte.textContent = eteint(meilleur.id) ? `${titreDuStand(meilleur)} (fermé)` : `${titreDuStand(meilleur)}${prixAffiche(meilleur)}`;
   }
   ui.interagir.hidden = standProche === null;
 }
@@ -904,17 +912,23 @@ function toucherStand(stand: Stand): void {
     // Un stand de détente : jeu libre, sans manche ni mémoire.
     const id = stand.id;
     if (id !== 'autos' && id !== 'trampoline' && id !== 'glaces') return;
-    enMarche = true;
-    ui.bulle.hidden = true;
-    void fete.allerAuStand(stand).then(async () => {
-      enMarche = false;
-      dansUnStand = true;
-      musique.demarrer(id);
-      await jouerDetente(id);
-      musique.demarrer('promenade');
-      dansUnStand = false;
-      retourPromenade();
-    });
+    // Les manèges se paient en tickets tant que les révisions du jour ne sont pas finies ;
+    // ensuite, ils sont gratuits et illimités.
+    const acces = accesManege(sauvegarde.tickets, journee().finie);
+    if (acces === 'manque') {
+      parler(`Un tour coûte ${PRIX_MANEGE} tickets. Gagne-les aux stands de révision. Quand ta séance du jour est finie, les manèges sont gratuits !`);
+      return;
+    }
+    void (async () => {
+      if (acces === 'payant') {
+        if (!(await payerTour(titreDuStand(stand)))) return;
+        sauvegarde.tickets -= PRIX_MANEGE;
+        sauver();
+        majHud();
+        bruitage.ticket();
+      }
+      lancerManege(stand, id);
+    })();
     return;
   }
   enMarche = true;
@@ -922,6 +936,58 @@ function toucherStand(stand: Stand): void {
   void fete.allerAuStand(stand).then(() => {
     enMarche = false;
     ouvrirStand(jeu);
+  });
+}
+
+/** Avant un tour payant : l'enfant voit le prix et ce qu'il lui restera, puis décide. */
+function payerTour(titre: string): Promise<boolean> {
+  return new Promise((fini) => {
+    const fond = document.createElement('div');
+    fond.className = 'vitrine-fond';
+    const carte = document.createElement('div');
+    carte.className = 'vitrine';
+    const texte = document.createElement('p');
+    texte.className = 'lecture-titre';
+    texte.textContent = `${titre} : un tour coûte ${PRIX_MANEGE} tickets.`;
+    const reste = document.createElement('p');
+    reste.className = 'lecture-texte';
+    reste.textContent = `Tu as ${sauvegarde.tickets} tickets. Il t’en restera ${sauvegarde.tickets - PRIX_MANEGE}. Quand ta séance du jour est finie, les manèges sont gratuits.`;
+    const boutons = document.createElement('div');
+    boutons.className = 'lecture-boutons';
+    const non = document.createElement('button');
+    non.type = 'button';
+    non.className = 'bouton-secondaire';
+    non.textContent = 'Plus tard';
+    const oui = document.createElement('button');
+    oui.type = 'button';
+    oui.className = 'bouton-principal';
+    oui.textContent = `Payer ${PRIX_MANEGE} tickets`;
+    const fermer = (r: boolean): void => {
+      bruitage.touche();
+      fond.remove();
+      fini(r);
+    };
+    non.addEventListener('click', () => fermer(false));
+    oui.addEventListener('click', () => fermer(true));
+    boutons.append(non, oui);
+    carte.append(texte, reste, boutons);
+    fond.append(carte);
+    document.body.append(fond);
+    dire(texte.textContent);
+  });
+}
+
+function lancerManege(stand: Stand, id: 'autos' | 'trampoline' | 'glaces'): void {
+  enMarche = true;
+  ui.bulle.hidden = true;
+  void fete.allerAuStand(stand).then(async () => {
+    enMarche = false;
+    dansUnStand = true;
+    musique.demarrer(id);
+    await jouerDetente(id);
+    musique.demarrer('promenade');
+    dansUnStand = false;
+    retourPromenade();
   });
 }
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { choisirLot, convertirGarderobe, garderobeNeuve, LOTS, peutConstruire, porter, PRIX_PIECE, PIECES_ROUE, retirer, semaineDe } from './recompenses.ts';
+import { accesManege, choisirLot, PRIX_MANEGE, convertirGarderobe, garderobeNeuve, LOTS, peutConstruire, porter, PRIX_PIECE, PIECES_ROUE, retirer, semaineDe } from './recompenses.ts';
 
 describe('lots', () => {
   it('un lot choisi est possédé et porté', () => {
@@ -55,5 +55,13 @@ describe('calendrier', () => {
       '2026-11-15',
     ]);
     expect(semaineDe('2026-11-16')[0]).toBe('2026-11-16');
+  });
+});
+
+describe('manèges', () => {
+  it('en tickets avant la fin de la séance, gratuits ensuite', () => {
+    expect(accesManege(PRIX_MANEGE - 1, false)).toBe('manque');
+    expect(accesManege(PRIX_MANEGE, false)).toBe('payant');
+    expect(accesManege(0, true)).toBe('gratuit');
   });
 });
