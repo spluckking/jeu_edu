@@ -173,8 +173,8 @@ export interface Herbe {
 function touffe(): THREE.BufferGeometry {
   const positions: number[] = [];
   const couleurs: number[] = [];
-  const base = new THREE.Color(0x2a5c10);
-  const pointe = new THREE.Color(0x8ccb36);
+  const base = new THREE.Color(0x3b7619);
+  const pointe = new THREE.Color(0x9ad646);
   for (let b = 0; b < 5; b++) {
     const a = (b / 5) * Math.PI * 2;
     const ox = Math.cos(a) * 0.09;
@@ -246,7 +246,7 @@ export function semerHerbe(
     const largeur = 0.7 + hasard() * 0.6;
     s.set(largeur, hauteur, largeur);
     touffes.setMatrixAt(n, m.compose(p, q, s));
-    touffes.setColorAt(n, c.setHSL(0.25 + hasard() * 0.04, 0.55 + hasard() * 0.2, 0.42 + hasard() * 0.14));
+    touffes.setColorAt(n, c.setHSL(0.25 + hasard() * 0.04, 0.55 + hasard() * 0.2, 0.5 + hasard() * 0.12));
     n++;
   }
   touffes.count = n;
