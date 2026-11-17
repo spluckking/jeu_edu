@@ -72,6 +72,8 @@ surveillerModeApp();
 import { CameraHaute } from './scene/suivi.ts';
 import { choisirPalette } from './scene/palette.ts';
 import { choisirQualite, eclairer, ombrer, semerHerbe, type Herbe } from './scene/qualite.ts';
+import { construireTerrain, hauteurSol } from './scene/terrain.ts';
+import { texturesDouillettes } from './scene/textures.ts';
 import { Obstacle } from './scene/obstacles.ts';
 import { creerCommandes } from './controles/joystick.ts';
 import { basculerMuet, bruitage, demarrerSon, estMuet, reglerVolumes } from './son/bruitages.ts';
@@ -731,21 +733,20 @@ function libre(x: number, z: number): boolean {
   return apres < enfoncement(h.x, h.z) - 1e-4;
 }
 
-// --- Qualité haute : ombres sur tout le décor, herbe en brins hors des allées et des stands ---------
-/** Les allées pavées (voir fete.ts et entree.ts) : pas d'herbe dessus. */
-const ALLEES: Array<[number, number, number, number]> = [
-  [0, 5, 3.4, 14],
-  [0, -1, 34, 3.6],
-  [-5.5, -12, 3, 22],
-  [5.5, -12, 3, 22],
-  [0, -22.5, 30, 3.4],
-  [0, 23.5, 3.4, 23],
-];
+// --- Qualité haute : le terrain (relief, chemins courbes, placettes), les ombres, l'herbe en brins ---
 if (qualite === 'haute') {
+  // Une placette arrondie devant chaque stand, une sur la grande place, une derrière la porte.
+  const placettes = fete.stands.map((st) => {
+    const versStand = new THREE.Vector3(Math.sin(st.regard), 0, Math.cos(st.regard));
+    return { x: st.approche.x - versStand.x * 0.6, z: st.approche.z - versStand.z * 0.6, r: 2.6 };
+  });
+  placettes.push({ x: 0, z: -1, r: 4.2 }, { x: 0, z: 10.5, r: 3.2 });
+  const textures = texturesDouillettes();
+  const terrain = construireTerrain(textures.herbe, textures.dalles, placettes);
+  scene.add(terrain.racine);
   ombrer(fete.racine);
   ombrer(entree.racine);
-  const surAllee = (x: number, z: number): boolean => ALLEES.some(([ax, az, l, p]) => Math.abs(x - ax) < l / 2 + 0.15 && Math.abs(z - az) < p / 2 + 0.15);
-  herbe = semerHerbe((x, z) => !surAllee(x, z) && enfoncement(x, z) <= 0, 26000, { x: 34, zMin: -52, zMax: 40 });
+  herbe = semerHerbe((x, z) => terrain.pave(x, z) < 0.2 && enfoncement(x, z) <= 0, 24000, { x: 38, zMin: -56, zMax: 44 }, hauteurSol);
   scene.add(herbe.racine);
 }
 

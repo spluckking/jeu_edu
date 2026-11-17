@@ -99,7 +99,8 @@ export class Atelier {
   /** Un sol plat texturé (herbe fleurie ou dalles), à plat sur y. */
   sol(parent: THREE.Object3D, largeur: number, profondeur: number, x: number, y: number, z: number, genre: 'herbe' | 'dalles'): THREE.Mesh {
     const m = new THREE.Mesh(this.suivre(plaque(largeur, profondeur, x, y, z)), genre === 'herbe' ? this.matHerbe : this.matDalles);
-    parent.add(m);
+    // Qualité haute : le terrain (terrain.ts) dessine le sol et les chemins courbes.
+    if (!this.haute) parent.add(m);
     return m;
   }
 
@@ -132,7 +133,10 @@ export class Atelier {
       case 'gelule':
         return new THREE.CapsuleGeometry(0.5, 1, 4, 14).scale(l, h / 2, p);
       case undefined:
-        return new RoundedBoxGeometry(l, h, p, 2, Math.min(Math.min(l, h, p) * 0.4, 0.28));
+        // Qualité haute : des arrondis plus généreux, plus de bords vifs.
+        return qualite === 'haute'
+          ? new RoundedBoxGeometry(l, h, p, 3, Math.min(Math.min(l, h, p) * 0.45, 0.5))
+          : new RoundedBoxGeometry(l, h, p, 2, Math.min(Math.min(l, h, p) * 0.4, 0.28));
     }
   }
 
@@ -150,6 +154,19 @@ export class Atelier {
     const maillage = new THREE.Mesh(geometrie, options.lumineux ? this.lumiere : options.lisse ? this.matLisse : this.mat);
     maillage.position.set(...position);
     maillage.rotation.set(options.rx ?? 0, options.ry ?? 0, options.rz ?? 0);
+    // Qualité haute : chaque pièce du décor est posée « à la main » (un rien penchée, un rien plus
+    // grande ou plus petite). Toujours la même pour un même endroit : rien ne tremble.
+    if (this.haute && !options.lisse && !options.lumineux) {
+      const graine = position[0] * 12.9898 + position[1] * 78.233 + position[2] * 37.719 + taille[0] * 3.1 + taille[1] * 5.7;
+      const h = (k: number): number => {
+        const v = Math.sin(graine * (k + 1)) * 43758.5453;
+        return v - Math.floor(v) - 0.5;
+      };
+      maillage.rotation.x += h(1) * 0.045;
+      maillage.rotation.y += h(2) * 0.06;
+      maillage.rotation.z += h(3) * 0.045;
+      maillage.scale.multiplyScalar(1 + h(4) * 0.05);
+    }
     parent.add(maillage);
     return maillage;
   }

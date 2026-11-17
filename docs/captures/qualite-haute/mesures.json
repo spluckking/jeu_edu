@@ -1,11 +1,11 @@
 {
   "mesures": {
-    "porte": 44.5,
-    "appelsPorte": 366,
-    "centre": 55,
-    "appelsCentre": 310,
+    "porte": 41,
+    "appelsPorte": 364,
+    "centre": 60,
+    "appelsCentre": 136,
     "exercice": 60,
-    "introduction": 60
+    "introduction": 44.5
   },
   "erreurs": []
 }

@@ -95,20 +95,23 @@ export function texturesDouillettes(): { herbe: THREE.CanvasTexture; dalles: THR
     ? toile(512, 512, (g) => {
         // Pavés irréguliers : chaque pierre a sa teinte, ses arêtes usées et ses joints sombres.
         const hasard = graine(3);
-        g.fillStyle = '#5d554a';
+        g.fillStyle = '#857a6a';
         g.fillRect(0, 0, 512, 512);
         const rangs = 8;
         for (let r = 0; r < rangs; r++) {
           let x = r % 2 ? -32 : 0;
-          while (x < 512) {
+          while (x < 512 - 24) {
             const l = 48 + hasard() * 40;
             const y = r * 64;
             const base = 150 + hasard() * 40;
             const teinte = `rgb(${base + 18}, ${base + 6}, ${base - 18})`;
             g.fillStyle = teinte;
-            g.beginPath();
-            g.roundRect(x + 3, y + 3, l - 6, 58, 10 + hasard() * 8);
-            g.fill();
+            const arrondi = 10 + hasard() * 8;
+            for (const decalage of [0, -512, 512]) {
+              g.beginPath();
+              g.roundRect(x + 3 + decalage, y + 3, l - 6, 58, arrondi);
+              g.fill();
+            }
             // Grain et taches de la pierre.
             for (let i = 0; i < 40; i++) {
               g.fillStyle = hasard() > 0.5 ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.10)';

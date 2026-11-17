@@ -207,7 +207,12 @@ function touffe(): THREE.BufferGeometry {
  * Des touffes d'herbe sur toute la fête (un seul appel de dessin), sauf sur les allées et sous les
  * stands. Elles ondulent au vent dans le shader. libre(x, z) : vrai si on peut y mettre de l'herbe.
  */
-export function semerHerbe(libre: (x: number, z: number) => boolean, nombre: number, zone: { x: number; zMin: number; zMax: number }): Herbe {
+export function semerHerbe(
+  libre: (x: number, z: number) => boolean,
+  nombre: number,
+  zone: { x: number; zMin: number; zMax: number },
+  sol: (x: number, z: number) => number = () => 0,
+): Herbe {
   const racine = new THREE.Group();
   const temps = { value: 0 };
   const mat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.9, side: THREE.DoubleSide });
@@ -239,7 +244,7 @@ export function semerHerbe(libre: (x: number, z: number) => boolean, nombre: num
     const x = (hasard() * 2 - 1) * zone.x;
     const z = zone.zMin + hasard() * (zone.zMax - zone.zMin);
     if (!libre(x, z)) continue;
-    p.set(x, 0, z);
+    p.set(x, sol(x, z), z);
     q.setFromAxisAngle(new THREE.Vector3(0, 1, 0), hasard() * Math.PI * 2);
     const hauteur = 0.35 + hasard() * 0.4;
     const largeur = 0.8 + hasard() * 0.7;
@@ -261,7 +266,7 @@ export function semerHerbe(libre: (x: number, z: number) => boolean, nombre: num
     const x = (hasard() * 2 - 1) * zone.x;
     const z = zone.zMin + hasard() * (zone.zMax - zone.zMin);
     if (!libre(x, z)) continue;
-    p.set(x, 0.32 + hasard() * 0.2, z);
+    p.set(x, sol(x, z) + 0.32 + hasard() * 0.2, z);
     s.setScalar(0.8 + hasard() * 0.8);
     fleurs.setMatrixAt(f, m.compose(p, q.identity(), s));
     fleurs.setColorAt(f, c.set(teintes[f % teintes.length] ?? 0xffffff));
@@ -278,7 +283,7 @@ export function semerHerbe(libre: (x: number, z: number) => boolean, nombre: num
     const x = (hasard() * 2 - 1) * zone.x;
     const z = zone.zMin + hasard() * (zone.zMax - zone.zMin);
     if (!libre(x, z)) continue;
-    p.set(x, 0.02, z);
+    p.set(x, sol(x, z) + 0.02, z);
     q.setFromEuler(new THREE.Euler(hasard() * 3, hasard() * 3, hasard() * 3));
     s.set(0.6 + hasard() * 1.4, 0.4 + hasard() * 0.5, 0.6 + hasard() * 1.2);
     cailloux.setMatrixAt(k, m.compose(p, q, s));
