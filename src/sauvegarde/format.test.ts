@@ -40,8 +40,21 @@ describe('migration 6 → 7', () => {
   it('les tenues et maillots gagnés deviennent des accessoires', () => {
     const v6 = { ...sauvegardeNeuve(), version: 6, garderobe: { possedes: ['tenue-casquette', 'maillot-rouge', 'tenue-bonnet'], porte: { tenue: 'tenue-bonnet', maillot: 'maillot-rouge' } } };
     const s = migrer(v6);
-    expect(s.version).toBe(7);
+    expect(s.version).toBe(VERSION);
     expect(s.garderobe.possedes).toEqual(expect.arrayContaining(['chapeau-bonnet', 'objet-sucette', 'haut-corail']));
     expect(s.garderobe.porte.chapeau).toBe('chapeau-bonnet');
+  });
+});
+
+describe('migration 7 → 8', () => {
+  it('les jetons de manège arrivent à zéro, et rien d’autre ne change', () => {
+    const { jetons: _j, maneges: _m, ...ancienne } = sauvegardeNeuve();
+    const v7 = { ...ancienne, version: 7, tickets: 42, roue: 3 };
+    const s = migrer(v7);
+    expect(s.version).toBe(8);
+    expect(s.jetons).toBe(0);
+    expect(s.maneges.compte).toEqual({ autos: 0, trampoline: 0, glaces: 0 });
+    expect(s.tickets).toBe(42);
+    expect(s.roue).toBe(3);
   });
 });

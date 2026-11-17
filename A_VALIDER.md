@@ -16,4 +16,8 @@ Questions qui peuvent attendre. Elles ne bloquent pas le jeu.
    - pêche : « Ohé ! Les canards sont prêts à nager ! » / « Bonjour ! On va pêcher quelques canards ? »
    Pour changer un texte : `src/son/salutations.ts`, puis `npm run voix -- --forains`.
 8. **Couleurs** : quatre palettes dans le même style (Pastel, Couleurs vives, Été, Bonbon), captures dans `docs/captures/palettes/`. Choix dans l'espace parent, « Couleurs de la fête » (le jeu redémarre). Pastel reste celle par défaut.
-9. **Mise en ligne** : tout est sur la branche `amelioration`, rien n'est poussé.
+9. **Cadeaux des manèges** (noms et phrases nouveaux, `src/detente/objectifs.ts` et `src/recompenses/recompenses.ts`) :
+   - décorations : Bouquet de ballons, Lampions, Mât à fanions, Coupe dorée, Massif de fleurs, Grande étoile, Gros nounours ;
+   - accessoires : Casque de pilote, Volant d’auto (autos), Serre-tête étoile, Chaussures à ressorts (trampoline), Lunettes miroir, Pull à paillettes (palais des glaces) ;
+   - phrases : « Cadeau gagné : … ! », « C’est installé à côté du manège : va voir en sortant ! », « C’est déjà sur ton personnage, et rangé dans ta garde-robe. », « Prochain cadeau : … », « Tout est gagné ici pour l’instant ! », « Un tour coûte un jeton. Finis une manche à un stand de révision pour en gagner un. Quand ta séance du jour est finie, les manèges sont gratuits ! ».
+   - paliers : autos et trampoline 10, 25, 45, 70, 100 puis tous les 35 ; glaces 1, 3, 6, 10, 15 puis tous les 5. À ajuster selon ce qu’on voit sur la tablette.

@@ -42,7 +42,7 @@ export function ouvrirGarderobe(o: OptionsGarderobe): Promise<void> {
   return new Promise((fini) => {
     let g = o.garderobe;
     const visibles = (genre: GenreLot): Lot[] =>
-      LOTS.filter((l) => l.genre === genre && (o.mode === 'choisir' ? !g.possedes.includes(l.id) : g.possedes.includes(l.id)));
+      LOTS.filter((l) => l.genre === genre && (o.mode === 'choisir' ? !l.manege && !g.possedes.includes(l.id) : g.possedes.includes(l.id)));
     let onglet: GenreLot = GENRES.find((x) => visibles(x).length > 0) ?? 'chapeau';
     let choisi = false;
 

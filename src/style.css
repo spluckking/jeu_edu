@@ -948,12 +948,92 @@ svg {
   text-align: center;
 }
 
-.detente-toile {
+.detente-scene {
+  position: relative;
   flex: 1;
   width: 100%;
   min-height: 0;
+}
+
+.detente-toile {
+  width: 100%;
+  height: 100%;
   border-radius: 22px;
   touch-action: none;
+}
+
+/* Le prochain cadeau du manège : une phrase et une barre qui se remplit. */
+.detente-objectif {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: min(720px, 100%);
+}
+
+.detente-objectif p {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.detente-barre {
+  flex: 1;
+  height: 16px;
+  border-radius: 999px;
+  background: var(--orange-pale);
+  overflow: hidden;
+}
+
+.detente-barre span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--jaune);
+  transition: width 0.4s var(--rebond);
+}
+
+.detente-cadeau {
+  position: absolute;
+  top: 18px;
+  left: 50%;
+  translate: -50% 0;
+  padding: 14px 26px;
+  border-radius: 24px;
+  background: var(--papier);
+  box-shadow: var(--ombre);
+  pointer-events: none;
+  animation: apparaitre 0.5s var(--rebond);
+}
+
+.detente-cadeau p {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.detente-cadeau-titre {
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.jetons svg {
+  color: var(--bleu);
+}
+
+@media (max-width: 760px) {
+  .detente-objectif {
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .detente-objectif p {
+    white-space: normal;
+  }
+
+  .detente-barre {
+    width: 100%;
+    flex: none;
+  }
 }
 
 /* --- Pêche aux canards ----------------------------------------------------------------- */

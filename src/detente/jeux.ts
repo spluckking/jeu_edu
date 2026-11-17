@@ -1,9 +1,19 @@
 // Les stands de détente (jeu libre) : autos tamponneuses, trampoline, palais des glaces.
 // Pas de chrono, pas de score qui baisse, pas d'échec : on joue tant qu'on veut et on
 // revient à la fête quand on veut. Dessinés dans une toile 2D, dans le style de la fête.
+// Chaque étoile, saut réussi ou palais traversé compte pour le prochain cadeau du manège.
 
 import type { IdDetente } from '../scene/fete.ts';
 import { bruitage } from '../son/bruitages.ts';
+import { confettis } from '../ui/confettis.ts';
+
+/** Le lien avec la progression du manège (src/detente/objectifs.ts, gardée dans la sauvegarde). */
+export interface SuiviDetente {
+  /** Où en est l'enfant, et le nom du prochain cadeau (null : tout est gagné ici). */
+  objectif(): { fait: number; depuis: number; but: number; unite: string; cadeau: string | null };
+  /** Un de plus ; renvoie le cadeau gagné à ce palier, s'il y en a un. */
+  avancer(): { titre: string; texte: string } | null;
+}
 
 const COULEURS = ['#ff5a6e', '#4cc4ff', '#ffd447', '#6fcf4a', '#b48cf2'];
 const TITRES: Record<IdDetente, [string, string]> = {
@@ -30,7 +40,7 @@ function etoile(c: CanvasRenderingContext2D, x: number, y: number, r: number, co
 }
 
 // --- Autos tamponneuses ------------------------------------------------------------------
-function autos(message: (t: string) => void): Jeu {
+function autos(message: (t: string) => void, compte: () => void): Jeu {
   const voitures = COULEURS.slice(0, 4).map((couleur, i) => ({
     x: 0.2 + i * 0.2,
     y: 0.3 + (i % 2) * 0.4,
@@ -87,6 +97,7 @@ function autos(message: (t: string) => void): Jeu {
       if (Math.hypot((piece.x - moi.x) * l, (piece.y - moi.y) * h) < 50) {
         etoiles++;
         bruitage.son('etoile');
+        compte();
         piece = { x: 0.1 + Math.random() * 0.8, y: 0.15 + Math.random() * 0.7 };
         message(etoiles % 10 === 0 ? `Bravo, ${etoiles} étoiles !` : `Étoiles : ${etoiles}`);
       }
@@ -116,7 +127,7 @@ function autos(message: (t: string) => void): Jeu {
 }
 
 // --- Trampoline ----------------------------------------------------------------------------
-function trampoline(message: (t: string) => void): Jeu {
+function trampoline(message: (t: string) => void, compte: () => void): Jeu {
   let hauteur = 2;
   let record = 2;
   let t = 0;
@@ -132,6 +143,7 @@ function trampoline(message: (t: string) => void): Jeu {
       if (pres) {
         hauteur = Math.min(8, hauteur + 1);
         bruitage.son('boing', 0.8);
+        compte();
         if (hauteur > record) {
           record = hauteur;
           message(hauteur === 8 ? 'Tout là-haut, bravo !' : `Plus haut ! Hauteur ${hauteur}`);
@@ -212,7 +224,7 @@ function labyrinthe(colonnes: number, lignes: number): boolean[][][] {
   return murs;
 }
 
-function glaces(message: (t: string) => void): Jeu {
+function glaces(message: (t: string) => void, compte: () => void): Jeu {
   let colonnes = 5;
   let lignes = 4;
   let murs = labyrinthe(colonnes, lignes);
@@ -239,6 +251,7 @@ function glaces(message: (t: string) => void): Jeu {
       if (cx === colonnes - 1 && cy === lignes - 1) {
         bruitage.finDeManche();
         message('Bravo, tu as trouvé la sortie ! Un palais plus grand t’attend.');
+        compte();
         colonnes = Math.min(9, colonnes + 1);
         lignes = Math.min(6, lignes + (colonnes % 2));
         murs = labyrinthe(colonnes, lignes);
@@ -287,7 +300,7 @@ function glaces(message: (t: string) => void): Jeu {
 }
 
 /** Ouvre un stand de détente ; se résout quand l'enfant revient à la fête. */
-export function jouerDetente(id: IdDetente): Promise<void> {
+export function jouerDetente(id: IdDetente, suivi: SuiviDetente): Promise<void> {
   return new Promise((fini) => {
     const fond = document.createElement('div');
     fond.className = 'vitrine-fond';
@@ -300,20 +313,66 @@ export function jouerDetente(id: IdDetente): Promise<void> {
     const consigne = document.createElement('p');
     consigne.className = 'lecture-texte';
     consigne.textContent = consigneTexte;
+    // Le prochain cadeau, et la barre qui s'en approche.
+    const objectif = document.createElement('div');
+    objectif.className = 'detente-objectif';
+    const objectifTexte = document.createElement('p');
+    const barre = document.createElement('div');
+    barre.className = 'detente-barre';
+    const remplissage = document.createElement('span');
+    barre.append(remplissage);
+    objectif.append(objectifTexte, barre);
+    const majObjectif = (): void => {
+      const o = suivi.objectif();
+      objectifTexte.textContent = o.cadeau
+        ? `Prochain cadeau : ${o.cadeau} · ${o.fait} / ${o.but} ${o.unite}`
+        : `Tout est gagné ici pour l’instant ! ${o.fait} ${o.unite}`;
+      barre.hidden = o.cadeau === null;
+      remplissage.style.width = `${Math.min(100, Math.round(((o.fait - o.depuis) / Math.max(1, o.but - o.depuis)) * 100))}%`;
+    };
+    majObjectif();
+    // Le cadeau gagné s'affiche un moment par-dessus le jeu, sans l'arrêter.
+    const cadeau = document.createElement('div');
+    cadeau.className = 'detente-cadeau';
+    cadeau.hidden = true;
+    let finCadeau = 0;
+    const montrerCadeau = (c: { titre: string; texte: string }): void => {
+      cadeau.replaceChildren();
+      const t = document.createElement('p');
+      t.className = 'detente-cadeau-titre';
+      t.textContent = `Cadeau gagné : ${c.titre} !`;
+      const p = document.createElement('p');
+      p.textContent = c.texte;
+      cadeau.append(t, p);
+      cadeau.hidden = false;
+      bruitage.reussite();
+      const r = cadeau.getBoundingClientRect();
+      confettis(60, { x: r.left + r.width / 2, y: r.top + r.height / 2 });
+      window.clearTimeout(finCadeau);
+      finCadeau = window.setTimeout(() => (cadeau.hidden = true), 4200);
+    };
+    const compte = (): void => {
+      const gagne = suivi.avancer();
+      majObjectif();
+      if (gagne) montrerCadeau(gagne);
+    };
     const toile = document.createElement('canvas');
     toile.className = 'detente-toile';
     const retour = document.createElement('button');
     retour.type = 'button';
     retour.className = 'bouton-principal';
     retour.textContent = 'Retour à la fête';
-    carte.append(titre, consigne, toile, retour);
+    const scene = document.createElement('div');
+    scene.className = 'detente-scene';
+    scene.append(toile, cadeau);
+    carte.append(titre, consigne, objectif, scene, retour);
     fond.append(carte);
     document.body.append(fond);
 
     const message = (t: string): void => {
       consigne.textContent = t;
     };
-    const jeu = id === 'autos' ? autos(message) : id === 'trampoline' ? trampoline(message) : glaces(message);
+    const jeu = id === 'autos' ? autos(message, compte) : id === 'trampoline' ? trampoline(message, compte) : glaces(message, compte);
     const c = toile.getContext('2d');
     let actif = true;
     let avant = performance.now();
@@ -344,6 +403,7 @@ export function jouerDetente(id: IdDetente): Promise<void> {
     retour.addEventListener('click', () => {
       bruitage.touche();
       actif = false;
+      window.clearTimeout(finCadeau);
       fond.remove();
       fini();
     });

@@ -52,3 +52,11 @@ describe('bilan du parent', () => {
     expect(minutesParJour({ '2026-11-16': { defis: 0, ticketsGagnes: 0, finie: false, lotChoisi: false, secondes: 610 } }, ['2026-11-15', '2026-11-16'])).toEqual([0, 10]);
   });
 });
+
+describe('les cadeaux des manèges proposés par le rêve', () => {
+  it('garde les codes lisibles, ignore le reste', () => {
+    const p = lirePreparation({ jour: '2026-11-18', recompenses: { autos: 'ballons-bleu', glaces: '<script>', trampoline: 7, cirque: 'coupe' } });
+    expect(p?.recompenses).toEqual({ autos: 'ballons-bleu' });
+    expect(lirePreparation({ jour: '2026-11-18' })?.recompenses).toBeUndefined();
+  });
+});

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { accesManege, choisirLot, PRIX_MANEGE, convertirGarderobe, garderobeNeuve, LOTS, peutConstruire, porter, PRIX_PIECE, PIECES_ROUE, retirer, semaineDe } from './recompenses.ts';
+import { LOTS_DES_MANEGES } from '../detente/objectifs.ts';
+import { accesManege, LOTS_VITRINE, choisirLot, PRIX_MANEGE, convertirGarderobe, garderobeNeuve, LOTS, peutConstruire, porter, PRIX_PIECE, PIECES_ROUE, retirer, semaineDe } from './recompenses.ts';
 
 describe('lots', () => {
   it('un lot choisi est possédé et porté', () => {
@@ -63,5 +64,15 @@ describe('manèges', () => {
     expect(accesManege(PRIX_MANEGE - 1, false)).toBe('manque');
     expect(accesManege(PRIX_MANEGE, false)).toBe('payant');
     expect(accesManege(0, true)).toBe('gratuit');
+  });
+});
+
+describe('les lots des manèges', () => {
+  it('existent, et ne sont jamais dans la vitrine', () => {
+    for (const id of Object.values(LOTS_DES_MANEGES).flat()) {
+      expect(LOTS.find((l) => l.id === id)?.manege).toBe(true);
+      expect(LOTS_VITRINE.some((l) => l.id === id)).toBe(false);
+    }
+    expect(LOTS_VITRINE.length).toBe(LOTS.length - 6);
   });
 });

@@ -2,6 +2,7 @@
 // Elle arrive par le réseau : on la vérifie entièrement et on la traite comme une donnée.
 // Le rêve décide seul des réglages ; tout texte nouveau (propositions) attend le parent.
 
+import { MANEGES, type IdManege } from '../detente/objectifs.ts';
 import type { Jour } from '../memoire/jours.ts';
 
 export type StandRegle = 'defis' | 'horloge' | 'peche';
@@ -17,6 +18,11 @@ export interface Preparation {
   focus: string[];
   /** Textes nouveaux proposés, en attente du parent : des semaines de feuilleton. */
   feuilleton: unknown[];
+  /**
+   * Le prochain cadeau de chaque manège, choisi dans le catalogue du jeu (« ballons-bleu »,
+   * « chapeau-pilote »…). Facultatif ; un cadeau impossible est remplacé par l'ordre prévu.
+   */
+  recompenses?: Partial<Record<IdManege, string>>;
 }
 
 const JOUR = /^\d{4}-\d{2}-\d{2}$/;
@@ -37,7 +43,14 @@ export function lirePreparation(brut: unknown): Preparation | null {
   }
   const focus = Array.isArray(o.focus) ? o.focus.filter((x): x is string => typeof x === 'string' && ID.test(x)).slice(0, 40) : [];
   const feuilleton = Array.isArray(o.feuilleton) ? o.feuilleton.slice(0, 4) : [];
-  return { jour: o.jour, resume, niveaux, focus, feuilleton };
+  const recompenses: Partial<Record<IdManege, string>> = {};
+  if (typeof o.recompenses === 'object' && o.recompenses !== null) {
+    for (const id of MANEGES) {
+      const code = (o.recompenses as Record<string, unknown>)[id];
+      if (typeof code === 'string' && /^[a-z-]{1,40}$/.test(code)) recompenses[id] = code;
+    }
+  }
+  return { jour: o.jour, resume, niveaux, focus, feuilleton, ...(Object.keys(recompenses).length > 0 ? { recompenses } : {}) };
 }
 
 /** Les éléments du focus passent devant, les autres gardent leur ordre. */

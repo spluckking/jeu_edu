@@ -26,7 +26,8 @@ import type { JeuDeStand } from './stands/stand.ts';
 import { creerDefis } from './stands/defis.ts';
 import { creerHorloge } from './stands/horloge.ts';
 import { creerPeche } from './stands/peche.ts';
-import { jouerDetente } from './detente/jeux.ts';
+import { jouerDetente, type SuiviDetente } from './detente/jeux.ts';
+import { compter, installer, MANEGES, NOMS_MODELES, objectif, prochaineRecompense, type IdManege, type Recompense } from './detente/objectifs.ts';
 import { demanderPrenom } from './ui/prenom.ts';
 import { exerciceDuJour, jouerPause, pauseDue } from './detente/pause.ts';
 import { chargerFeuilleton, episodeDuJour, lireSemaine, type Episode, type Semaine } from './histoire/feuilleton.ts';
@@ -42,7 +43,9 @@ import {
   HEURES_PAR_SEANCE,
   PECHES_PAR_SEANCE,
   journeeNeuve,
-  LOTS,
+  JETONS_PAR_MANCHE,
+  lot,
+  LOTS_VITRINE,
   peutConstruire,
   PIECES_ROUE,
   porter,
@@ -111,6 +114,8 @@ const ui = {
   continuer: el<HTMLButtonElement>('continuer'),
   ticketsNombre: el<HTMLSpanElement>('tickets-nombre'),
   tickets: el<HTMLParagraphElement>('tickets'),
+  jetonsNombre: el<HTMLSpanElement>('jetons-nombre'),
+  jetons: el<HTMLParagraphElement>('jetons'),
   calendrier: el<HTMLOListElement>('calendrier'),
   garderobe: el<HTMLButtonElement>('garderobe'),
   zoneStick: el<HTMLDivElement>('zone-joystick'),
@@ -508,6 +513,7 @@ const JOURS_COURTS = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
 
 function majHud(): void {
   ui.ticketsNombre.textContent = String(sauvegarde.tickets);
+  ui.jetonsNombre.textContent = String(sauvegarde.jetons);
   // Le livre n'apparaît qu'une fois des épisodes validés ; il clignote tant que celui du jour attend.
   ui.histoire.hidden = episodesValides.length === 0;
   ui.histoire.classList.toggle('a-lire', histoireDuJour() !== null);
@@ -532,6 +538,15 @@ function gagnerTickets(nombre: number): void {
   ui.tickets.classList.remove('gagne');
   void ui.tickets.offsetWidth;
   ui.tickets.classList.add('gagne');
+}
+
+function gagnerJeton(): void {
+  sauvegarde.jetons += JETONS_PAR_MANCHE;
+  sauver();
+  majHud();
+  ui.jetons.classList.remove('gagne');
+  void ui.jetons.offsetWidth;
+  ui.jetons.classList.add('gagne');
 }
 
 function habiller(g: Garderobe): void {
@@ -589,7 +604,7 @@ async function finDeSeance(): Promise<boolean> {
   gagnerTickets(BONUS_SEANCE);
   bruitage.finDeManche();
   confettis(48);
-  const reste = LOTS.some((l) => !sauvegarde.garderobe.possedes.includes(l.id));
+  const reste = LOTS_VITRINE.some((l) => !sauvegarde.garderobe.possedes.includes(l.id));
   if (reste && !j.lotChoisi) {
     await garderobe({
       titre: 'Séance finie, bravo !',
@@ -670,6 +685,7 @@ ui.construire.addEventListener('click', () => {
 });
 
 fete.construireRoue(sauvegarde.roue, PIECES_ROUE);
+for (const id of MANEGES) fete.decorer(id, sauvegarde.maneges.decorations[id]);
 habiller(sauvegarde.garderobe);
 mettreAJourPlace();
 
@@ -756,7 +772,7 @@ const TITRES_DETENTE: Record<string, string> = { autos: 'Autos tamponneuses', tr
 /** Sur le bouton « Entrer » d'un manège : son prix, ou « gratuit » une fois la séance finie. */
 function prixAffiche(s: Stand): string {
   if (JEUX.some((j) => j.id === s.id)) return '';
-  return journee().finie ? ' · gratuit' : ` · ${PRIX_MANEGE} tickets`;
+  return journee().finie ? ' · gratuit' : ` · ${PRIX_MANEGE} jeton`;
 }
 
 function titreDuStand(s: Stand): string {
@@ -912,17 +928,18 @@ function toucherStand(stand: Stand): void {
     // Un stand de détente : jeu libre, sans manche ni mémoire.
     const id = stand.id;
     if (id !== 'autos' && id !== 'trampoline' && id !== 'glaces') return;
-    // Les manèges se paient en tickets tant que les révisions du jour ne sont pas finies ;
-    // ensuite, ils sont gratuits et illimités.
-    const acces = accesManege(sauvegarde.tickets, journee().finie);
+    // Les manèges se paient en jetons (une manche de révision finie = un jeton) tant que la
+    // séance du jour n'est pas finie ; ensuite, ils sont gratuits et illimités. Les tickets
+    // restent pour la grande roue.
+    const acces = accesManege(sauvegarde.jetons, journee().finie);
     if (acces === 'manque') {
-      parler(`Un tour coûte ${PRIX_MANEGE} tickets. Gagne-les aux stands de révision. Quand ta séance du jour est finie, les manèges sont gratuits !`);
+      parler('Un tour coûte un jeton. Finis une manche à un stand de révision pour en gagner un. Quand ta séance du jour est finie, les manèges sont gratuits !');
       return;
     }
     void (async () => {
       if (acces === 'payant') {
         if (!(await payerTour(titreDuStand(stand)))) return;
-        sauvegarde.tickets -= PRIX_MANEGE;
+        sauvegarde.jetons -= PRIX_MANEGE;
         sauver();
         majHud();
         bruitage.ticket();
@@ -948,10 +965,11 @@ function payerTour(titre: string): Promise<boolean> {
     carte.className = 'vitrine';
     const texte = document.createElement('p');
     texte.className = 'lecture-titre';
-    texte.textContent = `${titre} : un tour coûte ${PRIX_MANEGE} tickets.`;
+    texte.textContent = `${titre} : un tour coûte un jeton.`;
     const reste = document.createElement('p');
     reste.className = 'lecture-texte';
-    reste.textContent = `Tu as ${sauvegarde.tickets} tickets. Il t’en restera ${sauvegarde.tickets - PRIX_MANEGE}. Quand ta séance du jour est finie, les manèges sont gratuits.`;
+    const apres = sauvegarde.jetons - PRIX_MANEGE;
+    reste.textContent = `Tu as ${sauvegarde.jetons} jeton${sauvegarde.jetons > 1 ? 's' : ''}. Il t’en restera ${apres}. Quand ta séance du jour est finie, les manèges sont gratuits.`;
     const boutons = document.createElement('div');
     boutons.className = 'lecture-boutons';
     const non = document.createElement('button');
@@ -961,7 +979,7 @@ function payerTour(titre: string): Promise<boolean> {
     const oui = document.createElement('button');
     oui.type = 'button';
     oui.className = 'bouton-principal';
-    oui.textContent = `Payer ${PRIX_MANEGE} tickets`;
+    oui.textContent = 'Donner un jeton';
     const fermer = (r: boolean): void => {
       bruitage.touche();
       fond.remove();
@@ -984,11 +1002,52 @@ function lancerManege(stand: Stand, id: 'autos' | 'trampoline' | 'glaces'): void
     enMarche = false;
     dansUnStand = true;
     musique.demarrer(id);
-    await jouerDetente(id);
+    await jouerDetente(id, suiviDetente(id));
     musique.demarrer('promenade');
     dansUnStand = false;
     retourPromenade();
   });
+}
+
+/** Le prochain cadeau de ce manège : celui que propose le rêve s'il est possible, sinon l'ordre prévu. */
+function prochainCadeau(id: IdManege): Recompense | null {
+  return prochaineRecompense(id, sauvegarde.maneges, sauvegarde.garderobe.possedes, sauvegarde.preparation?.recompenses?.[id]);
+}
+
+function nomDuCadeau(r: Recompense): string {
+  return r.type === 'decoration' ? NOMS_MODELES[r.modele] : (lot(r.lot)?.nom ?? 'Un cadeau');
+}
+
+/** Ce que comptent les manèges, et les cadeaux à chaque palier. */
+function suiviDetente(id: IdManege): SuiviDetente {
+  return {
+    objectif() {
+      const r = prochainCadeau(id);
+      return { ...objectif(sauvegarde.maneges, id), cadeau: r ? nomDuCadeau(r) : null };
+    },
+    avancer() {
+      const r = prochainCadeau(id);
+      const pas = compter(sauvegarde.maneges, id);
+      sauvegarde.maneges = pas.suivi;
+      if (!pas.palier || !r) {
+        sauver();
+        return null;
+      }
+      let texte: string;
+      if (r.type === 'decoration') {
+        sauvegarde.maneges = installer(sauvegarde.maneges, id, r);
+        fete.decorer(id, sauvegarde.maneges.decorations[id], true);
+        if (qualite === 'haute') ombrer(fete.racine);
+        texte = 'C’est installé à côté du manège : va voir en sortant !';
+      } else {
+        sauvegarde.garderobe = choisirLot(sauvegarde.garderobe, r.lot);
+        habiller(sauvegarde.garderobe);
+        texte = 'C’est déjà sur ton personnage, et rangé dans ta garde-robe.';
+      }
+      sauver();
+      return { titre: nomDuCadeau(r), texte };
+    },
+  };
 }
 
 // --- Le déroulé commun des stands de révision ----------------------------------------------
@@ -1061,8 +1120,8 @@ function elementsDuStand(): string[] {
   return [...elements.values()].filter((e) => e.type === jeu.type).map((e) => e.id);
 }
 
-/** gain : tickets gagnés avec la manche qui vient de finir. */
-function montrerCarte(type: TypeManche, apresUneManche: boolean, gain = 0): void {
+/** gain : tickets gagnés avec la manche qui vient de finir ; jeton : un jeton de manège en plus. */
+function montrerCarte(type: TypeManche, apresUneManche: boolean, gain = 0, jeton = false): void {
   typeManche = type;
   ui.exercice.hidden = true;
   ui.carte.hidden = false;
@@ -1086,17 +1145,21 @@ function montrerCarte(type: TypeManche, apresUneManche: boolean, gain = 0): void
         : type === 'semaine'
           ? `Manche « Cette semaine » : ${jeu.unite(nombre)}.`
           : `Manche « Mémoire » : ${jeu.unite(nombre)} pour ne pas oublier.`;
-  ui.carteTexte.textContent = gain > 0 ? `Tu gagnes ${gain} tickets ! ${texte}` : texte;
+  const gagne = [gain > 0 ? `${gain} tickets` : '', jeton ? 'un jeton de manège' : ''].filter(Boolean).join(' et ');
+  ui.carteTexte.textContent = gagne ? `Tu gagnes ${gagne} ! ${texte}` : texte;
   ui.carteBouton.textContent = type === 'libre' ? 'Jouer' : 'C’est parti !';
   ui.carteBouton.disabled = elementsDuStand().length === 0;
   ui.carteRetour.hidden = !apresUneManche;
   // Au chantier, on construit aussi la grande roue avec les tickets.
   ui.construction.hidden = jeu.id !== 'chantier';
   if (jeu.id === 'chantier') majConstruction();
-  const phrase = apresUneManche
-    ? `Bravo, manche finie ! ${gain > 0 ? `Tu gagnes ${gain} tickets. ` : ''}${type === 'libre' ? 'Tu peux encore jouer pour le plaisir.' : 'Encore une manche ?'}`
-    : texte;
-  parler(phrase, false);
+  // En entrant, le forain dit déjà bonjour avec sa voix : la carte reste écrite, sans être lue.
+  if (apresUneManche) {
+    parler(
+      `Bravo, manche finie ! ${gagne ? `Tu gagnes ${gagne}. ` : ''}${type === 'libre' ? 'Tu peux encore jouer pour le plaisir.' : 'Encore une manche ?'}`,
+      false,
+    );
+  }
 }
 
 function lancerManche(): void {
@@ -1272,6 +1335,8 @@ async function suite(): Promise<void> {
   // Une manche de révision terminée rapporte des tickets ; le jeu libre, non.
   const gain = typeManche === 'semaine' || typeManche === 'memoire' ? TICKETS_PAR_MANCHE : 0;
   if (gain > 0) gagnerTickets(gain);
+  const jeton = typeManche !== 'libre';
+  if (jeton) gagnerJeton();
   // À la moitié du travail du jour : la pause calme, obligatoire.
   const j = journee();
   const forcee = parametres.has('pause') && !j.pause;
@@ -1285,7 +1350,7 @@ async function suite(): Promise<void> {
     ui.stand.hidden = false;
   }
   mettreAJourPlace();
-  montrerCarte(prochaineManche(), true, gain);
+  montrerCarte(prochaineManche(), true, gain, jeton);
   void finDeSeance().then((finie) => {
     if (finie) {
       majHud();

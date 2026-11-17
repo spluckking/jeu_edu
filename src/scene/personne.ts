@@ -53,12 +53,14 @@ export const COULEURS_HAUTS: Record<string, number> = {
   'haut-jaune': 0xffd65c,
   'haut-mariniere': 0xfdf7ee,
   'haut-salopette': 0xfdf3e3,
+  'haut-paillettes': 0x9b7be0,
 };
 export const COULEURS_CHAUSSURES: Record<string, number> = {
   'chaussures-bottines': 0xa86b45,
   'chaussures-rouges': 0xe0504f,
   'chaussures-pluie': 0xffcf4a,
   'chaussures-bleues': 0x5b8def,
+  'chaussures-ressorts': 0x6fcf4a,
 };
 
 /** Les anciennes tenues, traduites en accessoires (pour les forains et les visiteurs). */
@@ -108,6 +110,9 @@ export function creerPersonne(atelier: Atelier, parent: THREE.Object3D, allure: 
     f(membre, [0.15, 0.3, 0.15], [0, -0.17, 0], salopette ? 0x5b8def : 0xfdf3e3, { forme: 'gelule' });
     f(membre, [0.24, 0.18, 0.34], [0, -0.33, 0.04], souliers, { forme: 'boule' });
     f(membre, [0.24, 0.03, 0.32], [0, -0.4, 0.04], 0xfdf7ee, { forme: 'tube' });
+    if (acc.chaussures === 'chaussures-ressorts') {
+      for (const y of [-0.43, -0.47]) f(membre, [0.16, 0.16, 0.16], [0, y, 0.04], 0xc9ccd6, { forme: 'anneau', rx: Math.PI / 2 });
+    }
     return membre;
   };
   const jambeG = jambe(-1);
@@ -116,6 +121,13 @@ export function creerPersonne(atelier: Atelier, parent: THREE.Object3D, allure: 
   // Tronc arrondi, short (ou bas de salopette), col.
   pose([0.4, 0.5, 0.33], [0, 0.62, 0], tissu, { forme: 'gelule' });
   if (acc.haut === 'haut-mariniere') for (const y of [0.52, 0.62, 0.72]) pose([0.41, 0.035, 0.34], [0, y, 0], 0x4f7fd9, { forme: 'tube' });
+  if (acc.haut === 'haut-paillettes') {
+    for (let i = 0; i < 9; i++) {
+      const a = -0.9 + (i % 3) * 0.9;
+      const y = 0.52 + Math.floor(i / 3) * 0.1;
+      pose([0.05, 0.05, 0.03], [Math.sin(a) * 0.19, y, Math.cos(a) * 0.16], i % 2 ? 0xfff2a8 : 0xd6f3ff, { forme: 'boule', lumineux: true });
+    }
+  }
   pose([0.4, 0.14, 0.35], [0, 0.43, 0], salopette ? 0x5b8def : allure.pantalon, { forme: 'tube' });
   if (salopette) {
     pose([0.3, 0.26, 0.1], [0, 0.6, 0.14], 0x5b8def);
@@ -153,7 +165,7 @@ export function creerPersonne(atelier: Atelier, parent: THREE.Object3D, allure: 
   // Cheveux : calotte inclinée vers l'arrière et frange en trois mèches (sauf sous un bonnet).
   const chapeau = acc.chapeau;
   // Sous une casquette ou un bonnet, seuls les cheveux de derrière dépassent.
-  const couvert = chapeau === 'chapeau-bonnet' || chapeau === 'chapeau-casquette';
+  const couvert = chapeau === 'chapeau-bonnet' || chapeau === 'chapeau-casquette' || chapeau === 'chapeau-pilote';
   pose([0.8, 0.5, 0.5], [0, TETE + 0.02, -0.2], allure.cheveux, { forme: 'boule' });
   if (!couvert) {
     pose([0.9, 0.42, 0.86], [0, TETE + 0.06, -0.04], allure.cheveux, { forme: 'calotte', rx: -0.5 });
@@ -196,6 +208,25 @@ export function creerPersonne(atelier: Atelier, parent: THREE.Object3D, allure: 
         pose([0.07, 0.07, 0.07], [Math.sin(a) * 0.31, TETE + 0.42, Math.cos(a) * 0.31], i % 2 ? rouge : 0x4cc4ff, { forme: 'boule' });
       }
       break;
+    case 'chapeau-pilote':
+      // Casque rond, bande de couleur et visière claire.
+      pose([0.98, 0.56, 0.96], [0, TETE + 0.06, -0.02], 0xe0504f, { forme: 'calotte', rx: -0.12 });
+      pose([0.99, 0.12, 0.97], [0, TETE + 0.24, -0.02], 0xfdf7ee, { forme: 'anneau', rx: Math.PI / 2 - 0.12 });
+      pose([0.56, 0.1, 0.2], [0, TETE + 0.3, 0.4], 0x9fd6f0, { forme: 'boule', rx: -0.3 });
+      break;
+    case 'chapeau-etoile':
+      // Un arceau d'une oreille à l'autre, par-dessus la tête, et une étoile sur un ressort.
+      for (let i = 0; i <= 10; i++) {
+        const a = -1.35 + (i / 10) * 2.7;
+        pose([0.12, 0.12, 0.12], [Math.sin(a) * 0.45, TETE + 0.04 + Math.cos(a) * 0.45, 0.02], 0xf28fb3, { forme: 'boule' });
+      }
+      pose([0.03, 0.28, 0.03], [0, TETE + 0.6, 0.02], 0xf28fb3, { forme: 'tube' });
+      for (let i = 0; i < 5; i++) {
+        const a = (i / 5) * Math.PI * 2;
+        pose([0.09, 0.16, 0.06], [Math.sin(a) * 0.09, TETE + 0.75 + Math.cos(a) * 0.09, 0], 0xffd84d, { forme: 'cone', rz: -a, lumineux: true });
+      }
+      pose([0.12, 0.12, 0.08], [0, TETE + 0.75, 0], 0xffd84d, { forme: 'boule', lumineux: true });
+      break;
     case 'chapeau-chignon':
       pose([0.38, 0.38, 0.38], [0, TETE + 0.4, -0.22], allure.cheveux, { forme: 'boule' });
       break;
@@ -221,6 +252,9 @@ export function creerPersonne(atelier: Atelier, parent: THREE.Object3D, allure: 
       break;
     case 'lunettes-carrees':
       lunettes(sombre, null, 0.26);
+      break;
+    case 'lunettes-miroir':
+      lunettes(0xd8dde6, 0xbfe6ff, 0.27);
       break;
   }
 
@@ -252,6 +286,14 @@ export function creerPersonne(atelier: Atelier, parent: THREE.Object3D, allure: 
       const m = main();
       f(m, [0.04, 0.45, 0.04], [0, 0.22, 0], 0x8c6ddb, { forme: 'tube' });
       f(m, [0.2, 0.2, 0.05], [0, 0.5, 0], 0xffd84d, { rz: Math.PI / 4 });
+      break;
+    }
+    case 'objet-volant': {
+      const m = main();
+      m.rotation.x = -0.6;
+      f(m, [0.46, 0.46, 0.12], [0, 0.12, 0.12], sombre, { forme: 'anneau' });
+      f(m, [0.06, 0.4, 0.05], [0, 0.12, 0.12], 0xc9ccd6, { forme: 'tube' });
+      f(m, [0.12, 0.12, 0.08], [0, 0.12, 0.12], rouge, { forme: 'boule' });
       break;
     }
     case 'objet-epuisette': {
