@@ -9,7 +9,7 @@ suffit à faire une séance du jour correcte.
 
 | Fichier | Écrit par | Contenu |
 |---|---|---|
-| `journal/AAAA-MM-JJ.json` | la tablette | les réponses du jour, la journée (séance, temps, pause), les niveaux, tickets et grande roue |
+| `journal/AAAA-MM-JJ.json` | la tablette | les réponses du jour, la journée (séance, temps, pause), les niveaux, tickets, grande roue, jetons, manèges et garde-robe |
 | `etats.json` | la tablette | l'état de mémoire de chaque élément (réussites, échecs, échéance) |
 | `validations.json` | la tablette | les décisions du parent sur les textes proposés (`validee` ou `refusee`) |
 | `preparation.json` | le rêve | la préparation du lendemain (format ci-dessous) |
@@ -46,7 +46,8 @@ dans l'espace parent. Sans réseau ou sans clé, rien ne se passe et le jeu cont
   "resume": "Bonne séance, 6 × 7 résiste encore. Demain, on le revoit en premier.",
   "niveaux": { "defis": 2, "horloge": 3, "peche": 1 },
   "focus": ["x-6-7", "m-école"],
-  "feuilleton": []
+  "feuilleton": [],
+  "recompenses": { "autos": "nounours-bleu", "trampoline": "chapeau-etoile" }
 }
 ```
 
@@ -56,4 +57,37 @@ dans l'espace parent. Sans réseau ou sans clé, rien ne se passe et le jeu cont
   `"valide": false`). Elles n'arrivent devant l'enfant qu'après « Valider la semaine » dans
   l'espace parent.
 
+- `recompenses` : le **prochain cadeau** de chaque manège (`autos`, `trampoline`, `glaces`),
+  choisi dans le catalogue ci-dessous. Facultatif. Un cadeau déjà gagné ou impossible est
+  remplacé par l'ordre prévu dans le jeu.
+
 La tablette vérifie tout ce qu'elle reçoit : une préparation illisible est ignorée.
+
+## Les manèges : objectifs et cadeaux
+
+Les autos tamponneuses, le trampoline et le palais des glaces comptent ce que l'enfant y fait,
+d'un jour à l'autre, sans jamais rien retirer : étoiles attrapées, sauts réussis, palais
+traversés. À chaque palier, un cadeau.
+
+| Manège | On compte | Paliers |
+|---|---|---|
+| autos | les étoiles | 10, 25, 45, 70, 100, puis tous les 35 |
+| trampoline | les sauts réussis | 10, 25, 45, 70, 100, puis tous les 35 |
+| glaces | les palais traversés | 1, 3, 6, 10, 15, puis tous les 5 |
+
+Un tour coûte un **jeton** tant que la séance du jour n'est pas finie (une manche de révision
+finie = un jeton) ; ensuite les manèges sont gratuits. Les tickets restent pour la grande roue
+et ne servent jamais aux manèges.
+
+**Catalogue des cadeaux** (le code est dans `src/detente/objectifs.ts`) :
+
+- **Décorations**, installées autour du manège où elles sont gagnées (six places par manège,
+  pas deux fois le même objet au même manège). Code : `modele` ou `modele-teinte`.
+  - modèles : `ballons`, `lampions`, `fanions`, `coupe`, `fleurs`, `etoile`, `nounours`
+  - teintes : `rouge`, `bleu`, `jaune`, `vert`, `violet`, `rose`
+- **Accessoires** qu'on ne gagne qu'aux manèges (un seul exemplaire chacun) :
+  `chapeau-pilote`, `objet-volant`, `chapeau-etoile`, `chaussures-ressorts`,
+  `lunettes-miroir`, `haut-paillettes`.
+
+Le journal contient `maneges` (`compte`, `paliers`, `decorations` par manège), `jetons` et
+`garderobe` (`possedes`, `porte`).

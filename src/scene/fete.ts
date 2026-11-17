@@ -2,8 +2,9 @@
 
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { AMPOULES, Atelier, COULEURS, type Peinture, type Vec3 } from './atelier.ts';
+import { AMPOULES, Atelier, COULEURS, ombree, type Peinture, type Vec3 } from './atelier.ts';
 import { creerPersonne, type Accessoires, type Allure, type Personne } from './personne.ts';
+import type { Decoration, Teinte } from '../detente/objectifs.ts';
 
 export type IdStand = 'chamboule' | 'confiserie' | 'chantier' | 'horloge' | 'peche';
 /** Les stands de détente : jeu libre seulement, sans forain à nommer. */
@@ -33,6 +34,11 @@ export interface Fete {
   pecher(): void;
   /** La grande roue montre n pièces construites sur « sur ». */
   construireRoue(n: number, sur: number): void;
+  /**
+   * Les décorations gagnées autour d'un manège. nouvelle : la dernière gagnée apparaît avec un
+   * petit rebond.
+   */
+  decorer(id: IdDetente, decorations: readonly Decoration[], nouvelle?: boolean): void;
   /** Le personnage de l'enfant change de tenue (0 à 3) ou de maillot. */
   habiller(accessoires: Accessoires): void;
   /** Le personnage de l'enfant (pour le piloter au joystick). */
@@ -710,15 +716,168 @@ export function construireFete(depart?: Accessoires): Fete {
     });
   }
 
+  // --- Les décorations gagnées aux manèges ---------------------------------------
+  const TEINTES: Record<Teinte, number> = { rouge: 0xe0504f, bleu: 0x5b8def, jaune: 0xffd447, vert: 0x6fcf4a, violet: 0x9b7be0, rose: 0xf28fb3 };
+  /** Six places autour du manège (repère du stand, le devant vers +z), hors du passage : x, z, rotation. */
+  const PLACES_DECO: Array<[number, number, number]> = [
+    [-3.2, 1.3, 0.3],
+    [3.2, 1.3, -0.3],
+    [-3.2, -0.9, 0.6],
+    [3.2, -0.9, -0.6],
+    [-1.5, -2.7, 0.1],
+    [1.5, -2.7, -0.1],
+  ];
+  const decorationsManeges = new Map<IdDetente, { groupe: THREE.Group; balancoires: THREE.Object3D[] }>();
+  let apparition: { objet: THREE.Object3D; debut: number } | null = null;
+  animations.push((temps) => {
+    let i = 0;
+    for (const { balancoires } of decorationsManeges.values()) {
+      for (const b of balancoires) {
+        b.rotation.z = Math.sin(temps * 1.3 + i) * 0.06;
+        b.rotation.x = Math.sin(temps * 1.1 + i * 2) * 0.04;
+        i++;
+      }
+    }
+    if (apparition) {
+      // Petit rebond : de rien à un peu plus grand, puis à sa taille.
+      const t = Math.min(1, (temps - apparition.debut) / 0.9);
+      const rebond = 1 + Math.sin(t * Math.PI) * 0.25 * (1 - t);
+      apparition.objet.scale.setScalar(Math.max(0.001, t < 0.4 ? (t / 0.4) * rebond : rebond));
+      if (t >= 1) apparition = null;
+    }
+  });
+
+  function modeleDeco(g: THREE.Group, d: Decoration, balancoires: THREE.Object3D[]): void {
+    const teinte = TEINTES[d.teinte];
+    switch (d.modele) {
+      case 'ballons': {
+        f(g, [0.34, 0.22, 0.34], [0, 0.11, 0], 'bois');
+        const couleurs = [teinte, 0xfdf7ee, ombree(teinte, 1.25)];
+        const ballons: Array<[number, number]> = [
+          [-0.35, 2.0],
+          [0.05, 2.35],
+          [0.38, 2.05],
+        ];
+        ballons.forEach(([x, y], i) => {
+          const b = atelier.mobile(g, [0, 0.22, 0]);
+          balancoires.push(b);
+          const longueur = y - 0.25;
+          const angle = Math.atan2(x, longueur);
+          f(b, [0.02, longueur, 0.02], [x / 2, longueur / 2, 0], 0xfdf7ee, { forme: 'tube', rz: -angle });
+          f(b, [0.55, 0.66, 0.55], [x, longueur + 0.3, 0], couleurs[i] ?? teinte, { forme: 'boule' });
+          f(b, [0.1, 0.1, 0.1], [x, longueur - 0.03, 0], couleurs[i] ?? teinte, { forme: 'cone', rx: Math.PI });
+        });
+        break;
+      }
+      case 'lampions': {
+        for (const x of [-0.95, 0.95]) {
+          f(g, [0.14, 2.6, 0.14], [x, 1.3, 0], 'poteau', { forme: 'tube' });
+          f(g, [0.22, 0.22, 0.22], [x, 2.65, 0], 'or', { forme: 'boule' });
+        }
+        const points = chainette(new THREE.Vector3(-0.95, 2.5, 0), new THREE.Vector3(0.95, 2.5, 0), 5, 0.35);
+        atelier.ligne(g, points);
+        points.slice(1, -1).forEach((p, i) => {
+          f(g, [0.34, 0.42, 0.34], [p.x, p.y - 0.28, p.z], i % 2 ? 0xfff2c4 : teinte, { forme: 'boule', lumineux: true });
+          f(g, [0.2, 0.06, 0.2], [p.x, p.y - 0.06, p.z], 'sombre', { forme: 'tube' });
+        });
+        break;
+      }
+      case 'fanions': {
+        f(g, [0.13, 3.3, 0.13], [0, 1.65, 0], 'poteau', { forme: 'tube' });
+        f(g, [0.24, 0.24, 0.24], [0, 3.36, 0], 'or', { forme: 'boule' });
+        const drapeau = atelier.mobile(g, [0, 2.9, 0]);
+        balancoires.push(drapeau);
+        f(drapeau, [0.5, 0.9, 0.05], [0.45, 0, 0], teinte, { forme: 'cone', rz: -Math.PI / 2 });
+        f(drapeau, [0.34, 0.6, 0.05], [0.32, -0.55, 0], 0xfdf7ee, { forme: 'cone', rz: -Math.PI / 2 });
+        break;
+      }
+      case 'coupe': {
+        f(g, [1, 0.55, 1], [0, 0.28, 0], 0xfdf7ee);
+        f(g, [1.02, 0.12, 1.02], [0, 0.45, 0], teinte);
+        f(g, [0.46, 0.08, 0.46], [0, 0.6, 0], 'or', { forme: 'tube' });
+        f(g, [0.12, 0.36, 0.12], [0, 0.8, 0], 'or', { forme: 'tube' });
+        f(g, [0.66, 0.56, 0.66], [0, 1.24, 0], 'or', { forme: 'calotte', rx: Math.PI });
+        f(g, [0.66, 0.66, 0.1], [0, 1.24, 0], 'or', { forme: 'anneau', rx: Math.PI / 2 });
+        for (const x of [-0.36, 0.36]) f(g, [0.26, 0.26, 0.06], [x, 1.1, 0], 'or', { forme: 'anneau' });
+        f(g, [0.2, 0.2, 0.05], [0, 1.08, 0.3], teinte, { rz: Math.PI / 4 });
+        break;
+      }
+      case 'fleurs': {
+        f(g, [1.15, 0.45, 1.15], [0, 0.23, 0], 'bois', { forme: 'tube' });
+        f(g, [1.02, 0.06, 1.02], [0, 0.46, 0], 0x6b4a3a, { forme: 'tube' });
+        for (let i = 0; i < 6; i++) {
+          const a = (i / 6) * Math.PI * 2 + 0.3;
+          const r = i % 2 ? 0.3 : 0.18;
+          const h = 0.75 + (i % 3) * 0.12;
+          f(g, [0.32, 0.2, 0.32], [Math.cos(a) * 0.34, 0.55, Math.sin(a) * 0.34], 0x5aa83a, { forme: 'boule' });
+          f(g, [0.03, h - 0.45, 0.03], [Math.cos(a) * r, (h + 0.45) / 2, Math.sin(a) * r], 0x4f9a35, { forme: 'tube' });
+          f(g, [0.3, 0.3, 0.08], [Math.cos(a) * r, h, Math.sin(a) * r], i % 3 === 2 ? 0xfdf7ee : teinte, { forme: 'disque', rx: -0.5 });
+          f(g, [0.11, 0.11, 0.08], [Math.cos(a) * r, h + 0.01, Math.sin(a) * r + 0.03], 0xffd447, { forme: 'boule' });
+        }
+        break;
+      }
+      case 'etoile': {
+        f(g, [0.13, 2.9, 0.13], [0, 1.45, 0], 'poteau', { forme: 'tube' });
+        const etoile = atelier.mobile(g, [0, 3.2, 0]);
+        balancoires.push(etoile);
+        f(etoile, [0.42, 0.42, 0.18], [0, 0, 0], teinte, { forme: 'boule', lumineux: true });
+        for (let i = 0; i < 5; i++) {
+          const a = (i / 5) * Math.PI * 2;
+          f(etoile, [0.3, 0.5, 0.14], [Math.sin(a) * 0.36, Math.cos(a) * 0.36, 0], teinte, { forme: 'cone', rz: -a, lumineux: true });
+        }
+        break;
+      }
+      case 'nounours': {
+        const brun = 0xc08a5a;
+        const clair = 0xecd0a8;
+        f(g, [0.95, 1, 0.85], [0, 0.6, 0], brun, { forme: 'boule' });
+        f(g, [0.6, 0.62, 0.3], [0, 0.6, 0.32], clair, { forme: 'boule' });
+        f(g, [0.8, 0.74, 0.72], [0, 1.38, 0.02], brun, { forme: 'boule' });
+        for (const x of [-0.3, 0.3]) {
+          f(g, [0.28, 0.28, 0.16], [x, 1.68, 0], brun, { forme: 'boule' });
+          f(g, [0.15, 0.15, 0.1], [x, 1.68, 0.05], clair, { forme: 'boule' });
+          f(g, [0.08, 0.1, 0.05], [x * 0.5, 1.45, 0.36], 'sombre', { forme: 'boule' });
+          f(g, [0.3, 0.55, 0.3], [x * 1.65, 0.75, 0.12], brun, { forme: 'gelule', rz: x > 0 ? 0.5 : -0.5 });
+          f(g, [0.36, 0.3, 0.46], [x * 1.1, 0.18, 0.38], brun, { forme: 'boule' });
+        }
+        f(g, [0.32, 0.24, 0.22], [0, 1.28, 0.34], clair, { forme: 'boule' });
+        f(g, [0.12, 0.08, 0.06], [0, 1.33, 0.45], 'sombre', { forme: 'boule' });
+        for (const x of [-0.13, 0.13]) f(g, [0.18, 0.24, 0.1], [x, 1.02, 0.36], teinte, { forme: 'cone', rz: x > 0 ? -Math.PI / 2 : Math.PI / 2 });
+        f(g, [0.1, 0.1, 0.1], [0, 1.02, 0.38], teinte, { forme: 'boule' });
+        break;
+      }
+    }
+  }
+
+  function decorer(id: IdDetente, decorations: readonly Decoration[], nouvelle = false): void {
+    decorationsManeges.get(id)?.groupe.removeFromParent();
+    const groupe = atelier.mobile(standsManeges[id]);
+    const balancoires: THREE.Object3D[] = [];
+    decorations.forEach((d, i) => {
+      const [x, z, ry] = PLACES_DECO[i] ?? [0, 0, 0];
+      const g = atelier.mobile(groupe, [x, 0, z]);
+      g.rotation.y = ry;
+      modeleDeco(g, d, balancoires);
+      if (nouvelle && i === decorations.length - 1) {
+        g.scale.setScalar(0.001);
+        apparition = { objet: g, debut: maintenant };
+      }
+    });
+    atelier.fusionner(groupe);
+    decorationsManeges.set(id, { groupe, balancoires });
+  }
+
   // --- Assemblage -------------------------------------------------------------
   stand('confiserie', -10.5, -3.5, 0.5, garnirConfiserie);
   stand('chamboule', 0, -9, 0, garnirChamboule);
   stand('horloge', -17.5, 3.5, 0.9, garnirHorloge);
   // Le fond de la fête.
   stand('peche', -12.5, -19, 0.9, garnirPeche);
-  stand('autos', 12.5, -18.5, -0.6, garnirAutos);
-  stand('trampoline', -5.5, -30, 0.1, garnirTrampoline);
-  stand('glaces', 5.5, -30, -0.1, garnirGlaces);
+  const standsManeges: Record<IdDetente, THREE.Group> = {
+    autos: stand('autos', 12.5, -18.5, -0.6, garnirAutos),
+    trampoline: stand('trampoline', -5.5, -30, 0.1, garnirTrampoline),
+    glaces: stand('glaces', 5.5, -30, -0.1, garnirGlaces),
+  };
   chantier(11, -3.5, -0.5);
   chapiteau(-21, -28);
   chapiteau(0, -38);
@@ -896,6 +1055,7 @@ export function construireFete(depart?: Accessoires): Fete {
       debutPeche = maintenant;
     },
     construireRoue,
+    decorer,
     habiller,
     heros: () => heros.racine,
     marcheLibre(allure) {

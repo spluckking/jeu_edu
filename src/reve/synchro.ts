@@ -65,6 +65,9 @@ export function envoisAPreparer(s: Sauvegarde, aujourdhui: Jour, jours = 3): Env
         niveaux: { defis: s.niveauDefis.niveau, horloge: s.niveauHorloge.niveau, peche: s.niveauPeche.niveau },
         tickets: s.tickets,
         roue: s.roue,
+        jetons: s.jetons,
+        maneges: s.maneges,
+        garderobe: s.garderobe,
       },
     });
   }

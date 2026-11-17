@@ -7,13 +7,15 @@ export const TICKETS_PAR_MANCHE = 3;
 export const TICKETS_HISTOIRE = 2;
 export const BONUS_SEANCE = 2;
 export const PRIX_PIECE = 8;
-/** Un tour de manège (autos, trampoline, palais des glaces) tant que la séance du jour n'est pas finie. */
-export const PRIX_MANEGE = 3;
+/** Chaque manche de révision finie donne un jeton de manège (les tickets restent pour la roue). */
+export const JETONS_PAR_MANCHE = 1;
+/** Un tour de manège (autos, trampoline, palais des glaces), en jetons, tant que la séance du jour n'est pas finie. */
+export const PRIX_MANEGE = 1;
 
-/** L'accès aux manèges : gratuit et illimité une fois la séance du jour finie, sinon en tickets. */
-export function accesManege(tickets: number, seanceFinie: boolean): 'gratuit' | 'payant' | 'manque' {
+/** L'accès aux manèges : gratuit et illimité une fois la séance du jour finie, sinon en jetons. */
+export function accesManege(jetons: number, seanceFinie: boolean): 'gratuit' | 'payant' | 'manque' {
   if (seanceFinie) return 'gratuit';
-  return tickets >= PRIX_MANEGE ? 'payant' : 'manque';
+  return jetons >= PRIX_MANEGE ? 'payant' : 'manque';
 }
 export const PIECES_ROUE = 10;
 export const DEFIS_PAR_SEANCE = 5;
@@ -69,6 +71,8 @@ export interface Lot {
   id: string;
   nom: string;
   genre: GenreLot;
+  /** Se gagne seulement aux manèges, jamais dans la vitrine de fin de séance. */
+  manege?: true;
 }
 
 export const LOTS: readonly Lot[] = [
@@ -98,7 +102,17 @@ export const LOTS: readonly Lot[] = [
   { id: 'objet-sucette', nom: 'Sucette', genre: 'objet' },
   { id: 'objet-baguette', nom: 'Baguette étoile', genre: 'objet' },
   { id: 'objet-epuisette', nom: 'Épuisette', genre: 'objet' },
+  // Les cadeaux des manèges (voir src/detente/objectifs.ts).
+  { id: 'chapeau-pilote', nom: 'Casque de pilote', genre: 'chapeau', manege: true },
+  { id: 'objet-volant', nom: 'Volant d’auto', genre: 'objet', manege: true },
+  { id: 'chapeau-etoile', nom: 'Serre-tête étoile', genre: 'chapeau', manege: true },
+  { id: 'chaussures-ressorts', nom: 'Chaussures à ressorts', genre: 'chaussures', manege: true },
+  { id: 'lunettes-miroir', nom: 'Lunettes miroir', genre: 'lunettes', manege: true },
+  { id: 'haut-paillettes', nom: 'Pull à paillettes', genre: 'haut', manege: true },
 ];
+
+/** Les lots qu'on peut choisir dans la vitrine de fin de séance. */
+export const LOTS_VITRINE: readonly Lot[] = LOTS.filter((l) => !l.manege);
 
 /** Ce que l'enfant possède dès le début. */
 export const LOTS_DE_DEPART = ['chapeau-casquette', 'haut-corail', 'chaussures-bottines', 'objet-sac'];

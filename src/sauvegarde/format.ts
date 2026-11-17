@@ -6,9 +6,10 @@ import type { Noms } from '../histoire/lecture.ts';
 import type { Jour } from '../memoire/jours.ts';
 import type { EtatElement } from '../memoire/moteur.ts';
 import { convertirGarderobe, garderobeNeuve, type Garderobe, type Journee } from '../recompenses/recompenses.ts';
+import { suiviManegesNeuf, type SuiviManeges } from '../detente/objectifs.ts';
 import type { Preparation } from '../reve/preparation.ts';
 
-export const VERSION = 7;
+export const VERSION = 8;
 
 /** Les réglages du parent. */
 export interface Reglages {
@@ -76,6 +77,10 @@ export interface Sauvegarde {
   tickets: number;
   /** Pièces de la grande roue déjà construites. */
   roue: number;
+  /** Jetons de manège (une manche de révision finie = un jeton). */
+  jetons: number;
+  /** Ce que l'enfant a fait aux manèges, paliers franchis et décorations gagnées. */
+  maneges: SuiviManeges;
   garderobe: Garderobe;
   /** Niveau des défis du chantier (exercices générés). */
   niveauDefis: Niveau;
@@ -103,6 +108,10 @@ function recompensesNeuves(): Pick<Sauvegarde, 'tickets' | 'roue' | 'garderobe' 
   return { tickets: 0, roue: 0, garderobe: garderobeNeuve(), niveauDefis: niveauDeDepart(), journees: {} };
 }
 
+function manegesNeufs(): Pick<Sauvegarde, 'jetons' | 'maneges'> {
+  return { jetons: 0, maneges: suiviManegesNeuf() };
+}
+
 export function sauvegardeNeuve(): Sauvegarde {
   return {
     version: VERSION,
@@ -112,6 +121,7 @@ export function sauvegardeNeuve(): Sauvegarde {
     forains: {},
     lectures: {},
     ...recompensesNeuves(),
+    ...manegesNeufs(),
     niveauHorloge: niveauDeDepart(),
     niveauPeche: niveauDeDepart(),
     ...parentNeuf(),
@@ -143,6 +153,8 @@ export function migrer(brut: unknown): Sauvegarde {
   if (s.version === 5) s = { ...s, version: 6, ...parentNeuf() };
   // Version 6 → 7 : les lots deviennent des accessoires (chapeau, lunettes, haut, chaussures, objet).
   if (s.version === 6) s = { ...s, version: 7, garderobe: convertirGarderobe(s.garderobe) };
+  // Version 7 → 8 : les jetons de manège et les objectifs des manèges.
+  if (s.version === 7) s = { ...s, version: 8, ...manegesNeufs() };
   if (s.version === VERSION) return s as unknown as Sauvegarde;
   // Une version plus récente que ce code : on refuse plutôt que d'écraser des données.
   throw new Error(`Version de sauvegarde inconnue : ${String(s.version)}`);

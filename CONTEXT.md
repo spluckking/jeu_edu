@@ -53,8 +53,20 @@ Ce que l'enfant gagne pendant la séance du jour en révisant ses contenus, pour
 _Avoid_ : pièce, point, étoile, score, XP
 
 **Lot** :
-Ce que l'enfant gagne pendant la séance du jour en faisant des exercices générés. Les lots servent à personnaliser le personnage ; l'enfant les choisit dans une vitrine, jamais par tirage au sort.
+Ce que l'enfant gagne pendant la séance du jour en faisant des exercices générés. Les lots servent à personnaliser le personnage ; l'enfant les choisit dans une vitrine, jamais par tirage au sort. Quelques lots ne se gagnent qu'aux paliers des stands de détente.
 _Avoid_ : cadeau, récompense, objet, tenue, skin
+
+**Jeton** :
+Ce que rapporte une manche de révision finie. Un jeton paie un tour à un stand de détente tant que la séance du jour n'est pas finie ; ensuite, les stands de détente sont gratuits. Les jetons ne se mélangent jamais aux tickets.
+_Avoid_ : crédit, pièce, ticket de manège
+
+**Palier** :
+Un total à atteindre à un stand de détente (étoiles attrapées, sauts réussis, palais traversés), compté d'un jour à l'autre sans jamais rien retirer. Chaque palier franchi apporte une décoration ou un lot de stand de détente, pris dans un catalogue (le rêve peut choisir lequel), jamais tiré au sort.
+_Avoid_ : niveau, score, record, succès
+
+**Décoration** :
+Un objet gagné à un palier et installé pour de bon autour du stand de détente où il a été gagné (six places par stand).
+_Avoid_ : trophée, bonus
 
 **Positionnement** :
 La première période de jeu, pendant laquelle le jeu découvre ce que l'enfant sait déjà et comment il tient l'effort. Il mesure un niveau scolaire et un engagement, jamais un trouble.
