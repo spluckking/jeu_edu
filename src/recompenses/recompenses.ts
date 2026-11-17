@@ -7,6 +7,14 @@ export const TICKETS_PAR_MANCHE = 3;
 export const TICKETS_HISTOIRE = 2;
 export const BONUS_SEANCE = 2;
 export const PRIX_PIECE = 8;
+/** Un tour de manège (autos, trampoline, palais des glaces) tant que la séance du jour n'est pas finie. */
+export const PRIX_MANEGE = 3;
+
+/** L'accès aux manèges : gratuit et illimité une fois la séance du jour finie, sinon en tickets. */
+export function accesManege(tickets: number, seanceFinie: boolean): 'gratuit' | 'payant' | 'manque' {
+  if (seanceFinie) return 'gratuit';
+  return tickets >= PRIX_MANEGE ? 'payant' : 'manque';
+}
 export const PIECES_ROUE = 10;
 export const DEFIS_PAR_SEANCE = 5;
 export const HEURES_PAR_SEANCE = 4;
