@@ -5,6 +5,7 @@
 import type { Semaine } from '../histoire/feuilleton.ts';
 import { FORAINS, METIERS, nettoyerPrenom, PROPOSITIONS } from '../histoire/lecture.ts';
 import type { IdStand } from '../scene/fete.ts';
+import { PALETTES } from '../scene/palette.ts';
 import { ajouterJours, type Jour } from '../memoire/jours.ts';
 import { semaineDe } from '../recompenses/recompenses.ts';
 import { DEPOT_VALIDE, ecrireAcces, lireAcces } from '../reve/synchro.ts';
@@ -276,11 +277,40 @@ function construire(o: OptionsEspace, fermer: () => void): HTMLElement {
   };
   const reglages = el('div');
   reglages.append(
-    curseur('Pause proposée après', s.reglages.tempsDeJeu, 10, 60, 5, (v) => ((s.reglages.tempsDeJeu = v), changer()), (v) => `${v} min`),
     curseur('Musique', Math.round(s.reglages.volumeMusique * 100), 0, 100, 10, (v) => ((s.reglages.volumeMusique = v / 100), changer()), (v) => `${v} %`),
     curseur('Bruitages', Math.round(s.reglages.volumeBruitages * 100), 0, 100, 10, (v) => ((s.reglages.volumeBruitages = v / 100), changer()), (v) => `${v} %`),
-    curseur('Vitesse de la voix', s.reglages.vitesseVoix, 0.6, 1.1, 0.05, (v) => ((s.reglages.vitesseVoix = v), changer()), (v) => (v < 0.85 ? 'lente' : v > 0.97 ? 'rapide' : 'normale')),
+    curseur('Voix', Math.round((s.reglages.volumeVoix ?? 1) * 100), 0, 100, 10, (v) => ((s.reglages.volumeVoix = v / 100), changer()), (v) => `${v} %`),
+    curseur('Vitesse de la voix (tablette)', s.reglages.vitesseVoix, 0.6, 1.1, 0.05, (v) => ((s.reglages.vitesseVoix = v), changer()), (v) => (v < 0.85 ? 'lente' : v > 0.97 ? 'rapide' : 'normale')),
   );
+  // Couleurs de la fête : même style, palettes différentes. Le jeu redémarre pour les appliquer.
+  const ligneCouleurs = el('label', 'parent-ligne');
+  const choixCouleurs = el('select', 'parent-champ');
+  for (const [cle, pal] of Object.entries(PALETTES)) {
+    const option = el('option', '', pal.nom);
+    option.value = cle;
+    option.selected = (s.reglages.palette ?? ((s.reglages.qualite ?? 'haute') === 'haute' ? 'naturelle' : 'pastel')) === cle;
+    choixCouleurs.append(option);
+  }
+  choixCouleurs.addEventListener('change', () => {
+    s.reglages.palette = choixCouleurs.value;
+    void o.remplacer(s);
+  });
+  ligneCouleurs.append(el('span', 'parent-etiquette', 'Couleurs de la fête'), choixCouleurs);
+  // Qualité graphique : « haute » (ombres, herbe en brins, matières) ou « standard » si la tablette peine.
+  const ligneQualite = el('label', 'parent-ligne');
+  const choixQualite = el('select', 'parent-champ');
+  for (const [cle, nom] of [['haute', 'Haute (ombres, herbe, matières)'], ['standard', 'Standard (plus léger)']] as const) {
+    const option = el('option', '', nom);
+    option.value = cle;
+    option.selected = (s.reglages.qualite ?? 'haute') === cle;
+    choixQualite.append(option);
+  }
+  choixQualite.addEventListener('change', () => {
+    s.reglages.qualite = choixQualite.value;
+    void o.remplacer(s);
+  });
+  ligneQualite.append(el('span', 'parent-etiquette', 'Qualité graphique'), choixQualite);
+  reglages.append(ligneCouleurs, ligneQualite);
   const rejouer = el('button', 'bouton-secondaire', 'Rejouer l’introduction');
   rejouer.addEventListener('click', () => {
     fermer();

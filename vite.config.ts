@@ -2,8 +2,9 @@ import { defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 
 // En ligne, le jeu vit dans le sous-dossier /jeu_edu/ de GitHub Pages ; en essai, à la racine.
-export default defineConfig(({ command }) => {
-  const base = command === 'build' ? '/jeu_edu/' : '/';
+export default defineConfig(({ command, isPreview }) => {
+  // L'aperçu de la version construite (vite preview) sert aussi /jeu_edu/, comme en ligne.
+  const base = command === 'build' || isPreview ? '/jeu_edu/' : '/';
   return {
     base,
     build: {
@@ -14,8 +15,10 @@ export default defineConfig(({ command }) => {
     },
     plugins: [
       VitePWA({
-        registerType: 'autoUpdate',
-        injectRegister: 'auto',
+        // Une nouvelle version attend que l'enfant soit sur l'écran d'accueil ou dans la fête :
+        // jamais de rechargement en plein exercice (src/app/miseAJour.ts).
+        registerType: 'prompt',
+        injectRegister: false,
         includeAssets: ['icone.svg', 'icone-192.png', 'icone-512.png'],
         manifest: {
           name: 'La fête foraine',

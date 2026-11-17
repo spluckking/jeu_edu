@@ -10,13 +10,16 @@
     "test": "vitest run",
     "icones": "node scripts/icones.mjs",
     "styles": "vite --host --open /prototypes/styles/",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "voix": "node scripts/generer-voix.mjs",
+    "sons": "node scripts/generer-sons.mjs"
   },
   "dependencies": {
     "@fontsource/andika": "^5.3.0",
     "three": "^0.186.1"
   },
   "devDependencies": {
+    "@playwright/test": "^1.64.1",
     "@types/three": "^0.186.0",
     "typescript": "^7.0.2",
     "vite": "^8.3.5",

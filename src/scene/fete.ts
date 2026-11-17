@@ -3,7 +3,7 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { AMPOULES, Atelier, COULEURS, type Peinture, type Vec3 } from './atelier.ts';
-import { creerPersonne, type Allure, type Personne } from './personne.ts';
+import { creerPersonne, type Accessoires, type Allure, type Personne } from './personne.ts';
 
 export type IdStand = 'chamboule' | 'confiserie' | 'chantier' | 'horloge' | 'peche';
 /** Les stands de détente : jeu libre seulement, sans forain à nommer. */
@@ -34,7 +34,7 @@ export interface Fete {
   /** La grande roue montre n pièces construites sur « sur ». */
   construireRoue(n: number, sur: number): void;
   /** Le personnage de l'enfant change de tenue (0 à 3) ou de maillot. */
-  habiller(tenue: number, maillot: number): void;
+  habiller(accessoires: Accessoires): void;
   /** Le personnage de l'enfant (pour le piloter au joystick). */
   heros(): THREE.Group;
   /** Pilotage libre : allure de marche de 0 (arrêté) à 1, quand aucun trajet n'est en cours. */
@@ -63,7 +63,7 @@ const VITESSE_MARCHE = 3.2;
 /** Au-delà (vers l'arrière), on est dans l'allée du fond de la fête. */
 const LIMITE_FOND = -11;
 
-export function construireFete(tenue = 0): Fete {
+export function construireFete(depart?: Accessoires): Fete {
   const atelier = new Atelier();
   const racine = new THREE.Group();
   const animations: Array<(temps: number, delta: number) => void> = [];
@@ -115,12 +115,12 @@ export function construireFete(tenue = 0): Fete {
   };
 
   // --- Sol et allées -------------------------------------------------------
-  f(racine, [90, 0.4, 90], [0, -0.2, 0], 'sol');
-  f(racine, [3.4, 0.06, 14], [0, 0.03, 5], 'allee');
-  f(racine, [34, 0.07, 3.6], [0, 0.035, -1], 'allee');
+  atelier.sol(racine, 320, 320, 0, 0, 0, 'herbe');
+  atelier.sol(racine, 3.4, 14, 0, 0.03, 5, 'dalles');
+  atelier.sol(racine, 34, 3.6, 0, 0.035, -1, 'dalles');
   // L'allée vers le fond de la fête, à droite du chamboule-tout, puis celle du fond.
-  for (const x of [-5.5, 5.5]) f(racine, [3, 0.065, 22], [x, 0.033, -12], 'allee');
-  f(racine, [30, 0.068, 3.4], [0, 0.034, -22.5], 'allee');
+  for (const x of [-5.5, 5.5]) atelier.sol(racine, 3, 22, x, 0.033, -12, 'dalles');
+  atelier.sol(racine, 30, 3.4, 0, 0.034, -22.5, 'dalles');
 
   // --- Stand générique -----------------------------------------------------
   const stands: Stand[] = [];
@@ -758,20 +758,22 @@ export function construireFete(tenue = 0): Fete {
   visiteurs();
 
   // --- Le personnage de l'enfant ------------------------------------------------
-  const allureHeros = (t: number, maillot: Peinture): Allure => ({
-    maillot,
-    pantalon: 'pantalon',
-    cheveux: COULEURS.cheveux,
-    tenue: t,
+  const allureHeros = (accessoires?: Accessoires): Allure => ({
+    maillot: 'maillot',
+    pantalon: 0xc79a6b,
+    cheveux: 0xe08a3c,
+    tenue: 0,
     objets: true,
+    accessoires,
+    peau: 0xfadcc6,
   });
-  let heros: Personne = creerPersonne(atelier, racine, allureHeros(tenue, 'maillot'));
+  let heros: Personne = creerPersonne(atelier, racine, allureHeros(depart));
   heros.racine.position.set(0, 0.06, 5.5);
   heros.racine.rotation.y = Math.PI;
-  /** Le personnage change de tenue ou de maillot : on le refait au même endroit. */
-  function habiller(t: number, maillot: Peinture): void {
+  /** Le personnage change d'accessoires : on le refait au même endroit. */
+  function habiller(accessoires: Accessoires): void {
     const ancien = heros.racine;
-    heros = creerPersonne(atelier, racine, allureHeros(t, maillot));
+    heros = creerPersonne(atelier, racine, allureHeros(accessoires));
     heros.racine.position.copy(ancien.position);
     heros.racine.rotation.copy(ancien.rotation);
     ancien.removeFromParent();

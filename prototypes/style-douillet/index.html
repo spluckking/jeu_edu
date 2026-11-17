@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+    <title>Prototype : style douillet</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <canvas id="scene"></canvas>
+
+    <div class="hud-gauche">
+      <div class="carte-ronde"><canvas id="carte" width="160" height="160"></canvas></div>
+      <div class="quete">
+        <p class="quete-titre"><span class="etoile">★</span> Le guide de la fête</p>
+        <p class="quete-texte">Le forain du chamboule-tout t’attend !</p>
+      </div>
+    </div>
+
+    <div class="hud-droite">
+      <button class="icone" type="button" aria-label="Tickets">
+        <svg viewBox="0 0 24 24"><path d="M3 7h18v3a2 2 0 0 0 0 4v3H3v-3a2 2 0 0 0 0-4z M14 7v10" /></svg>
+        <span class="pastille">12</span>
+      </button>
+      <button class="icone" id="ouvrir-garderobe" type="button" aria-label="Ma tenue">
+        <svg viewBox="0 0 24 24"><path d="M8 4l-5 4 3 4 2-1v9h8v-9l2 1 3-4-5-4c-1 2-2.5 3-4 3S9 6 8 4z" /></svg>
+      </button>
+      <button class="icone" type="button" aria-label="L’histoire du jour">
+        <svg viewBox="0 0 24 24"><path d="M4 5c3-1 5.5-1 8 1 2.5-2 5-2 8-1v14c-3-1-5.5-1-8 1-2.5-2-5-2-8-1z M12 6v14" /></svg>
+        <span class="point"></span>
+      </button>
+      <button class="icone" type="button" aria-label="Ma semaine">
+        <svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="3" /><path d="M4 10h16M9 3v4M15 3v4" /></svg>
+      </button>
+      <button class="icone" type="button" aria-label="Son">
+        <svg viewBox="0 0 24 24"><path d="M4 9h4l5-4v14l-5-4H4z" /><path d="M16 9a4 4 0 0 1 0 6" /></svg>
+      </button>
+    </div>
+
+    <div id="zone-joystick" class="zone-joystick">
+      <div id="joystick" class="joystick"><div class="bouton-joystick"></div></div>
+    </div>
+
+    <button id="entrer" class="entrer" type="button" hidden>
+      <span class="entrer-mot">Entrer</span>
+      <span id="nom-stand" class="entrer-nom"></span>
+    </button>
+
+    <section id="garderobe" class="garderobe" hidden>
+      <button id="fermer" class="fermer" type="button" aria-label="Fermer">
+        <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" /></svg>
+      </button>
+      <div class="tourner">
+        <button id="tourner-g" type="button" aria-label="Tourner à gauche"><svg viewBox="0 0 24 24"><path d="M9 7H4V2M4.5 7A8 8 0 1 1 4 13" /></svg></button>
+        <button id="tourner-d" type="button" aria-label="Tourner à droite"><svg viewBox="0 0 24 24"><path d="M15 7h5V2M19.5 7A8 8 0 1 0 20 13" /></svg></button>
+      </div>
+      <div class="panneau">
+        <div id="onglets" class="onglets"></div>
+        <p id="ruban" class="ruban"></p>
+        <div id="grille" class="grille"></div>
+        <div class="actions">
+          <button class="favoris" type="button">Mes tenues</button>
+          <button id="enregistrer" class="enregistrer" type="button">C’est parti !</button>
+        </div>
+      </div>
+    </section>
+
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>

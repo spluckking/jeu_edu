@@ -32,7 +32,7 @@ const soleil = new THREE.DirectionalLight(0xfff2d8, 2);
 soleil.position.set(6, 12, 9);
 scene.add(soleil);
 
-const fete = construireFete(0);
+const fete = construireFete();
 scene.add(fete.racine);
 const entree = construireEntree();
 scene.add(entree.racine);

@@ -42,19 +42,22 @@ import {
   HEURES_PAR_SEANCE,
   PECHES_PAR_SEANCE,
   journeeNeuve,
-  lot,
   LOTS,
   peutConstruire,
   PIECES_ROUE,
   porter,
   PRIX_PIECE,
+  retirer,
   semaineDe,
   TICKETS_PAR_MANCHE,
   TICKETS_HISTOIRE,
   type Garderobe,
+  type GenreLot,
   type Journee,
 } from './recompenses/recompenses.ts';
-import { ouvrirVitrine } from './ui/vitrine.ts';
+import { ouvrirGarderobe, type OptionsGarderobe } from './ui/garderobe.ts';
+import { vignette } from './scene/vignettes.ts';
+import { confettis } from './ui/confettis.ts';
 import { musique } from './son/musique.ts';
 import { jouerIntroduction } from './histoire/introduction.ts';
 import { chargerHistoires, METIERS, PROPOSITIONS } from './histoire/lecture.ts';
@@ -63,13 +66,18 @@ import { ecrireSauvegarde, lireSauvegarde } from './sauvegarde/stockage.ts';
 import { construireFete, type IdStand, type PoseCamera, type Stand } from './scene/fete.ts';
 import { construireEntree } from './scene/entree.ts';
 import { surveillerModeApp } from './app/modeApp.ts';
+import { surveillerMiseAJour } from './app/miseAJour.ts';
 
 surveillerModeApp();
-import { CameraSuivie } from './scene/suivi.ts';
+import { CameraHaute } from './scene/suivi.ts';
+import { choisirPalette } from './scene/palette.ts';
+import { choisirQualite, eclairer, ombrer, semerHerbe, type Herbe } from './scene/qualite.ts';
+import { construireTerrain, hauteurSol } from './scene/terrain.ts';
+import { texturesDouillettes } from './scene/textures.ts';
 import { Obstacle } from './scene/obstacles.ts';
 import { creerCommandes } from './controles/joystick.ts';
 import { basculerMuet, bruitage, demarrerSon, estMuet, reglerVolumes } from './son/bruitages.ts';
-import { dire, reglerVoix } from './son/voix.ts';
+import { dire, reglerVoix, reglerVolumeVoix, saluer } from './son/voix.ts';
 
 function el<T extends HTMLElement>(id: string): T {
   const trouve = document.getElementById(id);
@@ -246,6 +254,13 @@ const aReviser = (jeu: JeuDeStand): boolean => {
 };
 
 // --- La scène ------------------------------------------------------------------------
+// La palette se choisit avant de construire la fête (espace parent, ou « ?palette=… » pour essayer).
+// La qualité et la palette se choisissent avant de construire la fête (espace parent, ou
+// « ?qualite=standard » et « ?palette=… » pour essayer). En qualité haute, palette naturelle par défaut.
+const adresse = new URLSearchParams(location.search);
+const qualite = choisirQualite(adresse.get('qualite') ?? sauvegarde.reglages.qualite);
+const palette = choisirPalette(adresse.get('palette') ?? sauvegarde.reglages.palette ?? (qualite === 'haute' ? 'naturelle' : 'pastel'));
+document.body.classList.toggle('qualite-haute', qualite === 'haute');
 const renderer = new THREE.WebGLRenderer({ canvas: ui.canvas, antialias: true, powerPreference: 'high-performance' });
 renderer.toneMapping = THREE.NeutralToneMapping;
 const scene = new THREE.Scene();
@@ -256,9 +271,9 @@ scene.background = (() => {
   const c = toile.getContext('2d');
   if (c) {
     const degrade = c.createLinearGradient(0, 0, 0, 256);
-    degrade.addColorStop(0, '#3fa0ff');
-    degrade.addColorStop(0.62, '#cfeeff');
-    degrade.addColorStop(1, '#cfeeff');
+    degrade.addColorStop(0, palette.ciel.haut);
+    degrade.addColorStop(0.6, palette.ciel.bas);
+    degrade.addColorStop(1, palette.ciel.bas);
     c.fillStyle = degrade;
     c.fillRect(0, 0, 2, 256);
   }
@@ -266,13 +281,18 @@ scene.background = (() => {
   texture.colorSpace = THREE.SRGBColorSpace;
   return texture;
 })();
-scene.fog = new THREE.Fog(0xcfeeff, 34, 82);
-scene.add(new THREE.HemisphereLight(0xdff1ff, 0xffe2b8, 1.7));
-const soleil = new THREE.DirectionalLight(0xfff2d8, 2.0);
-soleil.position.set(6, 12, 9);
+// Lumière douce : beaucoup de ciel, un soleil chaud venu de la gauche, du brouillard bleu pâle
+// au loin. Avec l'ombrage en aplats, rien n'est jamais noir.
+scene.fog = qualite === 'haute' ? new THREE.Fog(palette.ciel.bas, 45, 130) : new THREE.Fog(0xe2f4ff, 38, 90);
+const lumiereCiel = new THREE.HemisphereLight(0xeaf6ff, 0xdcefc6, 2.1);
+scene.add(lumiereCiel);
+const soleil = new THREE.DirectionalLight(0xfff1dc, 1.7);
+soleil.position.set(-6, 12, 9);
 scene.add(soleil);
+// Qualité haute : ombres portées, lumière d'environnement, tonalité cinéma.
+if (qualite === 'haute') eclairer(renderer, scene, soleil, lumiereCiel);
 
-const fete = construireFete(0);
+const fete = construireFete(sauvegarde.garderobe.porte);
 scene.add(fete.racine);
 const entree = construireEntree();
 scene.add(entree.racine);
@@ -300,10 +320,40 @@ function champNormal(): void {
   camera.updateProjectionMatrix();
 }
 
+// Résolution : en qualité standard, celle de l'écran (plafonnée à 1,75). En qualité haute, elle
+// s'ajuste toute seule pour tenir environ 60 images par seconde (résolution dynamique, comme
+// dans les jeux sur console) : la tablette donne le meilleur qu'elle peut, sans saccader.
+const RESOLUTION_MAX = Math.min(window.devicePixelRatio, 1.75);
+let resolutionDynamique = qualite === 'haute' ? Math.min(RESOLUTION_MAX, 1.25) : RESOLUTION_MAX;
+function resolution(): number {
+  return resolutionDynamique;
+}
+let imagesMesurees = 0;
+let debutMesure = performance.now();
+function ajusterResolution(maintenant: number): void {
+  if (qualite !== 'haute') return;
+  imagesMesurees++;
+  const ecoule = maintenant - debutMesure;
+  if (ecoule < 2000) return;
+  const ips = (imagesMesurees * 1000) / ecoule;
+  imagesMesurees = 0;
+  debutMesure = maintenant;
+  // Onglet caché ou pause : rien à mesurer.
+  if (ips < 5) return;
+  let nouvelle = resolutionDynamique;
+  if (ips < 50) nouvelle = Math.max(0.75, resolutionDynamique - 0.15);
+  else if (ips > 58.5) nouvelle = Math.min(RESOLUTION_MAX, resolutionDynamique + 0.1);
+  if (Math.abs(nouvelle - resolutionDynamique) > 0.01) {
+    resolutionDynamique = nouvelle;
+    renderer.setPixelRatio(resolutionDynamique);
+    renderer.setSize(window.innerWidth, window.innerHeight, false);
+  }
+}
+
 function redimensionner(): void {
   const largeur = window.innerWidth;
   const hauteur = window.innerHeight;
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.75));
+  renderer.setPixelRatio(resolution());
   renderer.setSize(largeur, hauteur, false);
   camera.aspect = largeur / hauteur;
   camera.fov = camera.aspect < 1 ? 70 : 45;
@@ -312,6 +362,9 @@ function redimensionner(): void {
 window.addEventListener('resize', redimensionner);
 redimensionner();
 
+let compteur: ((maintenant: number) => void) | null = null;
+let imagesRendues = 0;
+let herbe: Herbe | null = null;
 const mouvementReduit = window.matchMedia('(prefers-reduced-motion: reduce)');
 let precedent = performance.now();
 renderer.setAnimationLoop((maintenant) => {
@@ -328,9 +381,40 @@ renderer.setAnimationLoop((maintenant) => {
   }
   promenade(delta);
   fete.mettreAJour(mouvementReduit.matches ? 0 : horloge, delta);
+  herbe?.animer(mouvementReduit.matches ? 0 : horloge);
+  // Les ombres du décor ne bougent pas : on les recalcule une image sur trois (assez pour les personnages).
+  if (qualite === 'haute') renderer.shadowMap.needsUpdate = imagesRendues++ % 3 === 0;
   renderer.render(scene, camera);
+  ajusterResolution(maintenant);
   document.body.dataset.appels = String(renderer.info.render.calls);
+  compteur?.(maintenant);
 });
+
+// « ?fps » : compteur d'images par seconde, pour mesurer sur la tablette (essais du parent).
+compteur = new URLSearchParams(location.search).has('fps')
+  ? (() => {
+      const boite = document.createElement('p');
+      boite.className = 'compteur-fps';
+      document.body.append(boite);
+      let debut = performance.now();
+      let images = 0;
+      let pire = 0;
+      let avant = debut;
+      return (maintenant: number): void => {
+        images++;
+        pire = Math.max(pire, maintenant - avant);
+        avant = maintenant;
+        if (maintenant - debut < 1000) return;
+        const ips = (images * 1000) / (maintenant - debut);
+        const info = renderer.info.render;
+        boite.textContent = `${ips.toFixed(0)} i/s · pire ${pire.toFixed(0)} ms · ${info.calls} appels · ${(info.triangles / 1000).toFixed(0)} k triangles · ${renderer.getPixelRatio()}×`;
+        document.body.dataset.ips = ips.toFixed(1);
+        debut = maintenant;
+        images = 0;
+        pire = 0;
+      };
+    })()
+  : null;
 
 // --- La bulle ----------------------------------------------------------------------
 let minuterieBulle = 0;
@@ -397,7 +481,7 @@ function mettreAJourPlace(): void {
 
 ui.histoire.addEventListener('click', async () => {
   if (dansUnStand || enCinema || enMarche) return;
-  bruitage.touche();
+  bruitage.son('page', 0.8);
   const episode = histoireDuJour();
   if (!episode) {
     parler('Pas de nouvel épisode aujourd’hui. La suite demain !');
@@ -415,7 +499,6 @@ ui.histoire.addEventListener('click', async () => {
   gagnerTickets(TICKETS_HISTOIRE);
   mettreAJourPlace();
   await finDeSeance();
-  parler(messageDeLaPlace());
 });
 
 // --- Tickets, calendrier, lots ---------------------------------------------------------------
@@ -443,15 +526,57 @@ function gagnerTickets(nombre: number): void {
   journee().ticketsGagnes += nombre;
   sauver();
   majHud();
+  window.setTimeout(() => bruitage.ticket(), 450);
   ui.tickets.classList.remove('gagne');
   void ui.tickets.offsetWidth;
   ui.tickets.classList.add('gagne');
 }
 
 function habiller(g: Garderobe): void {
-  const tenue = lot(g.porte.tenue)?.valeur ?? 0;
-  const maillot = lot(g.porte.maillot)?.valeur ?? 0xff5a6e;
-  fete.habiller(tenue, maillot);
+  bruitage.son('habiller', 0.7);
+  fete.habiller(g.porte);
+  if (qualite === 'haute') ombrer(fete.racine);
+}
+
+/**
+ * La garde-robe : le personnage se tourne vers la caméra, qui le cadre à gauche de l'écran ;
+ * la fête reste vivante derrière lui. Pendant ce temps, on ne se promène pas.
+ */
+async function garderobe(o: Pick<OptionsGarderobe, 'titre' | 'texte' | 'mode' | 'quandChoisi' | 'fermer'>): Promise<void> {
+  enCinema = true;
+  document.body.classList.add('en-garderobe');
+  ui.bulle.hidden = true;
+  const h = heros();
+  h.rotation.y = 0;
+  fete.marcheLibre(0);
+  const l = window.innerWidth;
+  const ha = window.innerHeight;
+  if (l > ha) camera.setViewOffset(l, ha, l * 0.22, 0, l, ha);
+  camera.fov = 34;
+  camera.updateProjectionMatrix();
+  deplacerCamera({ position: h.position.clone().add(new THREE.Vector3(0, 2.3, 8.5)), cible: h.position.clone().add(new THREE.Vector3(0, 1.45, 0)) }, 0.7);
+  try {
+    await ouvrirGarderobe({
+      ...o,
+      garderobe: sauvegarde.garderobe,
+      quandRetire(genre: GenreLot) {
+        sauvegarde.garderobe = retirer(sauvegarde.garderobe, genre);
+        sauver();
+        habiller(sauvegarde.garderobe);
+        return sauvegarde.garderobe;
+      },
+      tourner(angle) {
+        heros().rotation.y += angle;
+      },
+      vignette: (genre, id) => vignette(renderer, genre, id),
+    });
+  } finally {
+    camera.clearViewOffset();
+    document.body.classList.remove('en-garderobe');
+    heros().rotation.y = Math.PI;
+    retourPromenade(0.7);
+    enCinema = false;
+  }
 }
 
 /** Toutes les révisions et les défis du jour sont faits : bonus, puis un lot dans la vitrine. */
@@ -461,12 +586,12 @@ async function finDeSeance(): Promise<boolean> {
   j.finie = true;
   gagnerTickets(BONUS_SEANCE);
   bruitage.finDeManche();
+  confettis(48);
   const reste = LOTS.some((l) => !sauvegarde.garderobe.possedes.includes(l.id));
   if (reste && !j.lotChoisi) {
-    await ouvrirVitrine({
+    await garderobe({
       titre: 'Séance finie, bravo !',
-      texte: `Tu as gagné ${j.ticketsGagnes} tickets aujourd’hui. Choisis ton lot dans la vitrine.`,
-      garderobe: sauvegarde.garderobe,
+      texte: `Tu as gagné ${j.ticketsGagnes} tickets aujourd’hui. Choisis un cadeau pour ton personnage.`,
       mode: 'choisir',
       quandChoisi(id) {
         sauvegarde.garderobe = choisirLot(sauvegarde.garderobe, id);
@@ -487,10 +612,9 @@ async function finDeSeance(): Promise<boolean> {
 ui.garderobe.addEventListener('click', () => {
   if (dansUnStand || enCinema) return;
   bruitage.touche();
-  void ouvrirVitrine({
-    titre: 'Mes lots',
-    texte: 'Touche un lot pour que ton personnage le porte.',
-    garderobe: sauvegarde.garderobe,
+  void garderobe({
+    titre: 'Ma tenue',
+    texte: 'Touche un accessoire pour le mettre.',
     mode: 'porter',
     quandChoisi(id) {
       sauvegarde.garderobe = porter(sauvegarde.garderobe, id);
@@ -498,7 +622,7 @@ ui.garderobe.addEventListener('click', () => {
       habiller(sauvegarde.garderobe);
       return sauvegarde.garderobe;
     },
-    fermer: 'Fermer',
+    fermer: 'C’est parti !',
   });
 });
 
@@ -525,12 +649,14 @@ function majConstruction(): void {
 
 ui.construire.addEventListener('click', () => {
   if (!peutConstruire(sauvegarde.tickets, sauvegarde.roue)) return;
+  bruitage.son('construction', 0.8);
   sauvegarde.tickets -= PRIX_PIECE;
   sauvegarde.roue += 1;
   sauver();
   fete.construireRoue(sauvegarde.roue, PIECES_ROUE);
   fete.saluerForain('chantier');
   bruitage.finDeManche();
+  confettis(48);
   majHud();
   majConstruction();
   parler(
@@ -552,10 +678,10 @@ let enCinema = false;
 /** La caméra suit le personnage (sinon elle est posée : stand, cinématique, écran d'entrée). */
 let modeSuivi = false;
 let bienvenue = true;
+let distancePas = 0;
 let standProche: Stand | null = null;
 
 const VITESSE = 5;
-const CHAMP_PROMENADE = 58;
 const RAYON_PERSONNAGE = 0.45;
 /** Le décor qu'on ne traverse pas : chapiteaux, arbres, poteaux des guirlandes. */
 const DECOR: Array<[number, number, number]> = [
@@ -582,8 +708,9 @@ const obstacles: Obstacle[] = [
   ...obstaclesEntree,
   ...DECOR.map(([x, z, r]) => Obstacle.boite(new THREE.Box3(new THREE.Vector3(x - r, 0, z - r), new THREE.Vector3(x + r, 4, z + r)))),
 ];
-// La caméra ne bute que sur les stands et l'entrée (le petit décor ne la gêne pas).
-const suivi = new CameraSuivie([...obstaclesStands, ...obstaclesEntree]);
+// Vue haute et fixe : on ne tourne plus la caméra au doigt.
+const suivi = new CameraHaute();
+ui.zoneRegard.hidden = true;
 const commandes = creerCommandes(ui.zoneStick, ui.joystick, ui.zoneRegard);
 const heros = (): THREE.Object3D => fete.heros();
 
@@ -606,6 +733,23 @@ function libre(x: number, z: number): boolean {
   return apres < enfoncement(h.x, h.z) - 1e-4;
 }
 
+// --- Qualité haute : le terrain (relief, chemins courbes, placettes), les ombres, l'herbe en brins ---
+if (qualite === 'haute') {
+  // Une placette arrondie devant chaque stand, une sur la grande place, une derrière la porte.
+  const placettes = fete.stands.map((st) => {
+    const versStand = new THREE.Vector3(Math.sin(st.regard), 0, Math.cos(st.regard));
+    return { x: st.approche.x - versStand.x * 0.6, z: st.approche.z - versStand.z * 0.6, r: 2.6 };
+  });
+  placettes.push({ x: 0, z: -1, r: 4.2 }, { x: 0, z: 10.5, r: 3.2 });
+  const textures = texturesDouillettes();
+  const terrain = construireTerrain(textures.herbe, textures.dalles, placettes);
+  scene.add(terrain.racine);
+  ombrer(fete.racine);
+  ombrer(entree.racine);
+  herbe = semerHerbe((x, z) => terrain.pave(x, z) < 0.2 && enfoncement(x, z) <= 0, 55000, { x: 38, zMin: -56, zMax: 44 }, hauteurSol);
+  scene.add(herbe.racine);
+}
+
 const TITRES_DETENTE: Record<string, string> = { autos: 'Autos tamponneuses', trampoline: 'Trampoline', glaces: 'Palais des glaces' };
 function titreDuStand(s: Stand): string {
   return JEUX.find((j) => j.id === s.id)?.titre ?? TITRES_DETENTE[s.id] ?? 'Le stand';
@@ -613,8 +757,7 @@ function titreDuStand(s: Stand): string {
 
 /** La caméra revient derrière le personnage, en douceur. */
 function retourPromenade(duree = 1.1): void {
-  suivi.placerDerriere(heros().rotation.y);
-  const p = suivi.pose(heros(), heros().rotation.y, 0, 0);
+  const p = suivi.pose(heros(), 0);
   deplacerCamera({ position: p.position, cible: p.cible }, duree);
   modeSuivi = true;
 }
@@ -624,9 +767,11 @@ function arriverALEntree(): void {
   const h = heros();
   h.position.set(0, 0.06, 27);
   h.rotation.y = Math.PI;
-  suivi.placerDerriere(Math.PI);
-  const p = suivi.pose(h, Math.PI, 0, 0);
+  suivi.viser(null);
+  const p = suivi.pose(h, 0);
   trajet = null;
+  camera.fov = p.champ;
+  camera.updateProjectionMatrix();
   poser({ position: p.position, cible: p.cible });
   modeSuivi = true;
   bienvenue = false;
@@ -642,14 +787,7 @@ function promenade(delta: number): void {
     return;
   }
   ui.zoneStick.hidden = false;
-  // Champ de vision un peu plus large à l'épaule, pour bien voir la fête.
-  if (Math.abs(camera.fov - CHAMP_PROMENADE) > 0.1) {
-    camera.fov += (CHAMP_PROMENADE - camera.fov) * Math.min(1, delta * 3);
-    camera.updateProjectionMatrix();
-  }
   const h = heros();
-  const regard = commandes.prendreRegard();
-  suivi.tourner(regard.x, regard.y);
   const force = Math.min(1, Math.hypot(commandes.x, commandes.y));
   if (force > 0.02) {
     const { avant, droite } = suivi.axes();
@@ -667,13 +805,30 @@ function promenade(delta: number): void {
     h.rotation.y += ecart * Math.min(1, delta * 10);
   }
   fete.marcheLibre(force);
-  const pose = suivi.pose(h, h.rotation.y, commandes.y > -0.3 ? force : 0, delta);
+  // Des pas doux dans l'herbe, au rythme de la marche.
+  if (force > 0.2) {
+    distancePas += VITESSE * force * delta;
+    if (distancePas > 1.3) {
+      distancePas = 0;
+      bruitage.son('pas', 0.25 + 0.15 * force);
+    }
+  }
+  // Devant un stand, la caméra descend le montrer de trois quarts.
+  suivi.viser(standProche);
+  entree.suivre(h.position.x, h.position.z);
+  const pose = suivi.pose(h, delta);
+  if (Math.abs(camera.fov - pose.champ) > 0.05) {
+    camera.fov = pose.champ;
+    camera.updateProjectionMatrix();
+  }
   poser({ position: pose.position, cible: pose.cible });
 
   // En passant la grande porte.
   if (!bienvenue && h.position.z < 11.5) {
     bienvenue = true;
-    bruitage.finDeManche();
+    bruitage.son('porte', 0.8);
+    confettis(48);
+  confettis(48);
     parler('Bienvenue à la fête foraine !');
     window.setTimeout(() => {
       if (!dansUnStand && !enCinema) parler(messageDeLaPlace());
@@ -704,7 +859,6 @@ if (new URLSearchParams(location.search).has('essai')) {
       placer(x: number, z: number, cap: number): void {
         heros().position.set(x, 0.06, z);
         heros().rotation.y = cap;
-        suivi.placerDerriere(cap);
       },
       /** Les approches des stands : là où le personnage se trouve en sortant. */
       approches(): Array<[string, number, number]> {
@@ -714,6 +868,8 @@ if (new URLSearchParams(location.search).has('essai')) {
         const p = heros().position;
         return `${p.x.toFixed(2)} ${p.z.toFixed(2)}`;
       },
+      /** Pour mesurer ce qui coûte : la scène et le moteur de rendu. */
+      moteur: () => ({ scene, renderer, herbe }),
       avancer(secondes: number): void {
         for (let t = 0; t < secondes; t += 1 / 30) promenade(1 / 30);
         renderer.render(scene, camera);
@@ -727,39 +883,14 @@ ui.interagir.addEventListener('click', () => {
 });
 
 // --- Le temps de jeu ---------------------------------------------------------------------------
-// On compte le temps où le jeu est ouvert et visible. Après le temps réglé par le parent dans la
-// journée, un forain propose une pause, une seule fois, sans rien couper ni bloquer.
+// On compte le temps où le jeu est ouvert et visible, pour le bilan de l'espace parent. Le jeu ne
+// demande plus d'arrêter : le contrôle parental de la tablette s'en charge.
 const PAS_DE_TEMPS = 5;
 window.setInterval(() => {
   if (document.visibilityState !== 'visible' || !ui.entree.hidden) return;
   const j = journee();
   j.secondes = (j.secondes ?? 0) + PAS_DE_TEMPS;
   if (j.secondes % 30 === 0) sauver();
-  if (j.pauseProposee || j.secondes < sauvegarde.reglages.tempsDeJeu * 60) return;
-  // On attend un moment calme : pas au milieu d'une question ni d'une cinématique.
-  if (enCinema || enMarche || (dansUnStand && !ui.exercice.hidden)) return;
-  j.pauseProposee = true;
-  sauver();
-  const fond = document.createElement('div');
-  fond.className = 'vitrine-fond';
-  const carte = document.createElement('div');
-  carte.className = 'vitrine';
-  const texte = document.createElement('p');
-  texte.className = 'lecture-titre';
-  texte.textContent = `${capitale(nom('chamboule'))} : « Tu joues depuis un bon moment. C’est l’heure de faire une pause : va bouger, boire un verre d’eau, et reviens demain ! »`;
-  const ok = document.createElement('button');
-  ok.type = 'button';
-  ok.className = 'bouton-principal';
-  ok.textContent = 'D’accord';
-  ok.addEventListener('click', () => {
-    bruitage.touche();
-    fond.remove();
-  });
-  carte.append(texte, ok);
-  fond.append(carte);
-  document.body.append(fond);
-  fete.saluerForain('chamboule');
-  dire(texte.textContent);
 }, PAS_DE_TEMPS * 1000);
 
 function toucherStand(stand: Stand): void {
@@ -778,12 +909,11 @@ function toucherStand(stand: Stand): void {
     void fete.allerAuStand(stand).then(async () => {
       enMarche = false;
       dansUnStand = true;
-      musique.demarrer();
+      musique.demarrer(id);
       await jouerDetente(id);
-      musique.arreter();
+      musique.demarrer('promenade');
       dansUnStand = false;
       retourPromenade();
-      parler(messageDeLaPlace());
     });
     return;
   }
@@ -826,6 +956,9 @@ async function ouvrirStand(nouveau: JeuDeStand): Promise<void> {
   dansUnStand = true;
   champNormal();
   fete.calme(true);
+  // Au stand, on regarde le forain et son comptoir : le personnage, juste devant la caméra,
+  // les cacherait. Il réapparaît en sortant.
+  heros().visible = false;
   deplacerCamera(fete.vues[jeu.id]);
   // Un forain arrivé après l'introduction reçoit son prénom à la première rencontre.
   const presentation = PRESENTATIONS[jeu.id];
@@ -835,6 +968,12 @@ async function ouvrirStand(nouveau: JeuDeStand): Promise<void> {
     sauver();
   }
   bruitage.ouverture();
+  // Le forain fait signe et dit bonjour, avec sa voix.
+  const forain = jeu.id;
+  fete.saluerForain(forain);
+  window.setTimeout(() => {
+    if (dansUnStand && jeu.id === forain) saluer(forain);
+  }, 450);
   ui.stand.classList.toggle('large', jeu.large);
   ui.stand.hidden = false;
   jeu.construireClavier(ui.clavier, toucher);
@@ -842,14 +981,14 @@ async function ouvrirStand(nouveau: JeuDeStand): Promise<void> {
 }
 
 function fermerStand(): void {
-  musique.arreter();
+  musique.demarrer('promenade');
   dansUnStand = false;
+  heros().visible = true;
   manche = null;
   ui.stand.hidden = true;
   fete.calme(false);
   retourPromenade();
   mettreAJourPlace();
-  parler(messageDeLaPlace());
 }
 
 function elementsDuStand(): string[] {
@@ -905,7 +1044,7 @@ function lancerManche(): void {
           ? elementsDuStand().slice(0, restants(jeu) ?? 0)
           : elementsDuStand();
   ui.construction.hidden = true;
-  musique.demarrer();
+  musique.demarrer(jeu.id);
   // Le rêve peut demander de faire passer certains éléments en premier (ceux qui résistent).
   const focus = sauvegarde.preparation?.focus ?? [];
   const choisis = focus.length > 0 ? ordonner(melanger(ids, Math.random), focus).slice(0, 8) : ids;
@@ -974,6 +1113,7 @@ function montrerIndice(): void {
   if (!e || attente) return;
   const texte = jeu.indice(e, niveauIndice + 1);
   if (texte === null) return;
+  bruitage.son('indice');
   bruitage.touche();
   niveauIndice++;
   ui.indice.textContent = texte;
@@ -1032,7 +1172,9 @@ function valider(): void {
     afficherQuestion('juste');
     jeu.reussite(fete);
     fete.saluer();
-    bruitage.reussite();
+    bruitage.reussite(jeu.id);
+    const r = ui.question.getBoundingClientRect();
+    confettis(22, { x: r.left + r.width / 2, y: r.top + r.height / 2 });
     manche = avancer(manche, true);
     majProgres();
     window.setTimeout(() => void suite(), 1500);
@@ -1059,6 +1201,7 @@ async function suite(): Promise<void> {
   if (typeManche === 'defis' && (restants(jeu) ?? 0) > 0) return lancerManche();
   musique.arreter();
   bruitage.finDeManche();
+  confettis(48);
   fete.saluer();
   // Une manche de révision terminée rapporte des tickets ; le jeu libre, non.
   const gain = typeManche === 'semaine' || typeManche === 'memoire' ? TICKETS_PAR_MANCHE : 0;
@@ -1068,7 +1211,9 @@ async function suite(): Promise<void> {
   const forcee = parametres.has('pause') && !j.pause;
   if (typeManche !== 'libre' && (forcee || pauseDue(j.total ?? 0, j.faites ?? 0, j.pause === true))) {
     ui.stand.hidden = true;
+    musique.demarrer('pause');
     await jouerPause(exerciceDuJour(aujourdhui()), parametres.has('pause-rapide') ? 0.05 : 1);
+    musique.arreter();
     j.pause = true;
     sauver();
     ui.stand.hidden = false;
@@ -1179,6 +1324,7 @@ ui.entrer.addEventListener('click', async () => {
   bruitage.ouverture();
   ui.entree.hidden = true;
   await introduction();
+  musique.demarrer('promenade');
   // On arrive toujours par la grande porte, comme dans un parc d'attractions.
   arriverALEntree();
   parler('Avance avec le joystick et passe la grande porte !');
@@ -1227,6 +1373,7 @@ async function echanger(): Promise<string> {
 function appliquerReglages(): void {
   reglerVolumes(sauvegarde.reglages.volumeBruitages, sauvegarde.reglages.volumeMusique);
   reglerVoix(sauvegarde.reglages.vitesseVoix);
+  reglerVolumeVoix(sauvegarde.reglages.volumeVoix ?? 1);
   rechargerContenus();
   rechargerFeuilleton();
   sauver();
@@ -1260,3 +1407,6 @@ document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible' && !dansUnStand) mettreAJourPlace();
   if (document.visibilityState === 'hidden') void echanger();
 });
+
+// Une nouvelle version se propose seulement hors des stands, des cinématiques et de la garde-robe.
+if (import.meta.env.PROD) surveillerMiseAJour(() => !dansUnStand && !enCinema);

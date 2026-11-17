@@ -10,6 +10,8 @@ export interface Entree {
   mettreAJour(temps: number): void;
   /** Vrai si ce point est dans la fête (ou sur l'allée d'arrivée) : on ne sort pas dans le vide. */
   dansLaFete(x: number, z: number): boolean;
+  /** Masque le portique quand le personnage est dans la fête (vue haute). */
+  suivre(x: number, z: number): void;
 }
 
 const Z = 12;
@@ -52,13 +54,17 @@ export function construireEntree(): Entree {
     atelier.forme(racine, [0.3, 0.3, 0.3], [x, y, z], AMPOULES[i % AMPOULES.length] ?? 0xffffff, { forme: 'boule', lumineux: true });
   };
 
+  // Le portique (tours, arche, enseigne) : on le masque quand on est dans la fête, sinon il se
+  // mettrait entre la caméra haute et le personnage.
+  const portique = atelier.mobile(racine);
+  const fp = (taille: Vec3, position: Vec3, p: Peinture, o = {}): THREE.Mesh => atelier.forme(portique, taille, position, p, o);
   // Deux tours rayées, avec un toit en cône et un fanion.
   for (const x of [-5.2, 5.2]) {
-    for (let i = 0; i < 7; i++) f([2.4, 1, 2.4], [x, 0.5 + i, Z], i % 2 === 0 ? 'toileA' : 'toileB', { forme: 'tube' });
-    f([2.8, 0.3, 2.8], [x, 7.15, Z], 'enseigne', { forme: 'tube' });
-    for (let i = 0; i < 4; i++) f([2.4 - i * 0.6, 0.6, 2.4 - i * 0.6], [x, 7.6 + i * 0.55, Z], i % 2 === 0 ? 'toileA' : 'bonbon2', { forme: 'tube' });
-    f([0.08, 1.4, 0.08], [x, 10.5, Z], 'poteau', { forme: 'tube' });
-    f([0.9, 0.5, 0.04], [x + 0.45, 10.9, Z], 'bonbon3');
+    for (let i = 0; i < 7; i++) fp([2.4, 1, 2.4], [x, 0.5 + i, Z], i % 2 === 0 ? 'toileA' : 'toileB', { forme: 'tube' });
+    fp([2.8, 0.3, 2.8], [x, 7.15, Z], 'enseigne', { forme: 'tube' });
+    for (let i = 0; i < 4; i++) fp([2.4 - i * 0.6, 0.6, 2.4 - i * 0.6], [x, 7.6 + i * 0.55, Z], i % 2 === 0 ? 'toileA' : 'bonbon2', { forme: 'tube' });
+    fp([0.08, 1.4, 0.08], [x, 10.5, Z], 'poteau', { forme: 'tube' });
+    fp([0.9, 0.5, 0.04], [x + 0.45, 10.9, Z], 'bonbon3');
     obstacles.push(new THREE.Box3(new THREE.Vector3(x - 1.4, 0, Z - 1.4), new THREE.Vector3(x + 1.4, 8, Z + 1.4)));
   }
   // L'arche : une demi-couronne de blocs, bordée d'ampoules.
@@ -67,12 +73,12 @@ export function construireEntree(): Entree {
     const a = Math.PI - (i / segments) * Math.PI;
     const x = Math.cos(a) * 5.2;
     const y = 7.4 + Math.sin(a) * 2.2;
-    f([0.9, 0.55, 0.7], [x, y, Z], i % 2 === 0 ? 'toileA' : 'enseigne', { rz: a - Math.PI / 2 });
-    ampoule(x, y + 0.45, Z + 0.4, i);
+    fp([0.9, 0.55, 0.7], [x, y, Z], i % 2 === 0 ? 'toileA' : 'enseigne', { rz: a - Math.PI / 2 });
+    atelier.forme(portique, [0.3, 0.3, 0.3], [x, y + 0.45, Z + 0.4], AMPOULES[i % AMPOULES.length] ?? 0xffffff, { forme: 'boule', lumineux: true });
   }
   const panneau = enseigne('LA FÊTE FORAINE');
   panneau.position.set(0, 8.2, Z + 0.45);
-  racine.add(panneau);
+  portique.add(panneau);
   // Les tourniquets, au milieu, et des poteaux d'ampoules.
   for (const x of [-2.6, -1.3, 1.3, 2.6]) {
     f([0.3, 1.1, 0.3], [x, 0.55, Z], 'sombre', { forme: 'tube' });
@@ -92,7 +98,7 @@ export function construireEntree(): Entree {
     obstacles.push(new THREE.Box3(new THREE.Vector3(signe < 0 ? -BORD : 6.5, 0, Z - 0.3), new THREE.Vector3(signe < 0 ? -6.5 : BORD, 2, Z + 0.3)));
   }
   // L'allée d'arrivée et ses lampadaires.
-  f([3.4, 0.06, 23], [0, 0.03, Z + 11.5], 'allee');
+  atelier.sol(racine, 3.4, 23, 0, 0.03, Z + 11.5, 'dalles');
   for (let i = 0; i < 4; i++) {
     for (const x of [-2.6, 2.6]) {
       f([0.16, 3, 0.16], [x, 1.5, Z + 4 + i * 5], 'poteau', { forme: 'tube' });
@@ -115,6 +121,9 @@ export function construireEntree(): Entree {
     racine,
     obstacles,
     mettreAJour() {},
+    suivre(_x, z) {
+      portique.visible = z > Z - 1;
+    },
     dansLaFete(x, z) {
       const place = Math.abs(x) <= BORD - 0.6 && z >= FOND + 0.6 && z <= Z - 0.4;
       const allee = Math.abs(x) <= 2.2 && z >= Z - 0.4 && z <= FIN_ALLEE;

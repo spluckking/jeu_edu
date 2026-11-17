@@ -1,15 +1,16 @@
 /* Interface en HTML par-dessus la scène 3D. Style « Jouet tout doux ». */
 
 :root {
-  --encre: #3a2f4a;
-  --encre-douce: #6b5f7d;
-  --papier: #fffaf0;
-  --papier-voile: rgba(255, 250, 240, 0.9);
-  --rouge: #ff5a6e;
-  --rouge-fonce: #d93d55;
-  --jaune: #ffd447;
-  --bleu: #4cc4ff;
-  --vert: #6fcf4a;
+  /* Palette « douillet » : crème, dragée, beurre, ciel, pomme ; encre brune bien lisible. */
+  --encre: #4a3833;
+  --encre-douce: #7a6458;
+  --papier: #fff8ee;
+  --papier-voile: rgba(255, 248, 238, 0.95);
+  --rouge: #f27a8e;
+  --rouge-fonce: #d65c72;
+  --jaune: #ffc94a;
+  --bleu: #6aa8ef;
+  --vert: #8acb52;
   --vert-pale: #e6f8d9;
   --orange-pale: #fff0d6;
   --ombre: 0 10px 28px rgba(58, 47, 74, 0.22), 0 2px 6px rgba(58, 47, 74, 0.12);
@@ -137,28 +138,29 @@ svg {
   display: inline;
 }
 
+/* La bulle se range en haut à gauche, sous le HUD, comme une ligne de quête : elle ne cache
+   plus le milieu de la fête ni le personnage. */
 .bulle {
   position: fixed;
-  top: calc(86px + env(safe-area-inset-top));
-  left: 50%;
+  top: calc(100px + env(safe-area-inset-top));
+  left: calc(20px + env(safe-area-inset-left));
   z-index: 4;
-  max-width: min(640px, calc(100% - 180px));
+  max-width: min(520px, 44vw);
   margin: 0;
-  padding: 14px 26px;
-  border-radius: 26px;
+  padding: 12px 22px;
+  border-radius: 22px 22px 22px 6px;
   background: var(--papier);
-  font-size: 1.6rem;
+  font-size: 1.4rem;
   font-weight: 700;
-  text-align: center;
-  box-shadow: var(--ombre);
-  transform: translateX(-50%);
+  text-align: left;
+  box-shadow: 0 4px 0 #ead9c2, var(--ombre);
   animation: apparition 0.45s var(--rebond);
 }
 
 @keyframes apparition {
   from {
     opacity: 0;
-    transform: translateX(-50%) translateY(-16px) scale(0.9);
+    transform: translateY(-12px) scale(0.92);
   }
 }
 
@@ -177,7 +179,6 @@ svg {
   padding: 18px 20px 20px;
   border-radius: 32px;
   background: var(--papier-voile);
-  backdrop-filter: blur(10px);
   box-shadow: var(--ombre);
   animation: glisse 0.5s var(--rebond);
 }
@@ -489,8 +490,7 @@ svg {
   z-index: 10;
   display: grid;
   place-items: center;
-  background: rgba(63, 160, 255, 0.35);
-  backdrop-filter: blur(6px);
+  background: rgba(150, 200, 245, 0.45);
 }
 
 .entree-carte {
@@ -585,7 +585,8 @@ svg {
 .vitrine-fond {
   position: fixed;
   inset: 0;
-  z-index: 9;
+  /* Au-dessus de l'écran d'accueil (10) et du cadenas (11) : le code parent s'y ouvre aussi. */
+  z-index: 12;
   display: grid;
   place-items: center;
   background: rgba(58, 47, 74, 0.35);
@@ -895,8 +896,8 @@ svg {
   width: 66px;
   height: 66px;
   border-radius: 50%;
-  background: var(--rouge);
-  box-shadow: 0 5px 0 var(--rouge-fonce);
+  background: var(--papier);
+  box-shadow: 0 5px 0 #ead9c2;
   transform: translate(-50%, -50%);
 }
 
@@ -1107,8 +1108,7 @@ svg {
   z-index: 9;
   display: grid;
   place-items: center;
-  background: linear-gradient(180deg, rgba(122, 170, 230, 0.75), rgba(190, 168, 230, 0.75));
-  backdrop-filter: blur(8px);
+  background: linear-gradient(180deg, rgba(150, 190, 236, 0.92), rgba(205, 188, 236, 0.92));
 }
 
 .pause {
@@ -1541,4 +1541,267 @@ svg {
     animation: none !important;
     transition: none !important;
   }
+}
+
+/* « ?fps » : compteur de mesure, pour le parent. */
+.compteur-fps {
+  position: fixed;
+  left: 50%;
+  bottom: 8px;
+  z-index: 50;
+  margin: 0;
+  padding: 4px 12px;
+  transform: translateX(-50%);
+  border-radius: 10px;
+  background: rgb(0 0 0 / 0.6);
+  color: #fff;
+  font: 14px/1.3 ui-monospace, monospace;
+  pointer-events: none;
+}
+
+/* --- Garde-robe (style douillet) : le personnage à gauche, dans la fête ; le panneau à droite. */
+body.en-garderobe .hud,
+body.en-garderobe #son,
+body.en-garderobe #parent,
+body.en-garderobe .zone-joystick,
+body.en-garderobe #interagir,
+body.en-garderobe #bulle {
+  display: none !important;
+}
+
+.garderobe-fond {
+  position: fixed;
+  inset: 0;
+  z-index: 12;
+  pointer-events: none;
+  /* Un voile chaud sur la droite, sans flou (le flou sur la 3D coûte trop cher à la tablette). */
+  background: linear-gradient(90deg, transparent 38%, rgb(255 236 220 / 0.82) 52%);
+}
+
+.garderobe-fond > * {
+  pointer-events: auto;
+}
+
+.garderobe-panneau {
+  position: absolute;
+  top: 50%;
+  right: 3%;
+  width: min(54%, 640px);
+  max-height: 94%;
+  overflow-y: auto;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.garderobe-titre {
+  margin: 0;
+  font-size: 30px;
+  color: #5a4636;
+}
+
+.garderobe-texte {
+  margin: 0;
+  font-size: 20px;
+  color: #7a6250;
+}
+
+.garderobe-onglets {
+  display: flex;
+  gap: 12px;
+}
+
+.garderobe-onglet {
+  width: 62px;
+  height: 62px;
+  padding: 14px;
+  border: none;
+  border-radius: 50%;
+  background: rgb(255 248 238 / 0.85);
+  color: #a4876b;
+  box-shadow: 0 4px 0 #ead9c2;
+}
+
+.garderobe-onglet svg,
+.garderobe-tourner svg {
+  width: 100%;
+  height: 100%;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.garderobe-onglet.choisi {
+  background: #ffc94a;
+  color: #fff;
+  box-shadow: 0 4px 0 #e0a52a;
+  transform: scale(1.1);
+}
+
+.garderobe-ruban {
+  align-self: flex-start;
+  margin: 4px 0 0;
+  padding: 6px 30px 6px 20px;
+  background: #6aa8ef;
+  color: #fff;
+  font-size: 22px;
+  transform: rotate(-3deg);
+  clip-path: polygon(0 0, 100% 0, 92% 50%, 100% 100%, 0 100%);
+  box-shadow: 0 3px 0 #4b86cc;
+}
+
+.garderobe-grille {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: 12px;
+}
+
+.garderobe-case {
+  position: relative;
+  aspect-ratio: 1;
+  min-width: 72px;
+  padding: 4px;
+  border: 4px solid transparent;
+  border-radius: 20px;
+  background: #fff8ee;
+  box-shadow: 0 4px 0 #ead9c2;
+}
+
+.garderobe-case:disabled {
+  opacity: 0.4;
+}
+
+.garderobe-case img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.garderobe-rien {
+  font-size: 18px;
+  color: #b49c84;
+}
+
+.garderobe-case.choisie {
+  border-color: #fff;
+  background: #fffdf8;
+  box-shadow: 0 0 0 3px #ffc94a, 0 4px 0 #ead9c2;
+}
+
+.garderobe-case.choisie::after {
+  content: '✓';
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: #8acb52;
+  color: #fff;
+  font-size: 19px;
+  line-height: 30px;
+  border: 3px solid #fff;
+}
+
+.garderobe-valider {
+  align-self: flex-end;
+  min-width: 220px;
+  margin-top: 6px;
+  background: #8acb52;
+  box-shadow: 0 5px 0 #6aa53c;
+}
+
+.garderobe-tourner {
+  position: absolute;
+  left: 24px;
+  bottom: 24px;
+  display: flex;
+  gap: 14px;
+}
+
+.garderobe-tourner .bouton-rond {
+  width: 62px;
+  height: 62px;
+  padding: 15px;
+}
+
+@media (orientation: portrait) {
+  .garderobe-fond {
+    background: linear-gradient(180deg, transparent 40%, rgb(255 236 220 / 0.9) 50%);
+  }
+
+  .garderobe-panneau {
+    top: auto;
+    bottom: 2%;
+    right: 3%;
+    left: 3%;
+    width: auto;
+    max-height: 50%;
+    transform: none;
+  }
+}
+
+/* Confettis de réussite (src/ui/confettis.ts). */
+.confettis {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.confettis span {
+  position: absolute;
+  width: 12px;
+  height: 16px;
+  border-radius: 3px;
+  animation: confetti 1.3s cubic-bezier(0.2, 0.7, 0.4, 1) forwards;
+}
+
+@keyframes confetti {
+  from {
+    transform: translate(-50%, -50%) rotate(0deg);
+    opacity: 1;
+  }
+  60% {
+    opacity: 1;
+  }
+  to {
+    transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy) + 260px)) rotate(var(--tour));
+    opacity: 0;
+  }
+}
+
+/* Bandeau « nouvelle version prête » (src/app/miseAJour.ts). */
+.mise-a-jour {
+  position: fixed;
+  left: 50%;
+  bottom: calc(18px + env(safe-area-inset-bottom));
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 14px 10px 22px;
+  border-radius: 24px;
+  background: var(--papier);
+  box-shadow: 0 4px 0 #ead9c2, var(--ombre);
+  font-size: 1.15rem;
+  transform: translateX(-50%);
+}
+
+.mise-a-jour button {
+  min-height: 56px;
+}
+
+/* Qualité haute : un léger vignettage, comme un objectif de cinéma (CSS, sans coût pour la 3D). */
+body.qualite-haute::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: radial-gradient(ellipse at 50% 45%, transparent 55%, rgb(20 16 30 / 0.28) 100%);
 }

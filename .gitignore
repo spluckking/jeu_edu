@@ -6,3 +6,7 @@ dream/
 # Photos et listes déposées par le parent : elles peuvent porter le prénom ou l'école
 content/inbox/*
 !content/inbox/LISEZ-MOI.md
+# Secrets locaux (clé Azure)
+.env
+.env.*
+!.env.example

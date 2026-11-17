@@ -6,11 +6,14 @@
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import { palette } from './palette.ts';
+import { materiauDetaille, qualite } from './qualite.ts';
+import { plaque, texturesDouillettes } from './textures.ts';
 
 export type Vec3 = [number, number, number];
 
 /** Forme ronde à la place du bloc arrondi par défaut. */
-export type Forme = 'boule' | 'tube' | 'disque';
+export type Forme = 'boule' | 'tube' | 'disque' | 'cone' | 'anneau' | 'calotte' | 'gelule';
 
 export interface Options {
   forme?: Forme;
@@ -19,33 +22,35 @@ export interface Options {
   rz?: number;
   /** Forme qui brille par elle-même (ampoule), sans ombre ni lumière. */
   lumineux?: boolean;
+  /** Surface lisse (peau, yeux) : pas de grain en qualité haute. */
+  lisse?: boolean;
 }
 
-/** Palette du style « Jouet tout doux ». */
+/** Palette du style « douillet » (adoucie encore vers le crème par teinte()). */
 export const COULEURS = {
-  sol: 0x6fd05a,
-  allee: 0xf6dc9c,
-  bois: 0xd99a5b,
-  comptoir: 0xff8552,
-  toileA: 0xff5a6e,
+  sol: 0x8fd47a,
+  allee: 0xf3dfbd,
+  bois: 0xe0ad7a,
+  comptoir: 0xffa07a,
+  toileA: 0xff7f9a,
   toileB: 0xfffaf0,
-  enseigne: 0xffd447,
+  enseigne: 0xffd65c,
   boite: 0xc9d6e6,
-  bonbon1: 0xff7ac0,
-  bonbon2: 0x4cc4ff,
-  bonbon3: 0x93e052,
-  barriereA: 0xffd447,
-  barriereB: 0x6a70a8,
+  bonbon1: 0xff8fc8,
+  bonbon2: 0x7fcdf5,
+  bonbon3: 0xa6e07a,
+  barriereA: 0xffb3c7,
+  barriereB: 0xfff6ee,
   fantome: 0x8a96e8,
   peau: 0xffd2a8,
-  maillot: 0x4cb0ff,
-  pantalon: 0x5a64c8,
-  casquette: 0xff5a6e,
-  poteau: 0xb9793f,
+  maillot: 0x6fb8ff,
+  pantalon: 0x7a84d8,
+  casquette: 0xff7f9a,
+  poteau: 0xd4a373,
   sombre: 0x2b2233,
   blanc: 0xffffff,
   or: 0xffcf3a,
-  rouge: 0xe0424b,
+  rouge: 0xf0606a,
   cheveux: 0x5a3a22,
 } as const;
 
@@ -53,8 +58,14 @@ export type Peinture = keyof typeof COULEURS | number;
 
 export const AMPOULES = [0xffd447, 0xff5a6e, 0x4cc4ff, 0x93e052];
 
+const CREME = new THREE.Color(0xfff6ea);
+
+/** Style « douillet » : chaque couleur est adoucie vers le crème, ce qui donne des tons pastel. */
 function teinte(peinture: Peinture): THREE.Color {
-  return new THREE.Color(typeof peinture === 'number' ? peinture : COULEURS[peinture]);
+  const c = new THREE.Color(typeof peinture === 'number' ? peinture : (palette.couleurs[peinture] ?? COULEURS[peinture]));
+  // Les teintes très sombres (yeux, moustaches) gardent leur contraste.
+  const clarte = c.r * 0.3 + c.g * 0.59 + c.b * 0.11;
+  return c.lerp(CREME, clarte < 0.2 ? Math.min(0.05, palette.adoucir) : palette.adoucir);
 }
 
 /** Une couleur plus sombre, pour détacher un détail de son support. */
@@ -63,19 +74,35 @@ export function ombree(peinture: Peinture, facteur = 0.72): number {
 }
 
 export class Atelier {
-  readonly mat = new THREE.MeshPhysicalMaterial({
-    vertexColors: true,
-    roughness: 0.75,
-    metalness: 0,
-    // Le reflet de velours éclaircit le bord des formes, comme sur une peluche.
-    sheen: 0.8,
-    sheenRoughness: 0.5,
-    sheenColor: new THREE.Color(0xffffff),
-  });
+  readonly textures = texturesDouillettes();
+  // Ombrage en trois aplats doux (toon) : l'effet « jouet peint », et bien moins coûteux pour
+  // la tablette que l'ancien matériau physique à reflet de velours.
+  // Qualité haute : matériau physique avec grain, rugosité et relief (bois, toile, peinture).
+  private readonly haute = qualite === 'haute';
+  readonly mat: THREE.Material = this.haute
+    ? materiauDetaille({ vertexColors: true }, { relief: 0.07, teinte: 0.07, grain: 0.5 })
+    : new THREE.MeshToonMaterial({ vertexColors: true, gradientMap: this.textures.degrade });
+  readonly matLisse: THREE.Material = this.haute
+    ? materiauDetaille({ vertexColors: true, roughness: 0.62 }, { relief: 0.01, teinte: 0.015, grain: 0.3 })
+    : this.mat;
   readonly lumiere = new THREE.MeshBasicMaterial({ vertexColors: true });
-  readonly fil = new THREE.LineBasicMaterial({ color: COULEURS.poteau });
+  readonly fil = new THREE.LineBasicMaterial({ color: this.haute ? 0x3a3330 : 0xfffaf2 });
+  readonly matHerbe: THREE.Material = this.haute
+    ? materiauDetaille({ map: this.textures.herbe, roughness: 0.95 }, { relief: 0.08, teinte: 0.12, grain: 1.4 })
+    : new THREE.MeshToonMaterial({ map: this.textures.herbe, gradientMap: this.textures.degrade });
+  readonly matDalles: THREE.Material = this.haute
+    ? materiauDetaille({ map: this.textures.dalles, roughness: 0.88 }, { relief: 0.06, teinte: 0.05, grain: 0.35 })
+    : new THREE.MeshToonMaterial({ map: this.textures.dalles, gradientMap: this.textures.degrade });
   private readonly geometries: THREE.BufferGeometry[] = [];
-  private readonly materiaux: THREE.Material[] = [this.mat, this.lumiere, this.fil];
+  private readonly materiaux: THREE.Material[] = [this.mat, this.matLisse, this.lumiere, this.fil, this.matHerbe, this.matDalles];
+
+  /** Un sol plat texturé (herbe fleurie ou dalles), à plat sur y. */
+  sol(parent: THREE.Object3D, largeur: number, profondeur: number, x: number, y: number, z: number, genre: 'herbe' | 'dalles'): THREE.Mesh {
+    const m = new THREE.Mesh(this.suivre(plaque(largeur, profondeur, x, y, z)), genre === 'herbe' ? this.matHerbe : this.matDalles);
+    // Qualité haute : le terrain (terrain.ts) dessine le sol et les chemins courbes.
+    if (!this.haute) parent.add(m);
+    return m;
+  }
 
   suivre<T extends THREE.BufferGeometry>(geometrie: T): T {
     this.geometries.push(geometrie);
@@ -95,8 +122,21 @@ export class Atelier {
         return new THREE.CylinderGeometry(l / 2, l / 2, h, 18).scale(1, 1, p / l);
       case 'disque':
         return new THREE.CylinderGeometry(l / 2, l / 2, p, 18).rotateX(Math.PI / 2).scale(1, h / l, 1);
+      case 'cone':
+        return new THREE.ConeGeometry(0.5, 1, 20).scale(l, h, p);
+      case 'anneau':
+        // Un anneau dans le plan de face (lunettes) ; tourner de rx = π/2 pour le coucher.
+        return new THREE.TorusGeometry(0.5, 0.09, 8, 24).scale(l, h, p);
+      case 'calotte':
+        // Le dessus d'une boule : bonnets, casquettes, cheveux.
+        return new THREE.SphereGeometry(0.5, 20, 10, 0, Math.PI * 2, 0, Math.PI / 2).scale(l, h * 2, p);
+      case 'gelule':
+        return new THREE.CapsuleGeometry(0.5, 1, 4, 14).scale(l, h / 2, p);
       case undefined:
-        return new RoundedBoxGeometry(l, h, p, 2, Math.min(Math.min(l, h, p) * 0.4, 0.28));
+        // Qualité haute : des arrondis plus généreux, plus de bords vifs.
+        return qualite === 'haute'
+          ? new RoundedBoxGeometry(l, h, p, 3, Math.min(Math.min(l, h, p) * 0.45, 0.5))
+          : new RoundedBoxGeometry(l, h, p, 2, Math.min(Math.min(l, h, p) * 0.4, 0.28));
     }
   }
 
@@ -111,9 +151,22 @@ export class Atelier {
     for (let i = 0; i < compte; i++) couleurs.set([couleur.r, couleur.g, couleur.b], i * 3);
     geometrie.setAttribute('color', new THREE.BufferAttribute(couleurs, 3));
 
-    const maillage = new THREE.Mesh(geometrie, options.lumineux ? this.lumiere : this.mat);
+    const maillage = new THREE.Mesh(geometrie, options.lumineux ? this.lumiere : options.lisse ? this.matLisse : this.mat);
     maillage.position.set(...position);
     maillage.rotation.set(options.rx ?? 0, options.ry ?? 0, options.rz ?? 0);
+    // Qualité haute : chaque pièce du décor est posée « à la main » (un rien penchée, un rien plus
+    // grande ou plus petite). Toujours la même pour un même endroit : rien ne tremble.
+    if (this.haute && !options.lisse && !options.lumineux) {
+      const graine = position[0] * 12.9898 + position[1] * 78.233 + position[2] * 37.719 + taille[0] * 3.1 + taille[1] * 5.7;
+      const h = (k: number): number => {
+        const v = Math.sin(graine * (k + 1)) * 43758.5453;
+        return v - Math.floor(v) - 0.5;
+      };
+      maillage.rotation.x += h(1) * 0.045;
+      maillage.rotation.y += h(2) * 0.06;
+      maillage.rotation.z += h(3) * 0.045;
+      maillage.scale.multiplyScalar(1 + h(4) * 0.05);
+    }
     parent.add(maillage);
     return maillage;
   }
@@ -198,5 +251,6 @@ export class Atelier {
   liberer(): void {
     for (const geometrie of this.geometries) geometrie.dispose();
     for (const materiau of this.materiaux) materiau.dispose();
+    this.textures.liberer();
   }
 }

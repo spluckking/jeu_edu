@@ -35,3 +35,13 @@ describe('migrations de la sauvegarde', () => {
     expect(() => migrer({ version: VERSION + 1 })).toThrow();
   });
 });
+
+describe('migration 6 → 7', () => {
+  it('les tenues et maillots gagnés deviennent des accessoires', () => {
+    const v6 = { ...sauvegardeNeuve(), version: 6, garderobe: { possedes: ['tenue-casquette', 'maillot-rouge', 'tenue-bonnet'], porte: { tenue: 'tenue-bonnet', maillot: 'maillot-rouge' } } };
+    const s = migrer(v6);
+    expect(s.version).toBe(7);
+    expect(s.garderobe.possedes).toEqual(expect.arrayContaining(['chapeau-bonnet', 'objet-sucette', 'haut-corail']));
+    expect(s.garderobe.porte.chapeau).toBe('chapeau-bonnet');
+  });
+});

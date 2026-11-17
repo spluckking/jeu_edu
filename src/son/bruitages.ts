@@ -1,5 +1,6 @@
-// Bruitages fabriqués dans le code avec Web Audio : aucun fichier, aucune dépendance.
-// Un son court par action ; le son d'erreur est doux et neutre, jamais une sanction.
+// Bruitages. D'abord des fichiers enregistrés (public/sons/, générés par scripts/generer-sons.mjs,
+// mis en cache hors ligne) ; tant qu'un fichier manque ou n'est pas encore chargé, le son est
+// fabriqué dans le code avec Web Audio. Le son d'erreur est doux et neutre, jamais une sanction.
 
 let contexte: AudioContext | null = null;
 let volume: GainNode | null = null;
@@ -22,8 +23,71 @@ export function demarrerSon(): void {
     volume = contexte.createGain();
     volume.gain.value = muet ? 0 : 0.7;
     volume.connect(contexte.destination);
+    for (const id of SONS) void charger(id);
   }
   if (contexte.state === 'suspended') void contexte.resume();
+}
+
+// --- Les fichiers enregistrés --------------------------------------------------------------
+const DOSSIER = `${import.meta.env.BASE_URL}sons/`;
+/** Les bruitages, chargés dès le premier toucher (quelques ko chacun). */
+export type Bruit =
+  | 'pas'
+  | 'porte'
+  | 'habiller'
+  | 'indice'
+  | 'construction'
+  | 'page'
+  | 'tamponneuse'
+  | 'etoile'
+  | 'boing'
+  | 'boing-rate'
+  | 'mur';
+const BRUITS: Bruit[] = ['pas', 'porte', 'habiller', 'indice', 'construction', 'page', 'tamponneuse', 'etoile', 'boing', 'boing-rate', 'mur'];
+const STANDS_REUSSITE = ['chamboule', 'peche', 'confiserie', 'horloge', 'chantier'];
+const SONS = [
+  'bruitage-touche',
+  'bruitage-ouverture',
+  'bruitage-reussite',
+  'bruitage-erreur',
+  'bruitage-fin',
+  'bruitage-ticket',
+  ...BRUITS.map((b) => `bruitage-${b}`),
+  ...STANDS_REUSSITE.map((id) => `bruitage-reussite-${id}`),
+];
+const prets = new Map<string, AudioBuffer>();
+const enCharge = new Map<string, Promise<AudioBuffer | null>>();
+
+/** Charge et décode un son de public/sons/ (null s'il n'existe pas). */
+export function charger(id: string): Promise<AudioBuffer | null> {
+  const deja = enCharge.get(id);
+  if (deja) return deja;
+  if (!contexte) return Promise.resolve(null);
+  const c = contexte;
+  const promesse = fetch(`${DOSSIER}${id}.mp3`)
+    .then((r) => (r.ok ? r.arrayBuffer() : null))
+    .then((octets) => (octets ? c.decodeAudioData(octets) : null))
+    .then((tampon) => {
+      if (tampon) prets.set(id, tampon);
+      return tampon;
+    })
+    .catch(() => null);
+  enCharge.set(id, promesse);
+  return promesse;
+}
+
+/** Joue un son enregistré s'il est prêt ; faux sinon (on fabrique alors le son). */
+function jouer(id: string, force = 0.9): boolean {
+  const tampon = prets.get(id);
+  if (!contexte || !volume || !tampon) return false;
+  if (volumes.bruitages <= 0) return true;
+  const source = contexte.createBufferSource();
+  source.buffer = tampon;
+  const g = contexte.createGain();
+  g.gain.value = force * volumes.bruitages;
+  source.connect(g).connect(volume);
+  source.start();
+  return true;
 }
 
 /** Volumes séparés réglés par le parent (0 à 1). */
@@ -99,14 +163,18 @@ function souffle(debut: number, duree: number, frequence: number, forceDemandee:
 export const bruitage = {
   /** Toucher une touche du clavier. */
   touche(): void {
+    if (jouer('bruitage-touche', 0.6)) return;
     note(880, 0, 0.06, 0.08, 'triangle');
   },
   /** Ouvrir un stand. */
   ouverture(): void {
+    if (jouer('bruitage-ouverture', 0.7)) return;
     [523, 659, 784].forEach((f, i) => note(f, i * 0.08, 0.25, 0.12, 'triangle'));
   },
-  /** Bonne réponse : la balle part, la pyramide tombe, petit carillon. */
-  reussite(): void {
+  /** Bonne réponse : le son du stand (boîtes qui tombent, canard, bonbon…), sinon un carillon. */
+  reussite(stand?: string): void {
+    if (stand && jouer(`bruitage-reussite-${stand}`, 0.8)) return;
+    if (jouer('bruitage-reussite', 0.8)) return;
     souffle(0, 0.35, 900, 0.25, 2.5);
     for (let i = 0; i < 5; i++) souffle(0.42 + i * 0.07 + Math.random() * 0.03, 0.12, 1800 + Math.random() * 1500, 0.35);
     note(784, 0.55, 0.3, 0.18);
@@ -114,12 +182,24 @@ export const bruitage = {
   },
   /** Erreur : deux notes basses et douces, sans rien de punitif. */
   erreur(): void {
+    if (jouer('bruitage-erreur', 0.6)) return;
     note(392, 0, 0.22, 0.12);
     note(349, 0.16, 0.32, 0.1);
   },
   /** Fin de manche : petite fanfare. */
   finDeManche(): void {
+    if (jouer('bruitage-fin', 0.8)) return;
     [523, 659, 784, 1047].forEach((f, i) => note(f, i * 0.12, 0.4, 0.14, 'triangle'));
     note(1319, 0.5, 0.7, 0.12);
+  },
+  /** Un bruitage enregistré (rien tant qu'il n'est pas chargé : il n'a pas d'équivalent fabriqué). */
+  son(id: Bruit, force = 0.7): void {
+    jouer(`bruitage-${id}`, force);
+  },
+  /** Des tickets gagnés : petit scintillement. */
+  ticket(): void {
+    if (jouer('bruitage-ticket', 0.7)) return;
+    note(1568, 0, 0.18, 0.1, 'triangle');
+    note(2093, 0.08, 0.3, 0.08, 'triangle');
   },
 };
