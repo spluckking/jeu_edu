@@ -6,6 +6,7 @@
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import { palette } from './palette.ts';
 import { plaque, texturesDouillettes } from './textures.ts';
 
 export type Vec3 = [number, number, number];
@@ -58,10 +59,10 @@ const CREME = new THREE.Color(0xfff6ea);
 
 /** Style « douillet » : chaque couleur est adoucie vers le crème, ce qui donne des tons pastel. */
 function teinte(peinture: Peinture): THREE.Color {
-  const c = new THREE.Color(typeof peinture === 'number' ? peinture : COULEURS[peinture]);
+  const c = new THREE.Color(typeof peinture === 'number' ? peinture : (palette.couleurs[peinture] ?? COULEURS[peinture]));
   // Les teintes très sombres (yeux, moustaches) gardent leur contraste.
   const clarte = c.r * 0.3 + c.g * 0.59 + c.b * 0.11;
-  return c.lerp(CREME, clarte < 0.2 ? 0.05 : 0.3);
+  return c.lerp(CREME, clarte < 0.2 ? Math.min(0.05, palette.adoucir) : palette.adoucir);
 }
 
 /** Une couleur plus sombre, pour détacher un détail de son support. */

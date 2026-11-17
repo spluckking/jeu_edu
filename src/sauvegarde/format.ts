@@ -23,6 +23,8 @@ export interface Reglages {
   vitesseVoix: number;
   /** Volume de la voix, à part (absent dans les sauvegardes d'avant : 1). */
   volumeVoix?: number;
+  /** Palette de couleurs de la fête (absente : pastel). */
+  palette?: string;
 }
 
 export function reglagesNeufs(): Reglages {

@@ -70,6 +70,7 @@ import { surveillerMiseAJour } from './app/miseAJour.ts';
 
 surveillerModeApp();
 import { CameraHaute } from './scene/suivi.ts';
+import { choisirPalette } from './scene/palette.ts';
 import { Obstacle } from './scene/obstacles.ts';
 import { creerCommandes } from './controles/joystick.ts';
 import { basculerMuet, bruitage, demarrerSon, estMuet, reglerVolumes } from './son/bruitages.ts';
@@ -250,6 +251,8 @@ const aReviser = (jeu: JeuDeStand): boolean => {
 };
 
 // --- La scène ------------------------------------------------------------------------
+// La palette se choisit avant de construire la fête (espace parent, ou « ?palette=… » pour essayer).
+const palette = choisirPalette(new URLSearchParams(location.search).get('palette') ?? sauvegarde.reglages.palette);
 const renderer = new THREE.WebGLRenderer({ canvas: ui.canvas, antialias: true, powerPreference: 'high-performance' });
 renderer.toneMapping = THREE.NeutralToneMapping;
 const scene = new THREE.Scene();
@@ -260,9 +263,9 @@ scene.background = (() => {
   const c = toile.getContext('2d');
   if (c) {
     const degrade = c.createLinearGradient(0, 0, 0, 256);
-    degrade.addColorStop(0, '#6cc3ff');
-    degrade.addColorStop(0.6, '#d9f1ff');
-    degrade.addColorStop(1, '#eef8ff');
+    degrade.addColorStop(0, palette.ciel.haut);
+    degrade.addColorStop(0.6, palette.ciel.bas);
+    degrade.addColorStop(1, palette.ciel.bas);
     c.fillStyle = degrade;
     c.fillRect(0, 0, 2, 256);
   }

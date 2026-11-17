@@ -2,6 +2,7 @@
 // crème des allées, et le dégradé d'ombrage en trois aplats doux.
 
 import * as THREE from 'three';
+import { palette } from './palette.ts';
 
 function toile(l: number, h: number, dessiner: (g: CanvasRenderingContext2D) => void): THREE.CanvasTexture {
   const c = document.createElement('canvas');
@@ -25,10 +26,10 @@ function graine(depart: number): () => number {
 export function texturesDouillettes(): { herbe: THREE.CanvasTexture; dalles: THREE.CanvasTexture; degrade: THREE.DataTexture; liberer(): void } {
   const herbe = toile(256, 256, (g) => {
     const hasard = graine(7);
-    g.fillStyle = '#93d77c';
+    g.fillStyle = palette.herbe.fond;
     g.fillRect(0, 0, 256, 256);
     for (let i = 0; i < 260; i++) {
-      g.fillStyle = hasard() > 0.5 ? '#a1dd88' : '#86cd72';
+      g.fillStyle = hasard() > 0.5 ? palette.herbe.clair : palette.herbe.sombre;
       g.fillRect(hasard() * 256, hasard() * 256, 7, 3);
     }
     const fleurs = ['#ffffff', '#ffd6e4', '#fff2a6', '#d9ccff'];
