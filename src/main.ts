@@ -336,9 +336,12 @@ function resolution(): number {
   return resolutionDynamique;
 }
 let imagesMesurees = 0;
-let debutMesure = performance.now();
+// Les premières secondes (shaders compilés, textures envoyées) sont lentes pour tout le monde :
+// on ne mesure qu'après, pour ne pas baisser la résolution pour rien.
+let debutMesure = performance.now() + 4000;
 function ajusterResolution(maintenant: number): void {
   if (qualite !== 'haute') return;
+  if (maintenant < debutMesure) return;
   imagesMesurees++;
   const ecoule = maintenant - debutMesure;
   if (ecoule < 2000) return;
@@ -391,8 +394,10 @@ renderer.setAnimationLoop((maintenant) => {
   herbe?.animer(mouvementReduit.matches ? 0 : horloge);
   // Les ombres du décor ne bougent pas : on les recalcule une image sur trois (assez pour les personnages).
   if (qualite === 'haute') renderer.shadowMap.needsUpdate = imagesRendues++ % 3 === 0;
-  renderer.render(scene, camera);
+  // Changer la taille du canevas l'efface : on le fait avant de dessiner, jamais après (sinon
+  // l'écran montre une image vide, un flash clair).
   ajusterResolution(maintenant);
+  renderer.render(scene, camera);
   document.body.dataset.appels = String(renderer.info.render.calls);
   compteur?.(maintenant);
 });
@@ -850,7 +855,8 @@ function promenade(delta: number): void {
   // En passant la grande porte.
   if (!bienvenue && h.position.z < 11.5) {
     bienvenue = true;
-    bruitage.son('porte', 0.8);
+    // Le fichier est bien plus fort que les autres bruitages : on le joue doucement.
+    bruitage.son('porte', 0.22);
     confettis(48);
   confettis(48);
     parler('Bienvenue à la fête foraine !');
