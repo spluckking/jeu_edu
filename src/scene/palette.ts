@@ -1,7 +1,7 @@
 // Les palettes de la fête : même style (ombrage doux en aplats, formes rondes), couleurs
 // différentes. Le parent choisit dans l'espace parent ; « ?palette=… » permet d'essayer.
 
-export type NomPalette = 'pastel' | 'vive' | 'ete' | 'bonbon';
+export type NomPalette = 'naturelle' | 'pastel' | 'vive' | 'ete' | 'bonbon';
 
 export interface Palette {
   nom: string;
@@ -14,6 +14,34 @@ export interface Palette {
 }
 
 export const PALETTES: Record<NomPalette, Palette> = {
+  naturelle: {
+    nom: 'Naturelle',
+    adoucir: 0,
+    couleurs: {
+      sol: 0x5f9a45,
+      allee: 0xb9a68a,
+      bois: 0x8f5f3a,
+      comptoir: 0x9a6340,
+      toileA: 0xb8323a,
+      toileB: 0xefe4cf,
+      enseigne: 0xd9a531,
+      boite: 0x9fb0c2,
+      bonbon1: 0xc94f7f,
+      bonbon2: 0x2f7fbf,
+      bonbon3: 0x5a9a38,
+      barriereA: 0x7a5236,
+      barriereB: 0x5e3e29,
+      fantome: 0x7a86c8,
+      maillot: 0x35629f,
+      pantalon: 0x3e4a6e,
+      casquette: 0xb8323a,
+      poteau: 0x6e4a31,
+      or: 0xd8ad3a,
+      rouge: 0xb0303a,
+    },
+    herbe: { fond: '#4f7f35', clair: '#6a9a45', sombre: '#3f6a2b' },
+    ciel: { haut: '#3f7fcf', bas: '#d8e6ee' },
+  },
   pastel: {
     nom: 'Pastel',
     adoucir: 0.3,

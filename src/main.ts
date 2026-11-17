@@ -71,6 +71,7 @@ import { surveillerMiseAJour } from './app/miseAJour.ts';
 surveillerModeApp();
 import { CameraHaute } from './scene/suivi.ts';
 import { choisirPalette } from './scene/palette.ts';
+import { choisirQualite, eclairer, ombrer, semerHerbe, type Herbe } from './scene/qualite.ts';
 import { Obstacle } from './scene/obstacles.ts';
 import { creerCommandes } from './controles/joystick.ts';
 import { basculerMuet, bruitage, demarrerSon, estMuet, reglerVolumes } from './son/bruitages.ts';
@@ -252,7 +253,12 @@ const aReviser = (jeu: JeuDeStand): boolean => {
 
 // --- La scène ------------------------------------------------------------------------
 // La palette se choisit avant de construire la fête (espace parent, ou « ?palette=… » pour essayer).
-const palette = choisirPalette(new URLSearchParams(location.search).get('palette') ?? sauvegarde.reglages.palette);
+// La qualité et la palette se choisissent avant de construire la fête (espace parent, ou
+// « ?qualite=standard » et « ?palette=… » pour essayer). En qualité haute, palette naturelle par défaut.
+const adresse = new URLSearchParams(location.search);
+const qualite = choisirQualite(adresse.get('qualite') ?? sauvegarde.reglages.qualite);
+const palette = choisirPalette(adresse.get('palette') ?? sauvegarde.reglages.palette ?? (qualite === 'haute' ? 'naturelle' : 'pastel'));
+document.body.classList.toggle('qualite-haute', qualite === 'haute');
 const renderer = new THREE.WebGLRenderer({ canvas: ui.canvas, antialias: true, powerPreference: 'high-performance' });
 renderer.toneMapping = THREE.NeutralToneMapping;
 const scene = new THREE.Scene();
@@ -275,11 +281,14 @@ scene.background = (() => {
 })();
 // Lumière douce : beaucoup de ciel, un soleil chaud venu de la gauche, du brouillard bleu pâle
 // au loin. Avec l'ombrage en aplats, rien n'est jamais noir.
-scene.fog = new THREE.Fog(0xe2f4ff, 38, 90);
-scene.add(new THREE.HemisphereLight(0xeaf6ff, 0xdcefc6, 2.1));
+scene.fog = qualite === 'haute' ? new THREE.Fog(palette.ciel.bas, 45, 130) : new THREE.Fog(0xe2f4ff, 38, 90);
+const lumiereCiel = new THREE.HemisphereLight(0xeaf6ff, 0xdcefc6, 2.1);
+scene.add(lumiereCiel);
 const soleil = new THREE.DirectionalLight(0xfff1dc, 1.7);
 soleil.position.set(-6, 12, 9);
 scene.add(soleil);
+// Qualité haute : ombres portées, lumière d'environnement, tonalité cinéma.
+if (qualite === 'haute') eclairer(renderer, scene, soleil, lumiereCiel);
 
 const fete = construireFete(sauvegarde.garderobe.porte);
 scene.add(fete.racine);
@@ -309,10 +318,40 @@ function champNormal(): void {
   camera.updateProjectionMatrix();
 }
 
+// Résolution : en qualité standard, celle de l'écran (plafonnée à 1,75). En qualité haute, elle
+// s'ajuste toute seule pour tenir environ 60 images par seconde (résolution dynamique, comme
+// dans les jeux sur console) : la tablette donne le meilleur qu'elle peut, sans saccader.
+const RESOLUTION_MAX = Math.min(window.devicePixelRatio, 1.75);
+let resolutionDynamique = qualite === 'haute' ? Math.min(RESOLUTION_MAX, 1.25) : RESOLUTION_MAX;
+function resolution(): number {
+  return resolutionDynamique;
+}
+let imagesMesurees = 0;
+let debutMesure = performance.now();
+function ajusterResolution(maintenant: number): void {
+  if (qualite !== 'haute') return;
+  imagesMesurees++;
+  const ecoule = maintenant - debutMesure;
+  if (ecoule < 2000) return;
+  const ips = (imagesMesurees * 1000) / ecoule;
+  imagesMesurees = 0;
+  debutMesure = maintenant;
+  // Onglet caché ou pause : rien à mesurer.
+  if (ips < 5) return;
+  let nouvelle = resolutionDynamique;
+  if (ips < 50) nouvelle = Math.max(0.75, resolutionDynamique - 0.15);
+  else if (ips > 58.5) nouvelle = Math.min(RESOLUTION_MAX, resolutionDynamique + 0.1);
+  if (Math.abs(nouvelle - resolutionDynamique) > 0.01) {
+    resolutionDynamique = nouvelle;
+    renderer.setPixelRatio(resolutionDynamique);
+    renderer.setSize(window.innerWidth, window.innerHeight, false);
+  }
+}
+
 function redimensionner(): void {
   const largeur = window.innerWidth;
   const hauteur = window.innerHeight;
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.75));
+  renderer.setPixelRatio(resolution());
   renderer.setSize(largeur, hauteur, false);
   camera.aspect = largeur / hauteur;
   camera.fov = camera.aspect < 1 ? 70 : 45;
@@ -322,6 +361,8 @@ window.addEventListener('resize', redimensionner);
 redimensionner();
 
 let compteur: ((maintenant: number) => void) | null = null;
+let imagesRendues = 0;
+let herbe: Herbe | null = null;
 const mouvementReduit = window.matchMedia('(prefers-reduced-motion: reduce)');
 let precedent = performance.now();
 renderer.setAnimationLoop((maintenant) => {
@@ -338,7 +379,11 @@ renderer.setAnimationLoop((maintenant) => {
   }
   promenade(delta);
   fete.mettreAJour(mouvementReduit.matches ? 0 : horloge, delta);
+  herbe?.animer(mouvementReduit.matches ? 0 : horloge);
+  // Les ombres du décor ne bougent pas : on les recalcule une image sur trois (assez pour les personnages).
+  if (qualite === 'haute') renderer.shadowMap.needsUpdate = imagesRendues++ % 3 === 0;
   renderer.render(scene, camera);
+  ajusterResolution(maintenant);
   document.body.dataset.appels = String(renderer.info.render.calls);
   compteur?.(maintenant);
 });
@@ -488,6 +533,7 @@ function gagnerTickets(nombre: number): void {
 function habiller(g: Garderobe): void {
   bruitage.son('habiller', 0.7);
   fete.habiller(g.porte);
+  if (qualite === 'haute') ombrer(fete.racine);
 }
 
 /**
@@ -685,6 +731,24 @@ function libre(x: number, z: number): boolean {
   return apres < enfoncement(h.x, h.z) - 1e-4;
 }
 
+// --- Qualité haute : ombres sur tout le décor, herbe en brins hors des allées et des stands ---------
+/** Les allées pavées (voir fete.ts et entree.ts) : pas d'herbe dessus. */
+const ALLEES: Array<[number, number, number, number]> = [
+  [0, 5, 3.4, 14],
+  [0, -1, 34, 3.6],
+  [-5.5, -12, 3, 22],
+  [5.5, -12, 3, 22],
+  [0, -22.5, 30, 3.4],
+  [0, 23.5, 3.4, 23],
+];
+if (qualite === 'haute') {
+  ombrer(fete.racine);
+  ombrer(entree.racine);
+  const surAllee = (x: number, z: number): boolean => ALLEES.some(([ax, az, l, p]) => Math.abs(x - ax) < l / 2 + 0.15 && Math.abs(z - az) < p / 2 + 0.15);
+  herbe = semerHerbe((x, z) => !surAllee(x, z) && enfoncement(x, z) <= 0, 26000, { x: 34, zMin: -52, zMax: 40 });
+  scene.add(herbe.racine);
+}
+
 const TITRES_DETENTE: Record<string, string> = { autos: 'Autos tamponneuses', trampoline: 'Trampoline', glaces: 'Palais des glaces' };
 function titreDuStand(s: Stand): string {
   return JEUX.find((j) => j.id === s.id)?.titre ?? TITRES_DETENTE[s.id] ?? 'Le stand';
@@ -803,6 +867,8 @@ if (new URLSearchParams(location.search).has('essai')) {
         const p = heros().position;
         return `${p.x.toFixed(2)} ${p.z.toFixed(2)}`;
       },
+      /** Pour mesurer ce qui coûte : la scène et le moteur de rendu. */
+      moteur: () => ({ scene, renderer, herbe }),
       avancer(secondes: number): void {
         for (let t = 0; t < secondes; t += 1 / 30) promenade(1 / 30);
         renderer.render(scene, camera);

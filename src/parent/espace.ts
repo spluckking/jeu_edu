@@ -288,7 +288,7 @@ function construire(o: OptionsEspace, fermer: () => void): HTMLElement {
   for (const [cle, pal] of Object.entries(PALETTES)) {
     const option = el('option', '', pal.nom);
     option.value = cle;
-    option.selected = (s.reglages.palette ?? 'pastel') === cle;
+    option.selected = (s.reglages.palette ?? ((s.reglages.qualite ?? 'haute') === 'haute' ? 'naturelle' : 'pastel')) === cle;
     choixCouleurs.append(option);
   }
   choixCouleurs.addEventListener('change', () => {
@@ -296,7 +296,21 @@ function construire(o: OptionsEspace, fermer: () => void): HTMLElement {
     void o.remplacer(s);
   });
   ligneCouleurs.append(el('span', 'parent-etiquette', 'Couleurs de la fête'), choixCouleurs);
-  reglages.append(ligneCouleurs);
+  // Qualité graphique : « haute » (ombres, herbe en brins, matières) ou « standard » si la tablette peine.
+  const ligneQualite = el('label', 'parent-ligne');
+  const choixQualite = el('select', 'parent-champ');
+  for (const [cle, nom] of [['haute', 'Haute (ombres, herbe, matières)'], ['standard', 'Standard (plus léger)']] as const) {
+    const option = el('option', '', nom);
+    option.value = cle;
+    option.selected = (s.reglages.qualite ?? 'haute') === cle;
+    choixQualite.append(option);
+  }
+  choixQualite.addEventListener('change', () => {
+    s.reglages.qualite = choixQualite.value;
+    void o.remplacer(s);
+  });
+  ligneQualite.append(el('span', 'parent-etiquette', 'Qualité graphique'), choixQualite);
+  reglages.append(ligneCouleurs, ligneQualite);
   const rejouer = el('button', 'bouton-secondaire', 'Rejouer l’introduction');
   rejouer.addEventListener('click', () => {
     fermer();

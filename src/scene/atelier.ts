@@ -7,6 +7,7 @@ import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { palette } from './palette.ts';
+import { materiauDetaille, qualite } from './qualite.ts';
 import { plaque, texturesDouillettes } from './textures.ts';
 
 export type Vec3 = [number, number, number];
@@ -21,6 +22,8 @@ export interface Options {
   rz?: number;
   /** Forme qui brille par elle-même (ampoule), sans ombre ni lumière. */
   lumineux?: boolean;
+  /** Surface lisse (peau, yeux) : pas de grain en qualité haute. */
+  lisse?: boolean;
 }
 
 /** Palette du style « douillet » (adoucie encore vers le crème par teinte()). */
@@ -74,13 +77,24 @@ export class Atelier {
   readonly textures = texturesDouillettes();
   // Ombrage en trois aplats doux (toon) : l'effet « jouet peint », et bien moins coûteux pour
   // la tablette que l'ancien matériau physique à reflet de velours.
-  readonly mat = new THREE.MeshToonMaterial({ vertexColors: true, gradientMap: this.textures.degrade });
+  // Qualité haute : matériau physique avec grain, rugosité et relief (bois, toile, peinture).
+  private readonly haute = qualite === 'haute';
+  readonly mat: THREE.Material = this.haute
+    ? materiauDetaille({ vertexColors: true }, { relief: 0.07, teinte: 0.07, grain: 0.5 })
+    : new THREE.MeshToonMaterial({ vertexColors: true, gradientMap: this.textures.degrade });
+  readonly matLisse: THREE.Material = this.haute
+    ? materiauDetaille({ vertexColors: true, roughness: 0.62 }, { relief: 0.01, teinte: 0.015, grain: 0.3 })
+    : this.mat;
   readonly lumiere = new THREE.MeshBasicMaterial({ vertexColors: true });
-  readonly fil = new THREE.LineBasicMaterial({ color: 0xfffaf2 });
-  readonly matHerbe = new THREE.MeshToonMaterial({ map: this.textures.herbe, gradientMap: this.textures.degrade });
-  readonly matDalles = new THREE.MeshToonMaterial({ map: this.textures.dalles, gradientMap: this.textures.degrade });
+  readonly fil = new THREE.LineBasicMaterial({ color: this.haute ? 0x3a3330 : 0xfffaf2 });
+  readonly matHerbe: THREE.Material = this.haute
+    ? materiauDetaille({ map: this.textures.herbe, roughness: 0.95 }, { relief: 0.08, teinte: 0.12, grain: 1.4 })
+    : new THREE.MeshToonMaterial({ map: this.textures.herbe, gradientMap: this.textures.degrade });
+  readonly matDalles: THREE.Material = this.haute
+    ? materiauDetaille({ map: this.textures.dalles, roughness: 0.88 }, { relief: 0.06, teinte: 0.05, grain: 0.35 })
+    : new THREE.MeshToonMaterial({ map: this.textures.dalles, gradientMap: this.textures.degrade });
   private readonly geometries: THREE.BufferGeometry[] = [];
-  private readonly materiaux: THREE.Material[] = [this.mat, this.lumiere, this.fil, this.matHerbe, this.matDalles];
+  private readonly materiaux: THREE.Material[] = [this.mat, this.matLisse, this.lumiere, this.fil, this.matHerbe, this.matDalles];
 
   /** Un sol plat texturé (herbe fleurie ou dalles), à plat sur y. */
   sol(parent: THREE.Object3D, largeur: number, profondeur: number, x: number, y: number, z: number, genre: 'herbe' | 'dalles'): THREE.Mesh {
@@ -133,7 +147,7 @@ export class Atelier {
     for (let i = 0; i < compte; i++) couleurs.set([couleur.r, couleur.g, couleur.b], i * 3);
     geometrie.setAttribute('color', new THREE.BufferAttribute(couleurs, 3));
 
-    const maillage = new THREE.Mesh(geometrie, options.lumineux ? this.lumiere : this.mat);
+    const maillage = new THREE.Mesh(geometrie, options.lumineux ? this.lumiere : options.lisse ? this.matLisse : this.mat);
     maillage.position.set(...position);
     maillage.rotation.set(options.rx ?? 0, options.ry ?? 0, options.rz ?? 0);
     parent.add(maillage);

@@ -4,6 +4,7 @@
 
 import * as THREE from 'three';
 import { COULEURS, type Atelier, type Options, type Peinture, type Vec3 } from './atelier.ts';
+import { qualite } from './qualite.ts';
 
 /** Les accessoires portés. Chaque champ est l'identifiant d'un lot (voir recompenses.ts), ou « rien ». */
 export interface Accessoires {
@@ -86,7 +87,8 @@ export function creerPersonne(atelier: Atelier, parent: THREE.Object3D, allure: 
   const racine = atelier.mobile(parent);
   const ombre = new THREE.Mesh(
     atelier.suivre(new THREE.CircleGeometry(0.62, 20)),
-    atelier.materiau(new THREE.MeshBasicMaterial({ color: 0x3d5a2a, transparent: true, opacity: 0.2, depthWrite: false })),
+    // En qualité haute, la vraie ombre portée fait l'essentiel : la tache au sol se fait discrète.
+    atelier.materiau(new THREE.MeshBasicMaterial({ color: 0x3d5a2a, transparent: true, opacity: qualite === 'haute' ? 0.1 : 0.2, depthWrite: false })),
   );
   ombre.rotation.x = -Math.PI / 2;
   ombre.position.y = 0.02;
@@ -95,7 +97,8 @@ export function creerPersonne(atelier: Atelier, parent: THREE.Object3D, allure: 
   const corps = atelier.mobile(racine);
   corps.scale.setScalar(ECHELLE);
   const f = (parent2: THREE.Object3D, taille: Vec3, position: Vec3, p: Peinture, options: Options = {}): THREE.Mesh =>
-    atelier.forme(parent2, taille, position, p, options);
+    // Les personnages restent lisses comme des figurines : le grain est pour le décor.
+    atelier.forme(parent2, taille, position, p, { lisse: true, ...options });
   const pose = (taille: Vec3, position: Vec3, p: Peinture, options: Options = {}): THREE.Mesh => f(corps, taille, position, p, options);
 
   // Jambes courtes et grosses chaussures arrondies ; chacune pivote à la hanche.

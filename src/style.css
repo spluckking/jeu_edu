@@ -1795,3 +1795,13 @@ body.en-garderobe #bulle {
 .mise-a-jour button {
   min-height: 56px;
 }
+
+/* Qualité haute : un léger vignettage, comme un objectif de cinéma (CSS, sans coût pour la 3D). */
+body.qualite-haute::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: radial-gradient(ellipse at 50% 45%, transparent 55%, rgb(20 16 30 / 0.28) 100%);
+}

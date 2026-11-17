@@ -25,6 +25,8 @@ export interface Reglages {
   volumeVoix?: number;
   /** Palette de couleurs de la fête (absente : pastel). */
   palette?: string;
+  /** Qualité graphique : « haute » (défaut) ou « standard » pour une tablette moins puissante. */
+  qualite?: string;
 }
 
 export function reglagesNeufs(): Reglages {
