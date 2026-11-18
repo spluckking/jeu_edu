@@ -1,5 +1,5 @@
 {
-  "_lisez-moi": "Les modèles 3D de la ville, générés par scripts/generer-modeles.mjs (Tripo, image vers 3D). genre fixe le budget de triangles ; animations : préréglages Tripo pour les personnages.",
+  "_lisez-moi": "Les modèles 3D de la ville, générés par scripts/generer-modeles.mjs (Tripo, image vers 3D). genre fixe le budget de triangles ; animations : préréglages Tripo pour les personnages. studio : modèle fait à la main dans Tripo Studio (image Nano Banana, puis HD Model), exporté en GLB puis repris avec --depuis ; la ligne garde la trace de son image et de ses réglages.",
   "modeles": [
     {
       "id": "maison-du-personnage",
@@ -162,6 +162,45 @@
       "id": "icone-graines-tomate",
       "genre": "icone",
       "prompt": "A single small paper seed packet with a picture of a red tomato on the front, game inventory icon, cute chibi anime style for a cozy farming life-sim game, soft rounded shapes, warm pastel colours, gentle hand-painted texture, centered, seen slightly from above, soft light, plain very light cream background, no shadow on the floor. --no text, letters, logo, watermark, hands, table"
+    },
+    {
+      "id": "ponton",
+      "genre": "objet",
+      "studio": true,
+      "image": "content/modeles/images/ponton.png",
+      "triangles": 6747
+    },
+    {
+      "id": "buisson",
+      "genre": "objet",
+      "studio": true,
+      "image": "content/modeles/images/buisson.png",
+      "triangles": 3799
+    },
+    {
+      "id": "mures",
+      "genre": "objet",
+      "studio": true,
+      "image": "content/modeles/images/mures.png",
+      "triangles": 1856
+    },
+    {
+      "id": "icone-mure",
+      "genre": "icone",
+      "studio": true,
+      "image": "content/modeles/images/mures.png"
+    },
+    {
+      "id": "icone-poisson",
+      "genre": "icone",
+      "studio": true,
+      "image": "content/modeles/images/poisson.png"
+    },
+    {
+      "id": "icone-seau",
+      "genre": "icone",
+      "studio": true,
+      "image": "content/modeles/images/seau.png"
     }
   ]
 }

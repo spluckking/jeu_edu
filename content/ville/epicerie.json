@@ -1,5 +1,5 @@
 {
-  "_lisez-moi": "L'épicerie de la ville (tranche 1B). Prix en centimes (bienvenue : les pièces offertes à la première visite), en euros ronds pour commencer. rachat : prix auquel l'épicière rachète un produit récolté (pommes, légumes du potager) (null : elle ne le rachète pas). achatsParJour : combien de récoltes elle rachète au plus chaque jour. valide=false : textes à relire (A_VALIDER.md). article : le nom avec son article, pour les phrases.",
+  "_lisez-moi": "L'épicerie de la ville (tranche 1B). Prix en centimes (bienvenue : les pièces offertes à la première visite), en euros ronds pour commencer. rachat : prix auquel l'épicière rachète un produit récolté (pommes, légumes du potager) (null : elle ne le rachète pas). achatsParJour : combien de récoltes elle rachète au plus chaque jour. valide=false : textes à relire (A_VALIDER.md). article : le nom avec son article, pour les phrases. enVente : false pour ce qui se récolte sans s'acheter (poissons, mûres).",
   "achatsParJour": 5,
   "bienvenue": [
     500,
@@ -14,7 +14,8 @@
       "pluriel": "pommes",
       "article": "la pomme",
       "prix": 100,
-      "rachat": 100
+      "rachat": 100,
+      "enVente": true
     },
     {
       "id": "poire",
@@ -22,7 +23,8 @@
       "pluriel": "poires",
       "article": "la poire",
       "prix": 200,
-      "rachat": null
+      "rachat": null,
+      "enVente": true
     },
     {
       "id": "carotte",
@@ -30,7 +32,8 @@
       "pluriel": "carottes",
       "article": "la carotte",
       "prix": 100,
-      "rachat": 100
+      "rachat": 100,
+      "enVente": true
     },
     {
       "id": "tomate",
@@ -38,7 +41,8 @@
       "pluriel": "tomates",
       "article": "la tomate",
       "prix": 200,
-      "rachat": 100
+      "rachat": 100,
+      "enVente": true
     },
     {
       "id": "pain",
@@ -46,7 +50,8 @@
       "pluriel": "pains",
       "article": "le pain",
       "prix": 300,
-      "rachat": null
+      "rachat": null,
+      "enVente": true
     },
     {
       "id": "lait",
@@ -54,7 +59,8 @@
       "pluriel": "bouteilles de lait",
       "article": "la bouteille de lait",
       "prix": 200,
-      "rachat": null
+      "rachat": null,
+      "enVente": true
     },
     {
       "id": "graines-carotte",
@@ -62,7 +68,8 @@
       "pluriel": "sachets de graines de carottes",
       "article": "le sachet de graines de carottes",
       "prix": 100,
-      "rachat": null
+      "rachat": null,
+      "enVente": true
     },
     {
       "id": "graines-tomate",
@@ -70,7 +77,26 @@
       "pluriel": "sachets de graines de tomates",
       "article": "le sachet de graines de tomates",
       "prix": 200,
-      "rachat": null
+      "rachat": null,
+      "enVente": true
+    },
+    {
+      "id": "poisson",
+      "nom": "poisson",
+      "pluriel": "poissons",
+      "article": "le poisson",
+      "prix": 100,
+      "rachat": 100,
+      "enVente": false
+    },
+    {
+      "id": "mure",
+      "nom": "mûre",
+      "pluriel": "mûres",
+      "article": "la mûre",
+      "prix": 100,
+      "rachat": 100,
+      "enVente": false
     }
   ],
   "textes": {

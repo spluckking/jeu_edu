@@ -19,7 +19,8 @@ describe('état de la ville', () => {
 
   it('reprend une sauvegarde de la version 1 sans argent ni panier', () => {
     const e = lireEtat({ version: 1, position: { x: 1, z: 2, cap: 0 }, lus: ['forain-accueil'] });
-    expect(e.version).toBe(4);
+    expect(e.version).toBe(5);
+    expect(e.riviere).toEqual({ peche: '', cueillis: { jour: '', buissons: [] } });
     expect(e.parcelles).toHaveLength(4);
     expect(e.demandes).toEqual(etatNeuf().demandes);
     expect(e.meubles).toEqual([]);

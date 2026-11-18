@@ -540,3 +540,117 @@ button.produit {
   justify-content: center;
   gap: 12px;
 }
+
+/* --- La pêche (tranche 1C) ----------------------------------------------------------------- */
+
+.eau-peche {
+  position: relative;
+  align-self: stretch;
+  height: 230px;
+  overflow: hidden;
+  border-radius: 24px;
+  background: linear-gradient(#9fd7f0, #5fb0de);
+  box-shadow: inset 0 4px 10px rgba(0, 0, 0, 0.12);
+}
+
+/* Les poissons traversent l'eau ; on les touche pour les attraper. */
+.poisson-nage {
+  position: absolute;
+  left: -90px;
+  width: 84px;
+  height: 64px;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  animation: nager linear infinite;
+}
+
+.poisson-nage .produit-icone {
+  width: 84px;
+  height: 64px;
+  object-fit: contain;
+  border-radius: 0;
+
+}
+
+.poisson-nage.vers-la-gauche {
+  animation-name: nager-gauche;
+}
+
+.poisson-nage.vers-la-gauche .produit-icone {
+  transform: scaleX(-1);
+}
+
+@keyframes nager {
+  from {
+    left: -90px;
+  }
+  to {
+    left: 100%;
+  }
+}
+
+@keyframes nager-gauche {
+  from {
+    left: 100%;
+  }
+  to {
+    left: -90px;
+  }
+}
+
+.rangee-seaux {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 14px;
+}
+
+.seau {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 150px;
+  padding: 8px;
+  border-radius: 20px;
+  background: #fff;
+  box-shadow: 0 3px 0 rgba(0, 0, 0, 0.08);
+  transition: background 0.3s;
+}
+
+.seau.plein {
+  background: var(--vert-pale);
+}
+
+.seau > .produit-icone {
+  width: 64px;
+  height: 64px;
+}
+
+.seau-poissons {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 2px;
+  min-height: 34px;
+}
+
+.seau-poissons .produit-icone {
+  width: 32px;
+  height: 26px;
+  object-fit: contain;
+  border-radius: 0;
+
+}
+
+.seau-compte {
+  font-weight: 700;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .poisson-nage {
+    animation-duration: 40s !important;
+  }
+}

@@ -6,6 +6,11 @@
 //   node scripts/generer-modeles.mjs --solde         affiche le solde de crédits API
 //   node scripts/generer-modeles.mjs --image ID      dessine seulement l'image de départ (à regarder avant la 3D)
 //
+//   node scripts/generer-modeles.mjs --depuis FICHIER ID   reprend un modèle téléchargé de Tripo Studio
+//     (GLB à la racine du projet) : il est allégé et rangé dans public/modeles/ID.glb ;
+//     une image (PNG, WebP) devient l'icône public/icones/ID.webp, avec son fond clair rendu
+//     transparent (remplissage depuis les bords).
+//
 // Le genre « icone » n'a pas de 3D : son image est réduite en WebP 256 px dans public/icones/
 // (images de l'interface : produits de l'épicerie…).
 //
@@ -42,7 +47,8 @@ function cle() {
   if (!valeur) throw new Error('TRIPO_API_KEY manque dans .env');
   return valeur;
 }
-const CLE = cle();
+// La clé n'est demandée que pour parler à l'API (pas pour reprendre un fichier de Studio).
+const CLE = process.argv.includes('--depuis') ? '' : cle();
 const entetes = { Authorization: `Bearer ${CLE}` };
 
 async function appel(chemin, options = {}) {
@@ -93,6 +99,31 @@ function alleger(entree, sortie) {
   execFileSync(process.execPath, [GLTF, 'resize', entree, intermediaire, '--width', '1024', '--height', '1024'], { stdio: 'ignore' });
   execFileSync(process.execPath, [GLTF, 'webp', intermediaire, sortie, '--quality', '85'], { stdio: 'ignore' });
   execFileSync(process.execPath, ['-e', `require('fs').unlinkSync(${JSON.stringify(intermediaire)})`]);
+}
+
+/** Rend transparent le fond uni d'une image : tout ce qui touche les bords et ressemble à la
+ *  couleur du coin, de proche en proche. Les bords de l'objet gardent un léger fondu. */
+function detourer(px, l, h) {
+  const fond = [px[0], px[1], px[2]];
+  const ecart = (i) => Math.abs(px[i] - fond[0]) + Math.abs(px[i + 1] - fond[1]) + Math.abs(px[i + 2] - fond[2]);
+  const vu = new Uint8Array(l * h);
+  const pile = [];
+  for (let x = 0; x < l; x++) pile.push(x, (h - 1) * l + x);
+  for (let y = 0; y < h; y++) pile.push(y * l, y * l + l - 1);
+  while (pile.length) {
+    const k = pile.pop();
+    if (vu[k]) continue;
+    vu[k] = 1;
+    const e = ecart(k * 4);
+    if (e > 60) continue;
+    px[k * 4 + 3] = e < 25 ? 0 : Math.round(((e - 25) / 35) * 255);
+    const x = k % l;
+    const y = (k - x) / l;
+    if (x > 0) pile.push(k - 1);
+    if (x < l - 1) pile.push(k + 1);
+    if (y > 0) pile.push(k - l);
+    if (y < h - 1) pile.push(k + l);
+  }
 }
 
 const lireTaches = () => (existsSync(TACHES) ? JSON.parse(readFileSync(TACHES, 'utf8')) : {});
@@ -181,7 +212,23 @@ async function produire(m, refaire) {
 const args = process.argv.slice(2);
 mkdirSync(SORTIE, { recursive: true });
 mkdirSync(BRUTS, { recursive: true });
-if (args.includes('--solde')) {
+if (args.includes('--depuis')) {
+  const [fichier, id] = args.slice(args.indexOf('--depuis') + 1);
+  if (!fichier || !id || !existsSync(fichier)) throw new Error('usage : --depuis FICHIER ID (fichier introuvable ?)');
+  if (/.glb$/i.test(fichier)) {
+    const brut = join(BRUTS, `${id}.glb`);
+    writeFileSync(brut, readFileSync(fichier));
+    alleger(brut, join(SORTIE, `${id}.glb`));
+    console.log(`${id} → public/modeles/${id}.glb`);
+  } else {
+    const { default: sharp } = await import('sharp');
+    mkdirSync(ICONES, { recursive: true });
+    const { data, info } = await sharp(fichier).resize(256, 256).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+    detourer(data, info.width, info.height);
+    await sharp(data, { raw: info }).webp({ quality: 85, alphaQuality: 90 }).toFile(join(ICONES, `${id}.webp`));
+    console.log(`${id} → public/icones/${id}.webp`);
+  }
+} else if (args.includes('--solde')) {
   console.log(await solde());
 } else if (args.includes('--image')) {
   const { modeles } = JSON.parse(readFileSync(CATALOGUE, 'utf8'));
@@ -193,6 +240,7 @@ if (args.includes('--solde')) {
   const refaire = args[args.indexOf('--refaire') + 1];
   const liste = args.includes('--refaire') ? modeles.filter((m) => m.id === refaire) : modeles;
   console.log('Solde avant :', (await solde()).balance, 'crédits');
-  for (const m of liste) await produire(m, args.includes('--refaire'));
+  // Les modèles faits dans Studio ne passent pas par l'API.
+  for (const m of liste.filter((x) => !x.studio)) await produire(m, args.includes('--refaire'));
   console.log('Solde après :', (await solde()).balance, 'crédits');
 }

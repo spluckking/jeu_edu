@@ -289,7 +289,7 @@ async function entrer(c: ContexteEpicerie): Promise<void> {
     const choix = await new Promise<Produit | 'vendre' | null>((ok) => {
       const s = creer('section', 'exercice');
       const grille = creer('div', 'grille-produits');
-      for (const p of epicerie.produits) {
+      for (const p of epicerie.produits.filter((x) => x.enVente)) {
         const b = bouton('produit', '');
         b.append(icone(p.id), creer('span', 'produit-nom', majuscule(p.nom)), creer('span', 'produit-prix', euros(p.prix)));
         b.addEventListener('click', () => {

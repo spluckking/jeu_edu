@@ -22,6 +22,7 @@ import { installerDictee, type PointInteret } from './dictee-ville.ts';
 import { installerDemandes, majSeance, parlerA } from './demandes-ville.ts';
 import { installerEpicerie, rafraichirHud } from './epicerie-ville.ts';
 import { installerJardin } from './jardin-ville.ts';
+import { installerRiviere } from './riviere-ville.ts';
 import type { Etape } from './jardin.ts';
 import epicerie from '../../content/ville/epicerie.json';
 import meubles from '../../content/ville/meubles.json';
@@ -89,6 +90,10 @@ ville.add(new THREE.Mesh(plaque(2.6, 8, 0, 0.018, -12.5), atelier.matDalles));
 
 /** Ce qui arrête le personnage : des cercles (x, z, rayon). */
 const obstacles: Array<{ x: number; z: number; r: number }> = [
+  { x: 11.6, z: -10.6, r: 1.3 },
+  { x: -18, z: 1.5, r: 0.9 },
+  { x: -20.5, z: 4.8, r: 0.9 },
+  { x: -18, z: 8.2, r: 0.9 },
   { x: 0, z: 0, r: 2.6 },
   { x: 14, z: 3, r: 3.4 },
   { x: 10.3, z: 4.6, r: 0.6 },
@@ -207,6 +212,7 @@ async function peupler(): Promise<void> {
   }
   for (const id of etat.meubles) await poserMeuble(id);
   await poserPotager();
+  await poserRiviere();
   if (qualite === 'haute') ombrer(ville);
 }
 
@@ -248,6 +254,49 @@ async function poserPotager(): Promise<void> {
     poser(o, 'x', 2, place.x, place.z, 0);
     ville.add(o);
   }
+}
+
+// La rivière et le bois : le ponton au bord du ruisseau, sous le pont ; trois buissons de mûres à
+// l'ouest de la place. Sur chaque buisson, autant de grappes que de mûres à cueillir ce jour-là.
+const PONTON = { x: 11.6, z: -10.6, cap: 0.3 };
+const BUISSONS_MURES = [
+  { x: -18, z: 1.5 },
+  { x: -20.5, z: 4.8 },
+  { x: -18, z: 8.2 },
+];
+const grappes: THREE.Object3D[][] = BUISSONS_MURES.map(() => []);
+const grappesVoulues: number[] = BUISSONS_MURES.map(() => 0);
+function montrerMures(i: number, n: number): void {
+  grappesVoulues[i] = n;
+  grappes[i]?.forEach((g, k) => (g.visible = k < n));
+}
+async function poserRiviere(): Promise<void> {
+  const ponton = await modele('ponton');
+  if (ponton) {
+    poser(ponton.scene, 'x', 3.2, PONTON.x, PONTON.z, PONTON.cap);
+    ville.add(ponton.scene);
+  }
+  const buisson = await modele('buisson');
+  const mures = await modele('mures');
+  BUISSONS_MURES.forEach((b, i) => {
+    if (!buisson) return;
+    const o = buisson.scene.clone();
+    poser(o, 'y', 1.6, b.x, b.z, i * 1.3);
+    ville.add(o);
+    if (!mures) return;
+    // Cinq places de grappes autour du buisson, côté promenade ; on en montre autant que de mûres.
+    const boite = new THREE.Box3().setFromObject(o);
+    const t = boite.getSize(new THREE.Vector3());
+    for (let k = 0; k < 5; k++) {
+      const a = -0.2 + k * 0.55;
+      const g = mures.scene.clone();
+      poser(g, 'y', 0.32, b.x + Math.sin(a) * t.x * 0.47, b.z + Math.cos(a) * t.z * 0.47, a);
+      g.position.y = boite.min.y + t.y * (0.35 + (k % 2) * 0.25);
+      ville.add(g);
+      grappes[i]?.push(g);
+    }
+    montrerMures(i, grappesVoulues[i] ?? 0);
+  });
 }
 
 // Les meubles gagnés, devant la maison, de part et d'autre de l'allée.
@@ -466,6 +515,24 @@ installerJardin({
   apresUnChangement: rafraichirHud,
   places: PLACES_PARCELLES,
   dessiner: (i, e, mur) => void dessinerParcelle(i, e, mur),
+});
+
+installerRiviere({
+  points,
+  etat: () => etat,
+  changer: (e) => {
+    Object.assign(etat, e);
+    void sauverEtat(etat);
+  },
+  occupe: (oui) => {
+    occupe = oui;
+    commandes.actives = !oui;
+    ui.interagir.hidden = true;
+  },
+  apresUnChangement: rafraichirHud,
+  ponton: PONTON,
+  buissons: BUISSONS_MURES,
+  muresSurBuisson: montrerMures,
 });
 
 installerEpicerie({
