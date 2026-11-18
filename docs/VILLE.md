@@ -97,6 +97,7 @@ Une petite histoire raconte que les forains s'installent en ville. L'enfant gard
 - Des **humains** façon jouet (dont les forains), avec quelques animaux de compagnie ; rien qui copie l'apparence d'Animal Crossing.
 - Modèles 3D : image de concept (Studio Tripo), puis **Tripo** en « image vers 3D » (par l'API), puis allègement.
 - **Budget par modèle** : environ 10 000 triangles par personnage, 15 000 par bâtiment, 3 000 par petit objet ; textures de 1024 pixels au plus, en WebP, et en KTX2 compressé si la mémoire graphique de la tablette sature.
+- **Les tenues du héros** sont des **modèles complets** (le héros avec son chapeau, son sac…), un par tenue : les accessoires dessinés en code n'allaient pas avec un modèle Tripo. Chaque tenue coûte environ 95 crédits (image, modèle, squelette, 3 animations) ; le jeu prend le modèle dont la tenue (champ `tenue` de `content/modeles/modeles.json`) correspond à ce que l'enfant porte.
 - **Animation** : l'auto-rig de Tripo est testé dès la tranche 0 sur un forain. S'il ne donne rien de propre, les personnages restent rigides (ou en 2 ou 3 pièces : corps, tête, accessoire) et sont animés en code (sautiller, se pencher, saluer), dans l'esprit « jouet ».
 
 ## Les tranches

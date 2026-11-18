@@ -11,5 +11,10 @@
     "modele": "6fb54d35-14d2-4d70-88cd-e0eb754d19e1",
     "squelette": "bc795917-aa26-4266-afd1-6270c7997089",
     "animations": "443852cc-b7a7-40c0-a293-673c9f4e1ab6"
+  },
+  "enfant-casquette": {
+    "modele": "79128576-4e2b-4b5b-85fe-6df9c017ac27",
+    "squelette": "94c2ad10-d8f9-498c-925c-753865da3428",
+    "animations": "d1271dfa-ad3f-4acb-ac91-2a8391aa694b"
   }
 }

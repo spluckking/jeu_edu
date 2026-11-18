@@ -7,6 +7,7 @@ import './ville.css';
 import * as THREE from 'three';
 import { GLTFLoader, type GLTF } from 'three/addons/loaders/GLTFLoader.js';
 import { clone as clonerAnime } from 'three/addons/utils/SkeletonUtils.js';
+import catalogue from '../../content/modeles/modeles.json';
 import dialogues from '../../content/ville/dialogues.json';
 import { creerCommandes } from '../controles/joystick.ts';
 import { garderobeNeuve } from '../recompenses/recompenses.ts';
@@ -23,6 +24,8 @@ import { creerSol, semerGazon } from './gazon.ts';
 import { aEntendre, decouper } from './mots.ts';
 
 const adresse = new URLSearchParams(location.search);
+/** Essais seulement : plan rapproché sur le héros (voir « ?essai » en bas). */
+let grosPlan: { angle: number } | null = null;
 const qualite = choisirQualite(adresse.get('qualite') ?? 'haute');
 const palette = choisirPalette('naturelle');
 const el = <T extends HTMLElement>(id: string): T => document.getElementById(id) as T;
@@ -147,6 +150,32 @@ interface Heros {
   animer(temps: number, pas: number, salut: number): void;
 }
 
+/** Chaque tenue complète est un modèle Tripo (content/modeles/modeles.json, champ « tenue »).
+ *  On prend celui dont la tenue correspond le mieux à ce que l'enfant porte ; sinon « enfant ».
+ *  La ville n'a pas encore sa garde-robe (tranche 1C) : c'est la tenue de départ, ou
+ *  « ?essai&porte=chapeau-casquette,objet-sac » pour essayer. */
+function modeleDeLaTenue(): string {
+  const porte: Record<string, string> = { ...garderobeNeuve().porte };
+  const essai = adresse.has('essai') ? adresse.get('porte') : null;
+  if (essai !== null) {
+    for (const champ of Object.keys(porte)) if (champ !== 'haut' && champ !== 'chaussures') porte[champ] = 'rien';
+    for (const id of essai.split(',')) {
+      const champ = id.split('-')[0] ?? '';
+      if (champ in porte) porte[champ] = id;
+    }
+  }
+  let choisi = 'enfant';
+  let meilleur = 0;
+  for (const m of catalogue.modeles as Array<{ id: string; tenue?: Record<string, string> }>) {
+    const tenue = Object.entries(m.tenue ?? {});
+    if (tenue.length > meilleur && tenue.every(([champ, id]) => porte[champ] === id)) {
+      choisi = m.id;
+      meilleur = tenue.length;
+    }
+  }
+  return choisi;
+}
+
 /** Le personnage modélisé par Tripo : il attend, marche ou court selon la poussée du joystick. */
 function herosTripo(g: GLTF): Heros {
   const racine = new THREE.Group();
@@ -181,7 +210,7 @@ function herosTripo(g: GLTF): Heros {
   };
 }
 
-const glbEnfant = await modele('enfant');
+const glbEnfant = (await modele(modeleDeLaTenue())) ?? (await modele('enfant'));
 const heros: Heros = glbEnfant
   ? herosTripo(glbEnfant)
   : creerPersonne(atelier, ville, {
@@ -355,6 +384,13 @@ renderer.setAnimationLoop(() => {
   const pose = suivi.pose(heros.racine, dt);
   camera.position.copy(pose.position);
   camera.lookAt(pose.cible);
+  if (grosPlan) {
+    // Essais seulement : la caméra face au héros, à hauteur de tête.
+    const h = heros.racine;
+    const a = h.rotation.y + grosPlan.angle;
+    camera.position.set(h.position.x + Math.sin(a) * 3.2, 1.6, h.position.z + Math.cos(a) * 3.2);
+    camera.lookAt(h.position.x, 1.05, h.position.z);
+  }
   if (Math.abs(camera.fov - pose.champ) > 0.05) {
     camera.fov = pose.champ;
     camera.updateProjectionMatrix();
@@ -384,6 +420,10 @@ if (adresse.has('essai')) {
     essai: {
       placer(x: number, z: number): void {
         heros.racine.position.set(x, 0.06, z);
+      },
+      /** Plan rapproché sur le héros, vu sous cet angle (0 : de face), ou null pour revenir. */
+      gros(angle: number | null): void {
+        grosPlan = angle === null ? null : { angle };
       },
     },
   });

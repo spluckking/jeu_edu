@@ -24,6 +24,20 @@
         "preset:run"
       ],
       "prompt": "Full-body 3D game character concept for a cozy farming life-sim game, cute chibi anime style: big round head, large shiny friendly eyes, small nose, rosy cheeks, soft rounded shapes, warm pastel colours, gentle hand-painted texture. An 8-year-old boy with fluffy short brown hair, cheerful smile, short-sleeved coral t-shirt, beige knee-length shorts, white socks and brown ankle boots. No hat, nothing in his hands. Standing straight in A-pose, arms slightly away from the body, front view, whole body visible from head to feet, plain light grey background, no shadow on the floor. --no text, logo, watermark, background scenery"
+    },
+    {
+      "id": "enfant-casquette",
+      "genre": "personnage",
+      "tenue": {
+        "chapeau": "chapeau-casquette",
+        "objet": "objet-sac"
+      },
+      "animations": [
+        "preset:idle",
+        "preset:walk",
+        "preset:run"
+      ],
+      "prompt": "Full-body 3D game character concept for a cozy farming life-sim game, cute chibi anime style: big round head, large shiny friendly eyes, small nose, rosy cheeks, soft rounded shapes, warm pastel colours, gentle hand-painted texture. An 8-year-old boy with fluffy short brown hair, cheerful smile, wearing a real red baseball cap with a curved visor facing forward (brown hair showing on the sides and at the back), short-sleeved coral t-shirt, beige knee-length shorts, white socks and brown ankle boots, and a small rounded green backpack with two straps over his shoulders. Nothing in his hands. Standing straight in A-pose, arms slightly away from the body, front view, whole body visible from head to feet, plain light grey background, no shadow on the floor. --no text, logo, watermark, background scenery"
     }
   ]
 }
