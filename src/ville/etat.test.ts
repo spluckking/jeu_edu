@@ -19,7 +19,8 @@ describe('état de la ville', () => {
 
   it('reprend une sauvegarde de la version 1 sans argent ni panier', () => {
     const e = lireEtat({ version: 1, position: { x: 1, z: 2, cap: 0 }, lus: ['forain-accueil'] });
-    expect(e.version).toBe(3);
+    expect(e.version).toBe(4);
+    expect(e.parcelles).toHaveLength(4);
     expect(e.demandes).toEqual(etatNeuf().demandes);
     expect(e.meubles).toEqual([]);
     expect(e.position).toEqual({ x: 1, z: 2, cap: 0 });
@@ -41,5 +42,12 @@ describe('état de la ville', () => {
     expect(e.demandes).toEqual({ jour: '2026-11-18', ids: ['a'], acceptees: ['a'], faites: [], historique: { a: '2026-11-11' } });
     expect(e.lotChoisi).toBe('2026-11-18');
     expect(e.meubles).toEqual(['meuble-banc']);
+  });
+
+  it('garde le potager, et complète les parcelles abîmées', () => {
+    const e = lireEtat({ parcelles: [{ graine: 'graines-carotte', arrosages: ['2026-11-18', 3] }, 'x'] });
+    expect(e.parcelles[0]).toEqual({ graine: 'graines-carotte', arrosages: ['2026-11-18'] });
+    expect(e.parcelles[1]).toEqual({ graine: null, arrosages: [] });
+    expect(e.parcelles).toHaveLength(4);
   });
 });

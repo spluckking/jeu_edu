@@ -533,3 +533,10 @@ button.produit {
   width: 140px;
   height: 140px;
 }
+
+/* Une ou deux images seules (récolte, colis reçu) : centrées. */
+.rangee-icones {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+}

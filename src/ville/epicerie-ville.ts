@@ -11,6 +11,7 @@ import { ajouter, decomposer, euros, juger, pieces, PIECES_RONDES, retirer, somm
 import { acheter, cueillir, pommierDuJour, vendre } from './commerce.ts';
 import type { PointInteret } from './dictee-ville.ts';
 import { nomDe, parlerA } from './demandes-ville.ts';
+import { enMots, type Ligne } from './demandes.ts';
 import type { EtatVille } from './etat.ts';
 import { bouton, carte, creer, icone, majuscule, piece, remplir, texteALire } from './interface.ts';
 
@@ -243,25 +244,34 @@ async function acheterUnProduit(c: ContexteEpicerie, f: HTMLElement, p: Produit)
   await carte(f, T.nom, T.merci, ['D’accord !'], [icone(p.id)]);
 }
 
-async function vendreSesPommes(c: ContexteEpicerie, f: HTMLElement): Promise<void> {
-  const e = c.etat();
-  const pomme = epicerie.produits.find((p) => p.id === 'pomme');
-  if (!pomme?.rachat) return;
-  if (!e.panier.pomme) {
+async function vendreSesRecoltes(c: ContexteEpicerie, f: HTMLElement): Promise<void> {
+  let e = c.etat();
+  const rachetes = epicerie.produits.filter((p): p is Produit & { rachat: number } => p.rachat !== null && (e.panier[p.id] ?? 0) > 0);
+  if (!rachetes.length) {
     await carte(f, T.nom, T.vendreRien, ['D’accord']);
     return;
   }
-  const v = vendre(e.panier, e.porteMonnaie, e.ventes, 'pomme', pomme.rachat, aujourdhui(), epicerie.achatsParJour);
-  if (!v) {
+  const vendus: Ligne[] = [];
+  const paye: number[] = [];
+  for (const p of rachetes) {
+    const v = vendre(e.panier, e.porteMonnaie, e.ventes, p.id, p.rachat, aujourdhui(), epicerie.achatsParJour);
+    if (!v) break;
+    e = { ...e, panier: v.panier, porteMonnaie: v.porteMonnaie, ventes: v.ventes };
+    vendus.push({ produit: p.id, nombre: v.nombre });
+    paye.push(...v.paye);
+  }
+  if (!vendus.length) {
     await carte(f, T.nom, T.vendreFini, ['D’accord']);
     return;
   }
-  c.changer({ ...e, panier: v.panier, porteMonnaie: v.porteMonnaie, ventes: v.ventes });
+  c.changer(e);
   majHud(c);
   bruitage.reussite();
   const rangee = creer('div', 'rangee-argent');
-  for (const x of v.paye) rangee.append(piece(x));
-  await carte(f, T.nom, remplir(T.vendreOk, { nombre: `${v.nombre} ${v.nombre > 1 ? pomme.pluriel : pomme.nom}`, prix: euros(pomme.rachat), total: euros(somme(v.paye)) }), ['Merci !'], [rangee]);
+  for (const x of decomposer(somme(paye))) rangee.append(piece(x));
+  // Toutes les récoltes sont rachetées au même prix (1 €) pour l'instant.
+  const prix = rachetes[0]?.rachat ?? 0;
+  await carte(f, T.nom, remplir(T.vendreOk, { liste: enMots(vendus, nomDe), prix: euros(prix), total: euros(somme(paye)) }), ['Merci !'], [rangee]);
 }
 
 async function entrer(c: ContexteEpicerie): Promise<void> {
@@ -298,7 +308,7 @@ async function entrer(c: ContexteEpicerie): Promise<void> {
       f.replaceChildren(s);
     });
     if (choix === null) break;
-    if (choix === 'vendre') await vendreSesPommes(c, f);
+    if (choix === 'vendre') await vendreSesRecoltes(c, f);
     else await acheterUnProduit(c, f, choix);
   }
   fermer(c, f);

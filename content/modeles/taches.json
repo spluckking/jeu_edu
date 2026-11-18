@@ -48,5 +48,17 @@
   },
   "meuble-brouette": {
     "modele": "15be35f2-724c-4096-8923-56f8acc31f22"
+  },
+  "parcelle": {
+    "modele": "84e5e328-6454-43c2-bd39-ee5be0f0bca9"
+  },
+  "pousse": {
+    "modele": "134e5525-8940-44fb-add5-6eebae252752"
+  },
+  "carottes-mures": {
+    "modele": "938f5ab8-09fe-4c14-9c94-993bd3c1124a"
+  },
+  "tomates-mures": {
+    "modele": "c6886d7c-c28c-4cda-ba39-7dc18a723ade"
   }
 }

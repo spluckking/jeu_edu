@@ -212,7 +212,7 @@ export async function parlerA(habitant: string, boutique = false): Promise<boole
       for (const x of aDonner.fournit) panier = mettre(panier, x.produit, x.nombre);
       c.changer({ ...c.etat(), panier, demandes: accepter(c.etat().demandes, aDonner.id) });
       if (aDonner.fournit.length) {
-        const rangee = creer('div', 'grille-produits');
+        const rangee = creer('div', 'rangee-icones');
         for (const x of aDonner.fournit) rangee.append(icone(x.produit));
         await carte(f, nom, remplir(T.fourni, { Liste: majuscule(enMots(aDonner.fournit, nomDe)) }), ['D’accord !'], [rangee]);
       }

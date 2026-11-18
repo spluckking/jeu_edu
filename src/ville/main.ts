@@ -21,6 +21,8 @@ import { dire } from '../son/voix.ts';
 import { installerDictee, type PointInteret } from './dictee-ville.ts';
 import { installerDemandes, majSeance, parlerA } from './demandes-ville.ts';
 import { installerEpicerie, rafraichirHud } from './epicerie-ville.ts';
+import { installerJardin } from './jardin-ville.ts';
+import type { Etape } from './jardin.ts';
 import epicerie from '../../content/ville/epicerie.json';
 import meubles from '../../content/ville/meubles.json';
 import { chargerEtat, sauverEtat } from './etat.ts';
@@ -204,7 +206,48 @@ async function peupler(): Promise<void> {
     }
   }
   for (const id of etat.meubles) await poserMeuble(id);
+  await poserPotager();
   if (qualite === 'haute') ombrer(ville);
+}
+
+// Le potager, à droite de la maison : quatre parcelles en carré. Chaque parcelle a sa caisse de
+// terre, et par-dessus ce qui pousse (pousse, puis légume mûr), échangé quand ça change.
+const POTAGER = { x: 8.6, z: -17 };
+const PLACES_PARCELLES = [
+  { x: POTAGER.x - 1.25, z: POTAGER.z + 1.25 },
+  { x: POTAGER.x + 1.25, z: POTAGER.z + 1.25 },
+  { x: POTAGER.x - 1.25, z: POTAGER.z - 1.25 },
+  { x: POTAGER.x + 1.25, z: POTAGER.z - 1.25 },
+];
+const plantes: Array<THREE.Object3D | null> = PLACES_PARCELLES.map(() => null);
+const voulues: Array<string | null> = PLACES_PARCELLES.map(() => null);
+async function dessinerParcelle(i: number, e: Etape, modeleMur: string | null): Promise<void> {
+  const id = e === 'libre' ? null : e === 'mure' ? modeleMur : e === 'pousse' ? 'pousse' : null;
+  voulues[i] = id;
+  const avant = plantes[i];
+  if (avant && avant.userData.id === id) return;
+  const g = id ? await modele(id) : null;
+  if (voulues[i] !== id) return;
+  plantes[i]?.removeFromParent();
+  plantes[i] = null;
+  const place = PLACES_PARCELLES[i];
+  if (!g || !place) return;
+  const o = g.scene.clone();
+  o.userData.id = id;
+  poser(o, 'x', e === 'mure' ? 1.3 : 0.9, place.x, place.z, 0);
+  o.position.y += 0.18;
+  ville.add(o);
+  plantes[i] = o;
+  if (qualite === 'haute') ombrer(o);
+}
+async function poserPotager(): Promise<void> {
+  const caisse = await modele('parcelle');
+  if (!caisse) return;
+  for (const place of PLACES_PARCELLES) {
+    const o = caisse.scene.clone();
+    poser(o, 'x', 2, place.x, place.z, 0);
+    ville.add(o);
+  }
 }
 
 // Les meubles gagnés, devant la maison, de part et d'autre de l'allée.
@@ -313,7 +356,7 @@ heros.racine.rotation.y = etat.position.cap;
 
 let animerHerbe: (t: number) => void = () => {};
 if (qualite === 'haute') {
-  const herbe = semerGazon((x, z) => Math.hypot(x, z) > RAYON_PLACE + 0.4 && !(Math.abs(x) < 1.6 && z < -8 && z > -17) && Math.hypot(x, z + 19) > 4.4 && Math.hypot(x - 14, z - 3) > 3.8, 32000, {
+  const herbe = semerGazon((x, z) => Math.hypot(x, z) > RAYON_PLACE + 0.4 && !(Math.abs(x) < 1.6 && z < -8 && z > -17) && Math.hypot(x, z + 19) > 4.4 && Math.hypot(x - 14, z - 3) > 3.8 && (Math.abs(x - 8.6) > 2.6 || Math.abs(z + 17) > 2.6), 32000, {
     x: 40,
     zMin: -45,
     zMax: 35,
@@ -406,6 +449,23 @@ installerDemandes({
   noms: { 'forain-chamboule': 'Le forain', epiciere: epicerie.textes.nom },
   poserMeuble: (id) => void poserMeuble(id),
   apresUnChangement: rafraichirHud,
+});
+
+installerJardin({
+  points,
+  etat: () => etat,
+  changer: (e) => {
+    Object.assign(etat, e);
+    void sauverEtat(etat);
+  },
+  occupe: (oui) => {
+    occupe = oui;
+    commandes.actives = !oui;
+    ui.interagir.hidden = true;
+  },
+  apresUnChangement: rafraichirHud,
+  places: PLACES_PARCELLES,
+  dessiner: (i, e, mur) => void dessinerParcelle(i, e, mur),
 });
 
 installerEpicerie({

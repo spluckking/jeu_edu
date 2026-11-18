@@ -132,6 +132,36 @@
       "id": "icone-colis",
       "genre": "icone",
       "prompt": "A single small cardboard parcel tied with a red ribbon bow, game inventory icon, cute chibi anime style for a cozy farming life-sim game, soft rounded shapes, warm pastel colours, gentle hand-painted texture, centered, seen slightly from above, soft light, plain very light cream background, no shadow on the floor. --no text, letters, logo, watermark, hands, table"
+    },
+    {
+      "id": "parcelle",
+      "genre": "objet",
+      "prompt": "Full 3D game asset of a small square vegetable garden bed: a low wooden plank frame filled with dark brown freshly tilled soil, empty, nothing growing, cute chibi anime style for a cozy farming life-sim game, soft rounded shapes, warm pastel colours, gentle hand-painted texture. Whole object visible, three-quarter front view, isolated on a plain light grey background, no ground, no shadow. --no text, letters, logo, watermark, people, animals"
+    },
+    {
+      "id": "pousse",
+      "genre": "objet",
+      "prompt": "Full 3D game asset of a tiny cluster of three young green seedlings with two round leaves each, sprouting from a small mound of brown soil, cute chibi anime style for a cozy farming life-sim game, soft rounded shapes, warm pastel colours, gentle hand-painted texture. Whole object visible, three-quarter front view, isolated on a plain light grey background, no ground, no shadow. --no text, letters, logo, watermark, people, animals"
+    },
+    {
+      "id": "carottes-mures",
+      "genre": "objet",
+      "prompt": "Full 3D game asset of a small clump of three carrot plants ready to harvest: bushy feathery green tops with the orange tops of the carrots peeking out of a small mound of brown soil, cute chibi anime style for a cozy farming life-sim game, soft rounded shapes, warm pastel colours, gentle hand-painted texture. Whole object visible, three-quarter front view, isolated on a plain light grey background, no ground, no shadow. --no text, letters, logo, watermark, people, animals"
+    },
+    {
+      "id": "tomates-mures",
+      "genre": "objet",
+      "prompt": "Full 3D game asset of a small tomato plant ready to harvest on a short wooden stake, green leaves and several shiny ripe red tomatoes, growing from a small mound of brown soil, cute chibi anime style for a cozy farming life-sim game, soft rounded shapes, warm pastel colours, gentle hand-painted texture. Whole object visible, three-quarter front view, isolated on a plain light grey background, no ground, no shadow. --no text, letters, logo, watermark, people, animals"
+    },
+    {
+      "id": "icone-graines-carotte",
+      "genre": "icone",
+      "prompt": "A single small paper seed packet with a picture of an orange carrot on the front, game inventory icon, cute chibi anime style for a cozy farming life-sim game, soft rounded shapes, warm pastel colours, gentle hand-painted texture, centered, seen slightly from above, soft light, plain very light cream background, no shadow on the floor. --no text, letters, logo, watermark, hands, table"
+    },
+    {
+      "id": "icone-graines-tomate",
+      "genre": "icone",
+      "prompt": "A single small paper seed packet with a picture of a red tomato on the front, game inventory icon, cute chibi anime style for a cozy farming life-sim game, soft rounded shapes, warm pastel colours, gentle hand-painted texture, centered, seen slightly from above, soft light, plain very light cream background, no shadow on the floor. --no text, letters, logo, watermark, hands, table"
     }
   ]
 }

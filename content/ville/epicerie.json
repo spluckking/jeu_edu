@@ -1,5 +1,5 @@
 {
-  "_lisez-moi": "L'épicerie de la ville (tranche 1B). Prix en centimes (bienvenue : les pièces offertes à la première visite), en euros ronds pour commencer. rachat : prix auquel l'épicière rachète un produit récolté (null : elle ne le rachète pas). achatsParJour : combien de récoltes elle rachète au plus chaque jour. valide=false : textes à relire (A_VALIDER.md). article : le nom avec son article, pour les phrases.",
+  "_lisez-moi": "L'épicerie de la ville (tranche 1B). Prix en centimes (bienvenue : les pièces offertes à la première visite), en euros ronds pour commencer. rachat : prix auquel l'épicière rachète un produit récolté (pommes, légumes du potager) (null : elle ne le rachète pas). achatsParJour : combien de récoltes elle rachète au plus chaque jour. valide=false : textes à relire (A_VALIDER.md). article : le nom avec son article, pour les phrases.",
   "achatsParJour": 5,
   "bienvenue": [
     500,
@@ -30,7 +30,7 @@
       "pluriel": "carottes",
       "article": "la carotte",
       "prix": 100,
-      "rachat": null
+      "rachat": 100
     },
     {
       "id": "tomate",
@@ -38,7 +38,7 @@
       "pluriel": "tomates",
       "article": "la tomate",
       "prix": 200,
-      "rachat": null
+      "rachat": 100
     },
     {
       "id": "pain",
@@ -55,15 +55,31 @@
       "article": "la bouteille de lait",
       "prix": 200,
       "rachat": null
+    },
+    {
+      "id": "graines-carotte",
+      "nom": "sachet de graines de carottes",
+      "pluriel": "sachets de graines de carottes",
+      "article": "le sachet de graines de carottes",
+      "prix": 100,
+      "rachat": null
+    },
+    {
+      "id": "graines-tomate",
+      "nom": "sachet de graines de tomates",
+      "pluriel": "sachets de graines de tomates",
+      "article": "le sachet de graines de tomates",
+      "prix": 200,
+      "rachat": null
     }
   ],
   "textes": {
-    "valide": true,
+    "valide": false,
     "nom": "L’épicière",
     "bienvenue": "Bonjour ! Tu es nouveau en ville ? Voici 10 euros pour faire tes premières courses. Range-les bien dans ton porte-monnaie !",
     "accueil": "Bonjour ! Qu’est-ce qui te ferait plaisir aujourd’hui ?",
     "acheter": "Acheter",
-    "vendre": "Vendre mes pommes",
+    "vendre": "Vendre mes récoltes",
     "auRevoir": "Au revoir",
     "payer": "Pose tes pièces sur le comptoir.",
     "pasAssez": "Il manque encore un peu d’argent.",
@@ -75,9 +91,9 @@
     "rendreAide": "Regarde : de {prix} à {donne}, il y a {rendu}. Je te rends {rendu}.",
     "rendreJuste": "Bravo, c’est bien ça ! Voilà ta monnaie.",
     "merci": "Merci ! Bonne journée !",
-    "vendreRien": "Tu n’as pas de pommes. Il y en a sur le pommier, près de la place !",
-    "vendreFini": "J’ai assez de pommes pour aujourd’hui. Reviens demain !",
-    "vendreOk": "Je te prends {nombre} à {prix} chacune. Voilà {total} !",
+    "vendreRien": "Tu n’as rien à vendre. Il y a des pommes sur le pommier, et tu peux faire pousser des légumes dans ton potager !",
+    "vendreFini": "J’ai assez de récoltes pour aujourd’hui. Reviens demain !",
+    "vendreOk": "Je te prends {liste}, à {prix} pièce. Voilà {total} !",
     "pommier": "Le pommier",
     "cueillir": "Cueillir",
     "cueilli": "Une pomme dans ton panier !",

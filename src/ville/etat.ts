@@ -5,9 +5,13 @@ import { dicteeNeuve, type EtatDictee } from '../dictee/etat.ts';
 import type { PorteMonnaie } from './argent.ts';
 import { POMMES_PAR_ARBRE, type Panier, type Pommier, type Ventes } from './commerce.ts';
 import { demandesNeuves, type EtatDemandes } from './demandes.ts';
+import { parcelleLibre, type Parcelle } from './jardin.ts';
+
+/** Le potager compte toujours ce nombre de parcelles. */
+export const PARCELLES = 4;
 
 export interface EtatVille {
-  version: 3;
+  version: 4;
   /** Où se trouve le personnage, et vers où il regarde. */
   position: { x: number; z: number; cap: number };
   /** Les dialogues déjà lus. */
@@ -27,11 +31,13 @@ export interface EtatVille {
   lotChoisi: string;
   /** Les meubles gagnés, posés devant la maison. */
   meubles: string[];
+  /** Le potager : ce qui pousse dans chaque parcelle. */
+  parcelles: Parcelle[];
 }
 
 export function etatNeuf(): EtatVille {
   return {
-    version: 3,
+    version: 4,
     position: { x: 0, z: 6, cap: Math.PI },
     lus: [],
     dictee: dicteeNeuve(),
@@ -42,6 +48,7 @@ export function etatNeuf(): EtatVille {
     demandes: demandesNeuves(),
     lotChoisi: '',
     meubles: [],
+    parcelles: Array.from({ length: PARCELLES }, parcelleLibre),
   };
 }
 
@@ -51,7 +58,7 @@ function compteur(v: unknown): Record<string, number> {
   return Object.fromEntries(Object.entries(v).filter((e): e is [string, number] => Number.isInteger(e[1]) && e[1] > 0));
 }
 
-/** Relit un état brut (versions 1 à 3) ; un état illisible repart de zéro plutôt que de bloquer le jeu. */
+/** Relit un état brut (versions 1 à 4) ; un état illisible repart de zéro plutôt que de bloquer le jeu. */
 export function lireEtat(brut: unknown): EtatVille {
   const neuf = etatNeuf();
   if (typeof brut !== 'object' || brut === null) return neuf;
@@ -62,8 +69,9 @@ export function lireEtat(brut: unknown): EtatVille {
   const v = o.ventes;
   const d = o.demandes;
   const textes = (x: unknown): string[] => (Array.isArray(x) ? x.filter((y): y is string => typeof y === 'string') : []);
+  const parcelles = Array.isArray(o.parcelles) ? o.parcelles : [];
   return {
-    version: 3,
+    version: 4,
     position: p && nombre(p.x) && nombre(p.z) && nombre(p.cap) ? { x: p.x, z: p.z, cap: p.cap } : neuf.position,
     lus: Array.isArray(o.lus) ? o.lus.filter((x): x is string => typeof x === 'string') : [],
     // L'état de la dictée n'est écrit que par le jeu lui-même : on le reprend s'il a la bonne forme.
@@ -92,6 +100,11 @@ export function lireEtat(brut: unknown): EtatVille {
         : demandesNeuves(),
     lotChoisi: typeof o.lotChoisi === 'string' ? o.lotChoisi : '',
     meubles: textes(o.meubles),
+    // Avant la version 4, pas de potager : toutes les parcelles sont libres.
+    parcelles: Array.from({ length: PARCELLES }, (_, i) => {
+      const x = parcelles[i] as Partial<Parcelle> | undefined;
+      return x && (typeof x.graine === 'string' || x.graine === null) ? { graine: x.graine, arrosages: textes(x.arrosages) } : parcelleLibre();
+    }),
   };
 }
 
