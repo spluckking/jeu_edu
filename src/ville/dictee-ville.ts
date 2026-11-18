@@ -6,7 +6,8 @@
 import * as THREE from 'three';
 import { aujourdhui } from '../dictee/leitner.ts';
 import { changerListe, estJourDeConcours, importerDicteeBlocs, jamaisVu, motsRestants, noter, noterConcours, phraseDe, revisionDuJour, type EtatDictee } from '../dictee/etat.ts';
-import { detecter, LIEUX, type IdLieu } from '../dictee/pieges.ts';
+import { detecter, LIEUX as PIEGES, type IdLieu } from '../dictee/pieges.ts';
+import { LIEUX } from './monde.ts';
 import type { Atelier, Peinture, Vec3 } from '../scene/atelier.ts';
 import { bruitage } from '../son/bruitages.ts';
 import { dire } from '../son/voix.ts';
@@ -60,39 +61,31 @@ function decor(c: Contexte, x: number, z: number, cap: number, dessiner: (f: (t:
 
 function construireDecor(c: Contexte): void {
   // Le tableau des mots, sur la place : un grand panneau de bois sur deux pieds.
-  decor(c, 5.2, 2.6, -0.5, (f) => {
+  decor(c, LIEUX.tableau.x, LIEUX.tableau.z, LIEUX.tableau.cap, (f) => {
     for (const x of [-1.1, 1.1]) f([0.22, 2.4, 0.22], [x, 1.2, 0], 'poteau', { forme: 'tube' });
     f([2.8, 1.7, 0.18], [0, 1.85, 0], 'bois');
     f([2.5, 1.4, 0.06], [0, 1.85, 0.11], 0xfff6e2);
     for (let i = 0; i < 4; i++) f([1.6 - (i % 2) * 0.4, 0.09, 0.03], [-0.1, 2.3 - i * 0.28, 0.15], 0x6b5a4e);
     f([0.26, 0.26, 0.26], [1.15, 2.6, 0.12], 'rouge', { forme: 'boule' });
   });
-  c.obstacles.push({ x: 5.2, z: 2.6, r: 1.3 });
+  c.obstacles.push({ x: LIEUX.tableau.x, z: LIEUX.tableau.z, r: 1.3 });
   // La tour des lettres doubles : une tour ronde, toit pointu rouge.
-  decor(c, -15, -8, 0.3, (f) => {
+  decor(c, LIEUX.tour.x, LIEUX.tour.z, LIEUX.tour.cap, (f) => {
     f([3, 4.5, 3], [0, 2.25, 0], 0xe9dcc6, { forme: 'tube' });
     f([3.4, 0.4, 3.4], [0, 4.6, 0], 0xd8c9b0, { forme: 'tube' });
-    f([3.6, 2.6, 3.6], [0, 6.1, 0], hex(LIEUX.double.couleur), { forme: 'cone' });
+    f([3.6, 2.6, 3.6], [0, 6.1, 0], hex(PIEGES.double.couleur), { forme: 'cone' });
     f([1, 1.6, 0.2], [0, 0.8, 1.5], 'bois');
     for (const a of [0.7, -0.7]) f([0.5, 0.7, 0.2], [Math.sin(a) * 1.5, 3, Math.cos(a) * 1.5], 0x7cc4e8);
   });
-  c.obstacles.push({ x: -15, z: -8, r: 2 });
-  // Le pont du m : un petit pont de bois au-dessus d'un ruisseau.
-  decor(c, 15, -8, -0.3, (f) => {
-    f([7, 0.06, 2.4], [0, 0.03, 0], 0x6fbfe6, { forme: 'disque', rx: Math.PI / 2, lisse: true });
-    f([4.4, 0.25, 1.8], [0, 0.6, 0], 'bois');
-    for (const sz of [-0.85, 0.85]) {
-      f([4.4, 0.14, 0.14], [0, 1.25, sz], hex(LIEUX.mbp.couleur));
-      for (const sx of [-2, -1, 0, 1, 2]) f([0.14, 0.7, 0.14], [sx, 0.95, sz], 'poteau', { forme: 'tube' });
-    }
-  });
+  c.obstacles.push({ x: LIEUX.tour.x, z: LIEUX.tour.z, r: 2 });
+  // Le pont du m, c'est le pont sur la rivière, sur la route de la fête (monde.ts).
   // Le mur des mots : un muret de pierres claires avec des plaques.
-  decor(c, -5.5, -5.5, 0.5, (f) => {
+  decor(c, LIEUX.murDesMots.x, LIEUX.murDesMots.z, LIEUX.murDesMots.cap, (f) => {
     f([4.6, 1.8, 0.6], [0, 0.9, 0], 0xd8cfc0);
     f([4.8, 0.2, 0.8], [0, 1.9, 0], 0xc9bda8);
     for (let i = 0; i < 6; i++) f([0.6, 0.35, 0.05], [-1.7 + i * 0.68, 1.15 + (i % 2) * 0.4, 0.32], 0xffd96a);
   });
-  c.obstacles.push({ x: -5.5, z: -5.5, r: 2.3 });
+  c.obstacles.push({ x: LIEUX.murDesMots.x, z: LIEUX.murDesMots.z, r: 2.3 });
 }
 
 // --- Les séances ---------------------------------------------------------------------------
@@ -194,9 +187,9 @@ async function lieuDePiege(c: Contexte, lieu: IdLieu): Promise<void> {
   const f = ouvrirFond(c);
   const e = c.dictee();
   const ici = [...e.mots.map((m) => m.w), ...Object.keys(e.memoire)].filter((w) => detecter(w).lieu === lieu);
-  if (!ici.length) await message(f, LIEUX[lieu].nom, `Aucun mot n’habite ici cette semaine. ${LIEUX[lieu].regle}`, 'D’accord');
+  if (!ici.length) await message(f, PIEGES[lieu].nom, `Aucun mot n’habite ici cette semaine. ${PIEGES[lieu].regle}`, 'D’accord');
   else {
-    await message(f, LIEUX[lieu].nom, `${LIEUX[lieu].regle} ${ici.length} mot${ici.length > 1 ? 's habitent' : ' habite'} ici.`, 'Je m’entraîne');
+    await message(f, PIEGES[lieu].nom, `${PIEGES[lieu].regle} ${ici.length} mot${ici.length > 1 ? 's habitent' : ' habite'} ici.`, 'Je m’entraîne');
     await serie(c, f, ici.slice(0, 8), () => false);
   }
   fermerFond(c);
@@ -285,10 +278,10 @@ function panneauParent(c: Contexte): void {
 export function installerDictee(c: Contexte): void {
   construireDecor(c);
   c.points.push(
-    { verbe: 'Lire', nom: 'Le tableau des mots', x: 5.2, z: 2.6, action: () => void revisionOuConcours(c) },
-    { verbe: 'Entrer', nom: LIEUX.double.nom, x: -15, z: -8, action: () => void lieuDePiege(c, 'double') },
-    { verbe: 'Traverser', nom: LIEUX.mbp.nom, x: 15, z: -8, action: () => void lieuDePiege(c, 'mbp') },
-    { verbe: 'Regarder', nom: 'Le mur des mots', x: -5.5, z: -5.5, action: () => murDesMots(c) },
+    { verbe: 'Lire', nom: 'Le tableau des mots', x: LIEUX.tableau.x, z: LIEUX.tableau.z, action: () => void revisionOuConcours(c) },
+    { verbe: 'Entrer', nom: PIEGES.double.nom, x: LIEUX.tour.x, z: LIEUX.tour.z, action: () => void lieuDePiege(c, 'double') },
+    { verbe: 'Traverser', nom: PIEGES.mbp.nom, x: LIEUX.pont.x - 4.5, z: LIEUX.pont.z, action: () => void lieuDePiege(c, 'mbp') },
+    { verbe: 'Regarder', nom: 'Le mur des mots', x: LIEUX.murDesMots.x, z: LIEUX.murDesMots.z, action: () => murDesMots(c) },
   );
   if (new URLSearchParams(location.search).has('parent')) panneauParent(c);
 }

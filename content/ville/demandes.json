@@ -37,7 +37,7 @@
         200
       ],
       "texte": "Oh là là, j’ai travaillé toute la matinée et j’ai très faim ! Pour ma soupe, il me faut 2 carottes. Et je voudrais aussi 1 pain. Tu peux aller me les acheter à l’épicerie ?",
-      "rappel": "Tu te souviens ? Pour ma soupe, il me faut 2 carottes et 1 pain.",
+      "rappel": "Tu te souviens ? Pour ma soupe, il me faut 2 carottes et 1 pain. Je suis à la fête foraine.",
       "merci": "Merci, c’est exactement ça ! Ma soupe va être délicieuse. Tiens, voilà 4 € pour toi."
     },
     {
@@ -60,8 +60,8 @@
       "recompense": [
         200
       ],
-      "texte": "Le forain m’a commandé une bouteille de lait, mais je ne peux pas quitter ma boutique. Peux-tu lui apporter ce colis ? Il est sur la place, à côté de la fontaine.",
-      "rappel": "Le colis est pour le forain, sur la place, à côté de la fontaine.",
+      "texte": "Le forain m’a commandé une bouteille de lait, mais je ne peux pas quitter ma boutique. Peux-tu lui apporter ce colis ? Il est à la fête foraine : suis la grande route vers l’est et passe le pont.",
+      "rappel": "Le colis est pour le forain, à la fête foraine, après le pont.",
       "merci": "Mon colis ! Merci beaucoup. Tiens, voilà 2 € pour ta peine."
     }
   ],

@@ -16,7 +16,6 @@ import { choisirPalette } from '../scene/palette.ts';
 import { creerPersonne } from '../scene/personne.ts';
 import { choisirQualite, eclairer, ombrer } from '../scene/qualite.ts';
 import { CameraHaute } from '../scene/suivi.ts';
-import { plaque } from '../scene/textures.ts';
 import { dire } from '../son/voix.ts';
 import { installerDictee, type PointInteret } from './dictee-ville.ts';
 import { installerDemandes, majSeance, parlerA } from './demandes-ville.ts';
@@ -31,6 +30,11 @@ import epicerie from '../../content/ville/epicerie.json';
 import meubles from '../../content/ville/meubles.json';
 import { chargerEtat, sauverEtat } from './etat.ts';
 import { creerSol, semerGazon } from './gazon.ts';
+import { BORDS, BUISSONS_MURES, dansLEau, LIEUX, occupe as occupeMonde, PONT, RAYON_PLACE, surLePont } from './monde.ts';
+import { dessinerMonde, placesDesArbres, planterArbres } from './monde-scene.ts';
+
+/** Le forain du chamboule-tout, à la fête foraine, juste après le portail. */
+const FORAIN = { x: LIEUX.portailFete.x + 5.5, z: LIEUX.portailFete.z + 3.4, cap: -1.75 };
 import { aEntendre, decouper } from './mots.ts';
 
 const adresse = new URLSearchParams(location.search);
@@ -44,7 +48,7 @@ const el = <T extends HTMLElement>(id: string): T => document.getElementById(id)
 const renderer = new THREE.WebGLRenderer({ canvas: el<HTMLCanvasElement>('scene'), antialias: true, powerPreference: 'high-performance' });
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(palette.ciel.bas);
-scene.fog = new THREE.Fog(palette.ciel.bas, 50, 120);
+scene.fog = new THREE.Fog(palette.ciel.bas, 70, 170);
 const ciel = new THREE.HemisphereLight(0xeaf6ff, 0xdcefc6, 2.1);
 const soleil = new THREE.DirectionalLight(0xfff1dc, 1.7);
 scene.add(ciel, soleil);
@@ -66,8 +70,10 @@ redimensionner();
 const atelier = new Atelier();
 const ville = new THREE.Group();
 scene.add(ville);
-ville.add(creerSol(160));
-const RAYON_PLACE = 9;
+ville.add(creerSol(280));
+// Les chemins de terre, la rivière, l'étang et sa plage (le plan est dans monde.ts).
+const monde = dessinerMonde();
+ville.add(monde.racine);
 const place = new THREE.CircleGeometry(RAYON_PLACE, 48).rotateX(-Math.PI / 2).translate(0, 0.02, 0);
 {
   const pos = place.getAttribute('position');
@@ -75,7 +81,6 @@ const place = new THREE.CircleGeometry(RAYON_PLACE, 48).rotateX(-Math.PI / 2).tr
   for (let i = 0; i < pos.count; i++) uv.setXY(i, pos.getX(i), -pos.getZ(i));
 }
 ville.add(new THREE.Mesh(place, atelier.matDalles));
-ville.add(new THREE.Mesh(plaque(2.6, 8, 0, 0.018, -12.5), atelier.matDalles));
 
 // La fontaine du centre, dessinée avec l'atelier du jeu.
 {
@@ -93,17 +98,30 @@ ville.add(new THREE.Mesh(plaque(2.6, 8, 0, 0.018, -12.5), atelier.matDalles));
 
 /** Ce qui arrête le personnage : des cercles (x, z, rayon). */
 const obstacles: Array<{ x: number; z: number; r: number }> = [
-  { x: 11.6, z: -10.6, r: 1.3 },
-  { x: -13.5, z: -2, r: 3.2 },
-  { x: -9, z: -15, r: 3 },
-  { x: -9.6, z: -0.4, r: 0.6 },
-  { x: -18, z: 1.5, r: 0.9 },
-  { x: -20.5, z: 4.8, r: 0.9 },
-  { x: -18, z: 8.2, r: 0.9 },
   { x: 0, z: 0, r: 2.6 },
-  { x: 14, z: 3, r: 3.4 },
-  { x: 10.3, z: 4.6, r: 0.6 },
-  { x: -11, z: 8.5, r: 1.1 },
+  { x: LIEUX.epicerie.x, z: LIEUX.epicerie.z, r: 3.4 },
+  { x: LIEUX.epiciere.x, z: LIEUX.epiciere.z, r: 0.6 },
+  { x: LIEUX.pommier.x, z: LIEUX.pommier.z, r: 1.1 },
+  { x: LIEUX.poste.x, z: LIEUX.poste.z, r: 3.2 },
+  { x: LIEUX.postiere.x, z: LIEUX.postiere.z, r: 0.6 },
+  { x: LIEUX.boulangerie.x, z: LIEUX.boulangerie.z, r: 3 },
+  ...BUISSONS_MURES.map((b) => ({ x: b.x, z: b.z, r: 0.9 })),
+];
+/** Autour des lieux, ni herbe haute ni arbres (rayon en mètres). */
+const ABORDS = [
+  { ...LIEUX.maison, r: 7 },
+  { ...LIEUX.potager, r: 4.5 },
+  { ...LIEUX.pommier, r: 2.6 },
+  { ...LIEUX.epicerie, r: 5 },
+  { ...LIEUX.poste, r: 5 },
+  { ...LIEUX.boulangerie, r: 5 },
+  { ...LIEUX.tableau, r: 1.8 },
+  { ...LIEUX.murDesMots, r: 3 },
+  { ...LIEUX.tour, r: 3.2 },
+  { ...LIEUX.ponton, r: 3 },
+  { ...LIEUX.portailFete, r: 5 },
+  { ...LIEUX.fete, r: 20 },
+  ...BUISSONS_MURES.map((b) => ({ ...b, r: 2.2 })),
 ];
 
 // --- Les modèles Tripo ------------------------------------------------------------------------
@@ -128,12 +146,33 @@ function poser(o: THREE.Object3D, axe: 'x' | 'y', voulu: number, x: number, z: n
   o.position.y -= new THREE.Box3().setFromObject(o).min.y;
 }
 
+let hauteurPont = 0;
+/** La hauteur du sol sous l'enfant : le tablier du pont fait une bosse douce. */
+function sol(x: number, z: number): number {
+  if (!surLePont(x, z)) return 0.06;
+  const u = (x - LIEUX.pont.x) / (PONT.longueur / 2);
+  return 0.06 + hauteurPont * Math.max(0, 1 - u * u);
+}
+
+/** Comme poser, mais le modèle est centré sur sa place et mesuré par sa plus grande longueur au
+ *  sol (pour ceux dont l'origine n'est pas au milieu : pont, portail). */
+function poserCentre(o: THREE.Object3D, longueur: number, x: number, z: number, cap: number): void {
+  const t = new THREE.Box3().setFromObject(o).getSize(new THREE.Vector3());
+  o.scale.setScalar(longueur / Math.max(1e-6, t.x, t.z));
+  o.rotation.y = cap + FACE_TRIPO;
+  o.position.set(0, 0, 0);
+  o.updateMatrixWorld(true);
+  const b = new THREE.Box3().setFromObject(o);
+  const c = b.getCenter(new THREE.Vector3());
+  o.position.set(x - c.x, -b.min.y, z - c.z);
+}
+
 const melangeurs: THREE.AnimationMixer[] = [];
 
 // L'épicerie, au bord de la place, face au centre ; l'épicière devant ; le pommier de l'autre côté.
-const EPICERIE = { x: 14, z: 3, cap: -Math.PI / 2 };
-const EPICIERE = { x: 10.3, z: 4.6, cap: -2.1 };
-const POMMIER = { x: -11, z: 8.5 };
+const EPICERIE = LIEUX.epicerie;
+const EPICIERE = LIEUX.epiciere;
+const POMMIER = LIEUX.pommier;
 const pommesArbre: THREE.Object3D[] = [];
 let pommesVisibles = 0;
 function montrerPommes(n: number): void {
@@ -153,16 +192,16 @@ const points: PointInteret[] = [];
 async function peupler(): Promise<void> {
   const maison = await modele('maison-du-personnage');
   if (maison) {
-    poser(maison.scene, 'x', 7.5, 0, -19, 0);
+    poser(maison.scene, 'x', 7.5, LIEUX.maison.x, LIEUX.maison.z, LIEUX.maison.cap);
     ville.add(maison.scene);
-    obstacles.push({ x: 0, z: -19, r: 3.6 });
+    obstacles.push({ x: LIEUX.maison.x, z: LIEUX.maison.z, r: 3.6 });
   }
   const forain = await modele('forain-chamboule');
   if (forain) {
     const o = forain.animations.length ? clonerAnime(forain.scene) : forain.scene;
-    poser(o, 'y', 2.2, -4.5, 3, 0.6);
+    poser(o, 'y', 2.2, FORAIN.x, FORAIN.z, FORAIN.cap);
     ville.add(o);
-    obstacles.push({ x: -4.5, z: 3, r: 0.7 });
+    obstacles.push({ x: FORAIN.x, z: FORAIN.z, r: 0.7 });
     if (forain.animations.length) {
       const m = new THREE.AnimationMixer(o);
       const attente = forain.animations.find((a) => /idle/i.test(a.name)) ?? forain.animations[0];
@@ -217,6 +256,7 @@ async function peupler(): Promise<void> {
     }
   }
   for (const id of etat.meubles) await poserMeuble(id);
+  await poserPaysage();
   await poserPotager();
   await poserRiviere();
   await poserPoste();
@@ -225,7 +265,7 @@ async function peupler(): Promise<void> {
 
 // Le potager, à droite de la maison : quatre parcelles en carré. Chaque parcelle a sa caisse de
 // terre, et par-dessus ce qui pousse (pousse, puis légume mûr), échangé quand ça change.
-const POTAGER = { x: 8.6, z: -17 };
+const POTAGER = LIEUX.potager;
 const PLACES_PARCELLES = [
   { x: POTAGER.x - 1.25, z: POTAGER.z + 1.25 },
   { x: POTAGER.x + 1.25, z: POTAGER.z + 1.25 },
@@ -265,12 +305,7 @@ async function poserPotager(): Promise<void> {
 
 // La rivière et le bois : le ponton au bord du ruisseau, sous le pont ; trois buissons de mûres à
 // l'ouest de la place. Sur chaque buisson, autant de grappes que de mûres à cueillir ce jour-là.
-const PONTON = { x: 11.6, z: -10.6, cap: 0.3 };
-const BUISSONS_MURES = [
-  { x: -18, z: 1.5 },
-  { x: -20.5, z: 4.8 },
-  { x: -18, z: 8.2 },
-];
+const PONTON = LIEUX.ponton;
 const grappes: THREE.Object3D[][] = BUISSONS_MURES.map(() => []);
 const grappesVoulues: number[] = BUISSONS_MURES.map(() => 0);
 function montrerMures(i: number, n: number): void {
@@ -307,8 +342,8 @@ async function poserRiviere(): Promise<void> {
 }
 
 // La poste, à l'ouest de la place, face à l'épicerie ; la postière devant sa porte.
-const POSTE = { x: -13.5, z: -2, cap: Math.PI / 2 };
-const POSTIERE = { x: -9.6, z: -0.4, cap: 1.9 };
+const POSTE = LIEUX.poste;
+const POSTIERE = LIEUX.postiere;
 async function poserPoste(): Promise<void> {
   const batiment = await modele('poste');
   if (batiment) {
@@ -330,7 +365,7 @@ async function poserPoste(): Promise<void> {
 
 // Les grands projets : chaque lieu a sa place ; on y voit le chantier, puis le bâtiment construit
 // et son habitant devant la porte.
-const LIEUX_PROJETS: Record<string, { x: number; z: number }> = { boulangerie: { x: -9, z: -15 } };
+const LIEUX_PROJETS: Record<string, { x: number; z: number; cap: number }> = { boulangerie: LIEUX.boulangerie };
 let chantier: THREE.Object3D | null = null;
 async function montrerChantier(id: string | null): Promise<void> {
   chantier?.removeFromParent();
@@ -339,7 +374,7 @@ async function montrerChantier(id: string | null): Promise<void> {
   const g = lieu ? await modele('chantier') : null;
   if (!g || !lieu) return;
   chantier = g.scene;
-  poser(chantier, 'x', 5.5, lieu.x, lieu.z, 0);
+  poser(chantier, 'x', 5.5, lieu.x, lieu.z, lieu.cap);
   ville.add(chantier);
   if (qualite === 'haute') ombrer(chantier);
 }
@@ -349,7 +384,8 @@ async function montrerLieu(id: string): Promise<void> {
   if (!lieu || !p) return;
   const batiment = await modele(p.modele);
   if (batiment) {
-    poser(batiment.scene, 'x', 6, lieu.x, lieu.z, Math.PI);
+    // La vitrine du modèle est à l'arrière : un demi-tour la met face à la caméra.
+    poser(batiment.scene, 'x', 6, lieu.x, lieu.z, Math.PI + lieu.cap);
     ville.add(batiment.scene);
     if (qualite === 'haute') ombrer(batiment.scene);
   }
@@ -373,15 +409,43 @@ function annoncerEnVille(texte: string): void {
   setTimeout(() => b.remove(), 4000);
 }
 
+// Le paysage : les arbres en bosquets, le pont sur la rivière, le portail de la fête foraine.
+async function poserPaysage(): Promise<void> {
+  const places = placesDesArbres(ABORDS);
+  const sortes: Array<[string, number]> = [
+    ['arbre-chene', 6.2],
+    ['arbre-sapin', 7.5],
+    ['arbre-cerisier', 4.6],
+  ];
+  for (const [i, [id, hauteur]] of sortes.entries()) {
+    const g = await modele(id);
+    const ici = places.filter((p) => p.sorte === i);
+    if (g && ici.length) ville.add(planterArbres(g, hauteur, ici));
+    for (const p of ici) obstacles.push({ x: p.x, z: p.z, r: 0.7 * p.taille });
+  }
+  const pont = await modele('pont');
+  if (pont) {
+    poserCentre(pont.scene, 9.5, LIEUX.pont.x, LIEUX.pont.z, LIEUX.pont.cap);
+    // Le tablier : sa hauteur au milieu, pour que l'enfant monte et descende en traversant.
+    hauteurPont = new THREE.Box3().setFromObject(pont.scene).max.y * 0.42;
+    ville.add(pont.scene);
+  }
+  const portail = await modele('portail-fete');
+  if (portail) {
+    poserCentre(portail.scene, 7.5, LIEUX.portailFete.x, LIEUX.portailFete.z, LIEUX.portailFete.cap);
+    ville.add(portail.scene);
+  }
+}
+
 // Les meubles gagnés, devant la maison, de part et d'autre de l'allée.
 const PLACES_MEUBLES = [
-  { x: -3.4, z: -13.2, cap: 0.5 },
-  { x: 3.4, z: -13.2, cap: -0.5 },
-  { x: -5.6, z: -15.6, cap: 1.2 },
-  { x: 5.6, z: -15.6, cap: -1.2 },
-  { x: -3, z: -10.4, cap: 0.3 },
-  { x: 3, z: -10.4, cap: -0.3 },
-];
+  { x: -3.6, z: 6, cap: 0.5 },
+  { x: 3.6, z: 6, cap: -0.5 },
+  { x: -5.8, z: 3.6, cap: 1.2 },
+  { x: 5.8, z: 3.6, cap: -1.2 },
+  { x: -3.2, z: 8.8, cap: 0.3 },
+  { x: 3.2, z: 8.8, cap: -0.3 },
+].map((p) => ({ x: LIEUX.maison.x + p.x, z: LIEUX.maison.z + p.z, cap: p.cap }));
 async function poserMeuble(id: string): Promise<void> {
   const rang = etat.meubles.indexOf(id);
   const place = PLACES_MEUBLES[rang];
@@ -479,13 +543,15 @@ heros.racine.rotation.y = etat.position.cap;
 
 let animerHerbe: (t: number) => void = () => {};
 if (qualite === 'haute') {
-  const herbe = semerGazon((x, z) => Math.hypot(x, z) > RAYON_PLACE + 0.4 && !(Math.abs(x) < 1.6 && z < -8 && z > -17) && Math.hypot(x, z + 19) > 4.4 && Math.hypot(x - 14, z - 3) > 3.8 && (Math.abs(x - 8.6) > 2.6 || Math.abs(z + 17) > 2.6) && Math.hypot(x + 13.5, z + 2) > 3.6 && Math.hypot(x + 9, z + 15) > 3.4, 32000, {
-    x: 40,
-    zMin: -45,
-    zMax: 35,
-  });
+  const libre = (x: number, z: number): boolean => !occupeMonde(x, z, ABORDS);
+  const herbe = semerGazon(libre, 20000, { x: 42, zMin: -45, zMax: 40 });
+  const loin = semerGazon((x, z) => (Math.abs(x) > 42 || z < -45 || z > 40) && libre(x, z), 9000, { x: BORDS.xMax, zMin: BORDS.zMin, zMax: BORDS.zMax });
+  herbe.racine.add(loin.racine);
   ville.add(herbe.racine);
-  animerHerbe = (t) => herbe.animer(t);
+  animerHerbe = (t) => {
+    herbe.animer(t);
+    loin.animer(t);
+  };
 }
 
 // --- Le dialogue : l'enfant lit lui-même, et peut toucher un mot pour l'entendre --------------
@@ -666,6 +732,8 @@ majSeance();
 const VITESSE = 4.2;
 function promenade(dt: number): number {
   const h = heros.racine;
+  const avantX = h.position.x;
+  const avantZ = h.position.z;
   const force = Math.min(1, Math.hypot(commandes.x, commandes.y));
   if (force > 0) {
     const { avant, droite } = suivi.axes();
@@ -687,8 +755,14 @@ function promenade(dt: number): number {
       h.position.z = o.z + (dz / d) * min;
     }
   }
-  h.position.x = Math.max(-38, Math.min(38, h.position.x));
-  h.position.z = Math.max(-40, Math.min(30, h.position.z));
+  // Pas dans l'eau (sauf sur le pont), et pas au-delà des bords du monde.
+  if (dansLEau(h.position.x, h.position.z)) {
+    h.position.x = avantX;
+    h.position.z = avantZ;
+  }
+  h.position.x = Math.max(BORDS.xMin, Math.min(BORDS.xMax, h.position.x));
+  h.position.z = Math.max(BORDS.zMin, Math.min(BORDS.zMax, h.position.z));
+  h.position.y = sol(h.position.x, h.position.z);
   // Quelque chose tout près (un habitant, le tableau…) : le bouton apparaît.
   let meilleur: PointInteret | null = null;
   let distance = 3.4;
@@ -736,6 +810,7 @@ renderer.setAnimationLoop(() => {
   const pas = promenade(dt);
   heros.animer(t, pas, 0);
   for (const m of melangeurs) m.update(dt);
+  monde.animer(t);
   animerHerbe(t);
   const pose = suivi.pose(heros.racine, dt);
   camera.position.copy(pose.position);

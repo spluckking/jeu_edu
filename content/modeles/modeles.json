@@ -247,6 +247,36 @@
       "animations": [
         "idle (Studio, squelette Mixamo)"
       ]
+    },
+    {
+      "id": "arbre-chene",
+      "genre": "objet",
+      "studio": true,
+      "image": "content/modeles/images/arbre-chene.png"
+    },
+    {
+      "id": "arbre-sapin",
+      "genre": "objet",
+      "studio": true,
+      "image": "content/modeles/images/arbre-sapin.png"
+    },
+    {
+      "id": "arbre-cerisier",
+      "genre": "objet",
+      "studio": true,
+      "image": "content/modeles/images/arbre-cerisier.png"
+    },
+    {
+      "id": "pont",
+      "genre": "objet",
+      "studio": true,
+      "image": "content/modeles/images/pont.png"
+    },
+    {
+      "id": "portail-fete",
+      "genre": "objet",
+      "studio": true,
+      "image": "content/modeles/images/portail-fete.png"
     }
   ]
 }
