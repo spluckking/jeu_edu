@@ -1,0 +1,51 @@
+{
+  "_lisez-moi": "Les grands projets (tranche 1C) : un lieu à construire en réunissant des récoltes, des euros (centimes) et des coups de main (demandes faites pendant le projet). Prévu pour 7 à 10 jours de jeu. Le lieu se construit la nuit qui suit et ouvre le lendemain ; son habitant s'installe devant. valide=false : textes à relire (A_VALIDER.md).",
+  "valide": false,
+  "premier": "boulangerie",
+  "projets": [
+    {
+      "id": "boulangerie",
+      "nom": "La boulangerie",
+      "modele": "boulangerie",
+      "habitant": {
+        "id": "boulanger",
+        "nom": "Le boulanger",
+        "modele": "boulanger"
+      },
+      "recoltes": [
+        {
+          "produit": "pomme",
+          "nombre": 9
+        },
+        {
+          "produit": "mure",
+          "nombre": 12
+        }
+      ],
+      "euros": 2000,
+      "aides": 6,
+      "presentation": "Un boulanger voudrait s’installer en ville ! Pour construire sa boulangerie, il faut des pommes et des mûres pour ses tartes, des euros pour les briques, et des habitants contents de ton aide.",
+      "ouverture": "Bonjour ! Grâce à toi, ma boulangerie est ouverte ! Bientôt, je t’apprendrai mes recettes. Merci du fond du cœur !",
+      "bonjour": "Bonjour ! Mon four chauffe déjà. Bientôt, on fera des recettes ensemble !"
+    }
+  ],
+  "textes": {
+    "panneau": "Le chantier",
+    "regarder": "Regarder",
+    "ilFaut": "Il faut encore :",
+    "aides": "{nombre} coups de main aux habitants",
+    "aide": "1 coup de main aux habitants",
+    "apporter": "Apporter",
+    "verser": "Donner des euros",
+    "plusTard": "Plus tard",
+    "rien": "Tu n’as rien de ce qu’il faut dans ton panier pour l’instant.",
+    "merci": "Merci ! Le chantier avance.",
+    "pieces": "Choisis les pièces que tu donnes pour le chantier.",
+    "tropDEuros": "Il ne manque que {reste} : c’est trop !",
+    "complet": "Tout est réuni ! Les ouvriers vont construire cette nuit. Reviens demain !",
+    "cetteNuit": "Les ouvriers construiront cette nuit. Reviens demain !",
+    "ouvert": "Surprise ! {nom} est construite !",
+    "bientot": "Le prochain grand projet arrive bientôt. Tu en choisiras un parmi deux !",
+    "ouEnEst": "Le chantier avance ! Regarde ce qu’il reste à réunir."
+  }
+}

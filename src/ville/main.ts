@@ -23,6 +23,8 @@ import { installerDemandes, majSeance, parlerA } from './demandes-ville.ts';
 import { installerEpicerie, rafraichirHud } from './epicerie-ville.ts';
 import { installerJardin } from './jardin-ville.ts';
 import { installerPoste } from './poste-ville.ts';
+import { installerProjets } from './projets-ville.ts';
+import projets from '../../content/ville/projets.json';
 import { installerRiviere } from './riviere-ville.ts';
 import type { Etape } from './jardin.ts';
 import epicerie from '../../content/ville/epicerie.json';
@@ -93,6 +95,7 @@ ville.add(new THREE.Mesh(plaque(2.6, 8, 0, 0.018, -12.5), atelier.matDalles));
 const obstacles: Array<{ x: number; z: number; r: number }> = [
   { x: 11.6, z: -10.6, r: 1.3 },
   { x: -13.5, z: -2, r: 3.2 },
+  { x: -9, z: -15, r: 3 },
   { x: -9.6, z: -0.4, r: 0.6 },
   { x: -18, z: 1.5, r: 0.9 },
   { x: -20.5, z: 4.8, r: 0.9 },
@@ -325,6 +328,51 @@ async function poserPoste(): Promise<void> {
   }
 }
 
+// Les grands projets : chaque lieu a sa place ; on y voit le chantier, puis le bâtiment construit
+// et son habitant devant la porte.
+const LIEUX_PROJETS: Record<string, { x: number; z: number }> = { boulangerie: { x: -9, z: -15 } };
+let chantier: THREE.Object3D | null = null;
+async function montrerChantier(id: string | null): Promise<void> {
+  chantier?.removeFromParent();
+  chantier = null;
+  const lieu = id ? LIEUX_PROJETS[id] : undefined;
+  const g = lieu ? await modele('chantier') : null;
+  if (!g || !lieu) return;
+  chantier = g.scene;
+  poser(chantier, 'x', 5.5, lieu.x, lieu.z, 0);
+  ville.add(chantier);
+  if (qualite === 'haute') ombrer(chantier);
+}
+async function montrerLieu(id: string): Promise<void> {
+  const lieu = LIEUX_PROJETS[id];
+  const p = projets.projets.find((x) => x.id === id);
+  if (!lieu || !p) return;
+  const batiment = await modele(p.modele);
+  if (batiment) {
+    poser(batiment.scene, 'x', 6, lieu.x, lieu.z, Math.PI);
+    ville.add(batiment.scene);
+    if (qualite === 'haute') ombrer(batiment.scene);
+  }
+  const h = await modele(p.habitant.modele);
+  if (!h) return;
+  const o = h.animations.length ? clonerAnime(h.scene) : h.scene;
+  poser(o, 'y', 2.1, lieu.x + 2.4, lieu.z + 3.6, -0.3);
+  ville.add(o);
+  obstacles.push({ x: lieu.x + 2.4, z: lieu.z + 3.6, r: 0.6 });
+  const attente = h.animations.find((a) => /idle/i.test(a.name)) ?? h.animations[0];
+  if (attente) {
+    const m = new THREE.AnimationMixer(o);
+    m.clipAction(attente).play();
+    melangeurs.push(m);
+  }
+  if (qualite === 'haute') ombrer(o);
+}
+function annoncerEnVille(texte: string): void {
+  const b = Object.assign(document.createElement('p'), { className: 'bulle-ville', textContent: texte });
+  document.body.append(b);
+  setTimeout(() => b.remove(), 4000);
+}
+
 // Les meubles gagnés, devant la maison, de part et d'autre de l'allée.
 const PLACES_MEUBLES = [
   { x: -3.4, z: -13.2, cap: 0.5 },
@@ -431,7 +479,7 @@ heros.racine.rotation.y = etat.position.cap;
 
 let animerHerbe: (t: number) => void = () => {};
 if (qualite === 'haute') {
-  const herbe = semerGazon((x, z) => Math.hypot(x, z) > RAYON_PLACE + 0.4 && !(Math.abs(x) < 1.6 && z < -8 && z > -17) && Math.hypot(x, z + 19) > 4.4 && Math.hypot(x - 14, z - 3) > 3.8 && (Math.abs(x - 8.6) > 2.6 || Math.abs(z + 17) > 2.6) && Math.hypot(x + 13.5, z + 2) > 3.6, 32000, {
+  const herbe = semerGazon((x, z) => Math.hypot(x, z) > RAYON_PLACE + 0.4 && !(Math.abs(x) < 1.6 && z < -8 && z > -17) && Math.hypot(x, z + 19) > 4.4 && Math.hypot(x - 14, z - 3) > 3.8 && (Math.abs(x - 8.6) > 2.6 || Math.abs(z + 17) > 2.6) && Math.hypot(x + 13.5, z + 2) > 3.6 && Math.hypot(x + 9, z + 15) > 3.4, 32000, {
     x: 40,
     zMin: -45,
     zMax: 35,
@@ -575,6 +623,25 @@ installerPoste({
   },
   apresUnChangement: rafraichirHud,
   postiere: POSTIERE,
+});
+
+installerProjets({
+  points,
+  etat: () => etat,
+  changer: (e) => {
+    Object.assign(etat, e);
+    void sauverEtat(etat);
+  },
+  occupe: (oui) => {
+    occupe = oui;
+    commandes.actives = !oui;
+    ui.interagir.hidden = true;
+  },
+  apresUnChangement: rafraichirHud,
+  lieux: LIEUX_PROJETS,
+  montrerChantier: (id) => void montrerChantier(id),
+  montrerLieu: (id) => void montrerLieu(id),
+  annoncer: annoncerEnVille,
 });
 
 installerEpicerie({

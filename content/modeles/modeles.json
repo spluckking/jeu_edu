@@ -224,6 +224,29 @@
       "genre": "icone",
       "studio": true,
       "image": "content/modeles/images/lettre.png"
+    },
+    {
+      "id": "chantier",
+      "genre": "objet",
+      "studio": true,
+      "image": "content/modeles/images/chantier.png"
+    },
+    {
+      "id": "boulangerie",
+      "genre": "batiment",
+      "studio": true,
+      "image": "content/modeles/images/boulangerie.png",
+      "triangles": 10827
+    },
+    {
+      "id": "boulanger",
+      "genre": "personnage",
+      "studio": true,
+      "image": "content/modeles/images/boulanger.png",
+      "triangles": 9609,
+      "animations": [
+        "idle (Studio, squelette Mixamo)"
+      ]
     }
   ]
 }

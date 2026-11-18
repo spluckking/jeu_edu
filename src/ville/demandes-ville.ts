@@ -13,6 +13,7 @@ import { confettis } from '../ui/confettis.ts';
 import { ajouter } from './argent.ts';
 import { enlever, mettre, type Panier } from './commerce.ts';
 import { accepter, demandesDuJour, enMots, lotsProposes, seanceFinie, terminer, verifierDon } from './demandes.ts';
+import { aider } from './projets.ts';
 import { bouton, carte, creer, icone, majuscule, piece, remplir, texteALire } from './interface.ts';
 import type { EtatVille } from './etat.ts';
 
@@ -134,7 +135,8 @@ async function livrer(c: ContexteDemandes, f: HTMLElement, d: Demande): Promise<
   let e = c.etat();
   let panier = e.panier;
   for (const b of d.besoin) panier = enlever(panier, b.produit, b.nombre) ?? panier;
-  e = { ...e, panier, porteMonnaie: ajouter(e.porteMonnaie, d.recompense), demandes: terminer(e.demandes, d.id) };
+  // Une demande faite compte aussi comme un coup de main pour le grand projet.
+  e = { ...e, panier, porteMonnaie: ajouter(e.porteMonnaie, d.recompense), demandes: terminer(e.demandes, d.id), projets: aider(e.projets) };
   c.changer(e);
   c.apresUnChangement();
   majSeance();
