@@ -17,6 +17,7 @@ import { choisirQualite, eclairer, ombrer, semerHerbe } from '../scene/qualite.t
 import { CameraHaute } from '../scene/suivi.ts';
 import { plaque } from '../scene/textures.ts';
 import { dire } from '../son/voix.ts';
+import { installerDictee, type PointInteret } from './dictee-ville.ts';
 import { chargerEtat, sauverEtat } from './etat.ts';
 import { aEntendre, decouper } from './mots.ts';
 
@@ -109,6 +110,8 @@ interface Habitant {
   dialogue: string;
 }
 const habitants: Habitant[] = [];
+/** Tout ce dont on peut s'approcher pour agir : habitants, tableau, lieux de piège… */
+const points: PointInteret[] = [];
 
 async function peupler(): Promise<void> {
   const maison = await modele('maison-du-personnage');
@@ -129,7 +132,9 @@ async function peupler(): Promise<void> {
       if (attente) m.clipAction(attente).play();
       melangeurs.push(m);
     }
-    habitants.push({ id: 'forain-chamboule', nom: 'Le forain', racine: o, dialogue: 'forain-accueil' });
+    const h: Habitant = { id: 'forain-chamboule', nom: 'Le forain', racine: o, dialogue: 'forain-accueil' };
+    habitants.push(h);
+    points.push({ verbe: 'Parler', nom: h.nom, x: o.position.x, z: o.position.z, action: () => ouvrirDialogue(h) });
   }
   if (qualite === 'haute') ombrer(ville);
 }
@@ -162,6 +167,7 @@ if (qualite === 'haute') {
 // --- Le dialogue : l'enfant lit lui-même, et peut toucher un mot pour l'entendre --------------
 const ui = {
   interagir: el<HTMLButtonElement>('interagir'),
+  interagirMot: document.querySelector<HTMLSpanElement>('#interagir .interagir-mot') as HTMLSpanElement,
   interagirTexte: el<HTMLSpanElement>('interagir-texte'),
   dialogue: el<HTMLElement>('dialogue'),
   nom: el<HTMLParagraphElement>('dialogue-nom'),
@@ -171,8 +177,9 @@ const ui = {
 const commandes = creerCommandes(el('zone-joystick'), el('joystick'), el('zone-regard'));
 commandes.actives = true;
 
-let proche: Habitant | null = null;
+let proche: PointInteret | null = null;
 let enDialogue: Habitant | null = null;
+let occupe = false;
 
 function ouvrirDialogue(h: Habitant): void {
   const d = dialogues.dialogues.find((x) => x.id === h.dialogue);
@@ -206,7 +213,24 @@ ui.fermer.addEventListener('click', () => {
   void sauverEtat(etat);
 });
 ui.interagir.addEventListener('click', () => {
-  if (proche) ouvrirDialogue(proche);
+  proche?.action();
+});
+
+installerDictee({
+  atelier,
+  ville,
+  obstacles,
+  points,
+  dictee: () => etat.dictee,
+  changer: (d) => {
+    etat.dictee = d;
+    void sauverEtat(etat);
+  },
+  occupe: (oui) => {
+    occupe = oui;
+    commandes.actives = !oui;
+    ui.interagir.hidden = true;
+  },
 });
 
 // --- La promenade ------------------------------------------------------------------------------
@@ -236,10 +260,24 @@ function promenade(dt: number): number {
   }
   h.position.x = Math.max(-38, Math.min(38, h.position.x));
   h.position.z = Math.max(-40, Math.min(30, h.position.z));
-  // Un habitant tout près : le bouton « Parler » apparaît.
-  proche = enDialogue ? null : (habitants.find((x) => x.racine.position.distanceTo(h.position) < 3.2) ?? null);
+  // Quelque chose tout près (un habitant, le tableau…) : le bouton apparaît.
+  let meilleur: PointInteret | null = null;
+  let distance = 3.4;
+  if (!enDialogue && !occupe) {
+    for (const p of points) {
+      const d = Math.hypot(p.x - h.position.x, p.z - h.position.z);
+      if (d < distance) {
+        distance = d;
+        meilleur = p;
+      }
+    }
+  }
+  proche = meilleur;
   ui.interagir.hidden = !proche;
-  if (proche) ui.interagirTexte.textContent = proche.nom;
+  if (proche) {
+    ui.interagirMot.textContent = proche.verbe;
+    ui.interagirTexte.textContent = proche.nom;
+  }
   return force;
 }
 
@@ -295,3 +333,14 @@ renderer.setAnimationLoop(() => {
 
 await peupler();
 document.body.dataset.pret = '1';
+
+// « ?essai » : placer le personnage d'un coup (essais et captures).
+if (adresse.has('essai')) {
+  Object.assign(window, {
+    essai: {
+      placer(x: number, z: number): void {
+        heros.racine.position.set(x, 0.06, z);
+      },
+    },
+  });
+}

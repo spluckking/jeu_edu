@@ -74,3 +74,211 @@ body.ville #scene {
   color: white;
   font: 12px monospace;
 }
+
+/* --- La dictée : fiche d'étude, mot caché, tuiles, correction ------------------------------ */
+.exercice-fond {
+  position: fixed;
+  inset: 0;
+  z-index: 8;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgba(58, 47, 74, 0.35);
+}
+
+.exercice {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  width: min(860px, 100%);
+  max-height: calc(100% - 16px);
+  overflow: auto;
+  padding: 26px 30px;
+  border-radius: 32px;
+  background: var(--papier);
+  box-shadow: var(--ombre);
+  text-align: center;
+  animation: apparaitre 0.35s var(--rebond);
+}
+
+.exercice-rang {
+  position: absolute;
+  top: 14px;
+  right: 20px;
+  margin: 0;
+  color: var(--encre-douce);
+  font-weight: 700;
+}
+
+.exercice-titre {
+  margin: 0;
+  font-size: 1.7rem;
+  font-weight: 700;
+}
+
+.exercice-texte {
+  margin: 0;
+  font-size: 1.25rem;
+  line-height: 1.5;
+}
+
+.fiche-mot {
+  margin: 4px 0;
+  font-size: 3.4rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.fiche-mot .syllabe.nouvelle {
+  margin-left: 0.18em;
+  padding-left: 0.18em;
+  border-left: 3px dotted rgba(74, 56, 51, 0.25);
+}
+
+.fiche-lieu,
+.fiche-phrase {
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.fiche-pastille {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  vertical-align: middle;
+}
+
+.fiche-phrase {
+  color: var(--encre-douce);
+  font-style: italic;
+}
+
+.cases {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+  font-size: 2.2rem;
+  font-weight: 700;
+}
+
+.cases .determinant {
+  margin-right: 8px;
+}
+
+.case {
+  width: 1.4em;
+  height: 1.6em;
+  border: 0;
+  border-bottom: 4px solid #d8c6ae;
+  border-radius: 10px 10px 4px 4px;
+  background: #fff;
+  color: var(--encre);
+  font: inherit;
+}
+
+.case.pleine {
+  border-bottom-color: var(--jaune);
+}
+
+.case.espace {
+  width: 0.6em;
+  border: 0;
+  background: none;
+}
+
+.tuiles {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  max-width: 640px;
+}
+
+.tuile {
+  min-width: 64px;
+  height: 64px;
+  border: 0;
+  border-radius: 16px;
+  background: var(--jaune);
+  box-shadow: 0 5px 0 #e3a92e;
+  color: var(--encre);
+  font: 700 2rem var(--police);
+}
+
+.tuile:disabled {
+  opacity: 0.25;
+  box-shadow: none;
+}
+
+.exercice-outils,
+.exercice-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+}
+
+.correction-lettres {
+  margin: 0;
+  font-size: 3rem;
+  font-weight: 700;
+}
+
+.correction-lettres .juste {
+  color: #3f9d3a;
+}
+
+.correction-lettres .accent,
+.correction-lettres .fausse,
+.correction-lettres .manque,
+.correction-lettres .trop {
+  color: #e07a1f;
+  text-decoration: underline wavy;
+}
+
+.correction-lettres .trop {
+  text-decoration: line-through;
+}
+
+.indice-apercu {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 32px;
+  background: rgba(255, 248, 238, 0.97);
+}
+
+.mur-mots {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+}
+
+.mot-grave {
+  padding: 10px 16px;
+  border: 0;
+  border-radius: 12px;
+  background: #ffe7a1;
+  box-shadow: 0 4px 0 #e3c063;
+  color: var(--encre);
+  font: 700 1.3rem var(--police);
+}
+
+.parent-liste {
+  width: 100%;
+  font: 1rem monospace;
+}
+
+.parent-ligne {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  font-size: 1.1rem;
+}
