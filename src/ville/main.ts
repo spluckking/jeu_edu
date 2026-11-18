@@ -1,0 +1,297 @@
+// La ville, tranche 0 (le socle) : la place, la maison du personnage, un forain animé, la
+// promenade au joystick avec la caméra haute, un dialogue que l'enfant lit lui-même en pouvant
+// toucher un mot pour l'entendre, et la sauvegarde de la position. Voir docs/VILLE.md.
+
+import '../style.css';
+import './ville.css';
+import * as THREE from 'three';
+import { GLTFLoader, type GLTF } from 'three/addons/loaders/GLTFLoader.js';
+import { clone as clonerAnime } from 'three/addons/utils/SkeletonUtils.js';
+import dialogues from '../../content/ville/dialogues.json';
+import { creerCommandes } from '../controles/joystick.ts';
+import { garderobeNeuve } from '../recompenses/recompenses.ts';
+import { Atelier } from '../scene/atelier.ts';
+import { choisirPalette } from '../scene/palette.ts';
+import { creerPersonne } from '../scene/personne.ts';
+import { choisirQualite, eclairer, ombrer, semerHerbe } from '../scene/qualite.ts';
+import { CameraHaute } from '../scene/suivi.ts';
+import { plaque } from '../scene/textures.ts';
+import { dire } from '../son/voix.ts';
+import { chargerEtat, sauverEtat } from './etat.ts';
+import { aEntendre, decouper } from './mots.ts';
+
+const adresse = new URLSearchParams(location.search);
+const qualite = choisirQualite(adresse.get('qualite') ?? 'haute');
+const palette = choisirPalette('naturelle');
+const el = <T extends HTMLElement>(id: string): T => document.getElementById(id) as T;
+
+// --- Moteur, lumière, caméra -------------------------------------------------------------------
+const renderer = new THREE.WebGLRenderer({ canvas: el<HTMLCanvasElement>('scene'), antialias: true, powerPreference: 'high-performance' });
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(palette.ciel.bas);
+scene.fog = new THREE.Fog(palette.ciel.bas, 50, 120);
+const ciel = new THREE.HemisphereLight(0xeaf6ff, 0xdcefc6, 2.1);
+const soleil = new THREE.DirectionalLight(0xfff1dc, 1.7);
+scene.add(ciel, soleil);
+if (qualite === 'haute') eclairer(renderer, scene, soleil, ciel);
+soleil.target.position.set(0, 0, -4);
+
+const camera = new THREE.PerspectiveCamera(34, 1, 0.1, 300);
+const suivi = new CameraHaute();
+function redimensionner(): void {
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
+  renderer.setSize(innerWidth, innerHeight, false);
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+}
+addEventListener('resize', redimensionner);
+redimensionner();
+
+// --- Le sol : herbe, place pavée, allée vers la maison -------------------------------------------
+const atelier = new Atelier();
+const ville = new THREE.Group();
+scene.add(ville);
+ville.add(new THREE.Mesh(plaque(160, 160, 0, 0, 0), atelier.matHerbe));
+const RAYON_PLACE = 9;
+const place = new THREE.CircleGeometry(RAYON_PLACE, 48).rotateX(-Math.PI / 2).translate(0, 0.02, 0);
+{
+  const pos = place.getAttribute('position');
+  const uv = place.getAttribute('uv');
+  for (let i = 0; i < pos.count; i++) uv.setXY(i, pos.getX(i), -pos.getZ(i));
+}
+ville.add(new THREE.Mesh(place, atelier.matDalles));
+ville.add(new THREE.Mesh(plaque(2.6, 8, 0, 0.018, -12.5), atelier.matDalles));
+
+// La fontaine du centre, dessinée avec l'atelier du jeu.
+{
+  const g = new THREE.Group();
+  const pierre = 0xd8cfc0;
+  atelier.forme(g, [4.4, 0.45, 4.4], [0, 0.22, 0], pierre, { forme: 'tube' });
+  atelier.forme(g, [4.4, 4.4, 0.45], [0, 0.5, 0], pierre, { forme: 'anneau', rx: Math.PI / 2 });
+  atelier.forme(g, [4, 0.06, 4], [0, 0.48, 0], 0x6fbfe6, { forme: 'tube', lisse: true });
+  atelier.forme(g, [0.6, 2, 0.6], [0, 1.4, 0], pierre, { forme: 'tube' });
+  atelier.forme(g, [1.8, 0.45, 1.8], [0, 2.45, 0], pierre, { forme: 'calotte', rx: Math.PI });
+  atelier.forme(g, [1.6, 0.07, 1.6], [0, 2.42, 0], 0x6fbfe6, { forme: 'tube', lisse: true });
+  ville.add(g);
+  atelier.fusionner(g);
+}
+
+/** Ce qui arrête le personnage : des cercles (x, z, rayon). */
+const obstacles: Array<{ x: number; z: number; r: number }> = [{ x: 0, z: 0, r: 2.6 }];
+
+// --- Les modèles Tripo ------------------------------------------------------------------------
+const chargeur = new GLTFLoader();
+async function modele(id: string): Promise<GLTF | null> {
+  try {
+    return await chargeur.loadAsync(`${import.meta.env.BASE_URL}modeles/${id}.glb`);
+  } catch {
+    return null;
+  }
+}
+/** Tripo exporte ses modèles face à +x : ce quart de tour les remet face à +z (vers la caméra). */
+const FACE_TRIPO = -Math.PI / 2;
+
+/** Met un modèle à la bonne taille et le pose au sol. cap : 0 = face à la caméra. */
+function poser(o: THREE.Object3D, axe: 'x' | 'y', voulu: number, x: number, z: number, cap: number): void {
+  const taille = new THREE.Box3().setFromObject(o).getSize(new THREE.Vector3());
+  o.scale.setScalar(voulu / Math.max(1e-6, taille[axe]));
+  o.position.set(x, 0, z);
+  o.rotation.y = cap + FACE_TRIPO;
+  o.updateMatrixWorld(true);
+  o.position.y -= new THREE.Box3().setFromObject(o).min.y;
+}
+
+const melangeurs: THREE.AnimationMixer[] = [];
+interface Habitant {
+  id: string;
+  nom: string;
+  racine: THREE.Object3D;
+  dialogue: string;
+}
+const habitants: Habitant[] = [];
+
+async function peupler(): Promise<void> {
+  const maison = await modele('maison-du-personnage');
+  if (maison) {
+    poser(maison.scene, 'x', 7.5, 0, -19, 0);
+    ville.add(maison.scene);
+    obstacles.push({ x: 0, z: -19, r: 3.6 });
+  }
+  const forain = await modele('forain-chamboule');
+  if (forain) {
+    const o = forain.animations.length ? clonerAnime(forain.scene) : forain.scene;
+    poser(o, 'y', 2.2, -4.5, 3, 0.6);
+    ville.add(o);
+    obstacles.push({ x: -4.5, z: 3, r: 0.7 });
+    if (forain.animations.length) {
+      const m = new THREE.AnimationMixer(o);
+      const attente = forain.animations.find((a) => /idle/i.test(a.name)) ?? forain.animations[0];
+      if (attente) m.clipAction(attente).play();
+      melangeurs.push(m);
+    }
+    habitants.push({ id: 'forain-chamboule', nom: 'Le forain', racine: o, dialogue: 'forain-accueil' });
+  }
+  if (qualite === 'haute') ombrer(ville);
+}
+
+// --- Le personnage de l'enfant ------------------------------------------------------------------
+const heros = creerPersonne(atelier, ville, {
+  maillot: 'maillot',
+  pantalon: 0xc79a6b,
+  cheveux: 0xe08a3c,
+  tenue: 0,
+  objets: true,
+  accessoires: garderobeNeuve().porte,
+  peau: 0xfadcc6,
+});
+const etat = await chargerEtat();
+heros.racine.position.set(etat.position.x, 0.06, etat.position.z);
+heros.racine.rotation.y = etat.position.cap;
+
+let animerHerbe: (t: number) => void = () => {};
+if (qualite === 'haute') {
+  const herbe = semerHerbe((x, z) => Math.hypot(x, z) > RAYON_PLACE + 0.4 && !(Math.abs(x) < 1.6 && z < -8 && z > -17) && Math.hypot(x, z + 19) > 4.4, 45000, {
+    x: 40,
+    zMin: -45,
+    zMax: 35,
+  });
+  ville.add(herbe.racine);
+  animerHerbe = (t) => herbe.animer(t);
+}
+
+// --- Le dialogue : l'enfant lit lui-même, et peut toucher un mot pour l'entendre --------------
+const ui = {
+  interagir: el<HTMLButtonElement>('interagir'),
+  interagirTexte: el<HTMLSpanElement>('interagir-texte'),
+  dialogue: el<HTMLElement>('dialogue'),
+  nom: el<HTMLParagraphElement>('dialogue-nom'),
+  texte: el<HTMLParagraphElement>('dialogue-texte'),
+  fermer: el<HTMLButtonElement>('dialogue-fermer'),
+};
+const commandes = creerCommandes(el('zone-joystick'), el('joystick'), el('zone-regard'));
+commandes.actives = true;
+
+let proche: Habitant | null = null;
+let enDialogue: Habitant | null = null;
+
+function ouvrirDialogue(h: Habitant): void {
+  const d = dialogues.dialogues.find((x) => x.id === h.dialogue);
+  if (!d) return;
+  enDialogue = h;
+  commandes.actives = false;
+  ui.interagir.hidden = true;
+  ui.nom.textContent = h.nom;
+  ui.texte.replaceChildren(
+    ...decouper(d.texte).map((m) => {
+      if (!m.mot) return document.createTextNode(m.texte);
+      const s = document.createElement('span');
+      s.className = 'mot';
+      s.textContent = m.texte;
+      s.addEventListener('click', () => {
+        dire(aEntendre(m.texte));
+        s.classList.add('entendu');
+        document.dispatchEvent(new CustomEvent('mot-touche', { detail: m.texte }));
+      });
+      return s;
+    }),
+  );
+  ui.dialogue.hidden = false;
+}
+
+ui.fermer.addEventListener('click', () => {
+  if (enDialogue && !etat.lus.includes(enDialogue.dialogue)) etat.lus.push(enDialogue.dialogue);
+  enDialogue = null;
+  ui.dialogue.hidden = true;
+  commandes.actives = true;
+  void sauverEtat(etat);
+});
+ui.interagir.addEventListener('click', () => {
+  if (proche) ouvrirDialogue(proche);
+});
+
+// --- La promenade ------------------------------------------------------------------------------
+const VITESSE = 4.2;
+function promenade(dt: number): number {
+  const h = heros.racine;
+  const force = Math.min(1, Math.hypot(commandes.x, commandes.y));
+  if (force > 0) {
+    const { avant, droite } = suivi.axes();
+    const n = Math.max(1, Math.hypot(commandes.x, commandes.y));
+    const mx = (droite.x * commandes.x + avant.x * commandes.y) / n;
+    const mz = (droite.z * commandes.x + avant.z * commandes.y) / n;
+    h.position.x += mx * VITESSE * dt;
+    h.position.z += mz * VITESSE * dt;
+    h.rotation.y = Math.atan2(mx, mz);
+  }
+  // On ne traverse ni la fontaine, ni la maison, ni les habitants ; et on reste en ville.
+  for (const o of obstacles) {
+    const dx = h.position.x - o.x;
+    const dz = h.position.z - o.z;
+    const d = Math.hypot(dx, dz);
+    const min = o.r + 0.45;
+    if (d < min && d > 1e-6) {
+      h.position.x = o.x + (dx / d) * min;
+      h.position.z = o.z + (dz / d) * min;
+    }
+  }
+  h.position.x = Math.max(-38, Math.min(38, h.position.x));
+  h.position.z = Math.max(-40, Math.min(30, h.position.z));
+  // Un habitant tout près : le bouton « Parler » apparaît.
+  proche = enDialogue ? null : (habitants.find((x) => x.racine.position.distanceTo(h.position) < 3.2) ?? null);
+  ui.interagir.hidden = !proche;
+  if (proche) ui.interagirTexte.textContent = proche.nom;
+  return force;
+}
+
+// La position est gardée de temps en temps, et quand l'enfant quitte l'écran.
+let dernierEnregistrement = 0;
+function retenirPosition(maintenant: number, forcer = false): void {
+  if (!forcer && maintenant - dernierEnregistrement < 3000) return;
+  dernierEnregistrement = maintenant;
+  const p = heros.racine.position;
+  etat.position = { x: p.x, z: p.z, cap: heros.racine.rotation.y };
+  void sauverEtat(etat);
+}
+addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') retenirPosition(performance.now(), true);
+});
+
+// « ?fps » : compteur d'images par seconde, pour mesurer sur la tablette.
+const boiteFps = adresse.has('fps') ? document.body.appendChild(Object.assign(document.createElement('p'), { className: 'compteur-fps' })) : null;
+let images = 0;
+let debutFps = performance.now();
+
+const horloge = new THREE.Clock();
+let imagesRendues = 0;
+renderer.setAnimationLoop(() => {
+  const dt = Math.min(0.05, horloge.getDelta());
+  const t = horloge.elapsedTime;
+  const pas = promenade(dt);
+  heros.animer(t, pas, 0);
+  for (const m of melangeurs) m.update(dt);
+  animerHerbe(t);
+  const pose = suivi.pose(heros.racine, dt);
+  camera.position.copy(pose.position);
+  camera.lookAt(pose.cible);
+  if (Math.abs(camera.fov - pose.champ) > 0.05) {
+    camera.fov = pose.champ;
+    camera.updateProjectionMatrix();
+  }
+  // Les ombres du décor ne bougent pas : recalculées une image sur trois, comme dans le jeu.
+  if (qualite === 'haute') renderer.shadowMap.needsUpdate = imagesRendues++ % 3 === 0;
+  renderer.render(scene, camera);
+  if (pas > 0) retenirPosition(performance.now());
+  if (boiteFps) {
+    images++;
+    const ecoule = performance.now() - debutFps;
+    if (ecoule > 1000) {
+      boiteFps.textContent = `${Math.round((images * 1000) / ecoule)} i/s · ${renderer.info.render.calls} appels · ${Math.round(renderer.info.render.triangles / 1000)} k triangles`;
+      document.body.dataset.ips = String((images * 1000) / ecoule);
+      images = 0;
+      debutFps = performance.now();
+    }
+  }
+});
+
+await peupler();
+document.body.dataset.pret = '1';

@@ -1,0 +1,76 @@
+/* La ville : ce qui s'ajoute aux styles du jeu (src/style.css). */
+
+body.ville #scene {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* Le dialogue : en bas de l'écran, au-dessus de la scène. L'enfant lit lui-même. */
+.dialogue {
+  position: fixed;
+  left: 50%;
+  bottom: calc(24px + env(safe-area-inset-bottom));
+  z-index: 5;
+  translate: -50% 0;
+  width: min(780px, calc(100% - 32px));
+  padding: 22px 28px 20px;
+  border-radius: 30px;
+  background: var(--papier);
+  box-shadow: var(--ombre);
+  animation: apparaitre 0.35s var(--rebond);
+}
+
+.dialogue-nom {
+  position: absolute;
+  top: -18px;
+  left: 26px;
+  margin: 0;
+  padding: 6px 18px;
+  border-radius: 999px;
+  background: var(--jaune);
+  font-weight: 700;
+  font-size: 1.15rem;
+}
+
+.dialogue-texte {
+  margin: 8px 0 10px;
+  font-size: 1.55rem;
+  line-height: 1.6;
+}
+
+.dialogue-texte .mot {
+  border-radius: 8px;
+  padding: 0 2px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.dialogue-texte .mot.entendu {
+  background: var(--orange-pale);
+  box-shadow: 0 0 0 2px var(--jaune);
+}
+
+.dialogue-aide {
+  margin: 0 0 12px;
+  color: var(--encre-douce);
+  font-size: 0.95rem;
+}
+
+.dialogue .bouton-principal {
+  float: right;
+}
+
+.compteur-fps {
+  position: fixed;
+  left: 12px;
+  bottom: 8px;
+  z-index: 6;
+  margin: 0;
+  padding: 4px 10px;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.55);
+  color: white;
+  font: 12px monospace;
+}

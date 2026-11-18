@@ -1,0 +1,10 @@
+{
+  "maison-du-personnage": {
+    "modele": "01b8cc43-066a-4457-8823-7a513dfe9478"
+  },
+  "forain-chamboule": {
+    "modele": "5a0ebd11-7373-4624-84ef-83462622d202",
+    "squelette": "fcfebf89-7958-4d1d-92a9-e54541751a15",
+    "animations": "da173073-9943-4562-bc7b-a9368089627e"
+  }
+}

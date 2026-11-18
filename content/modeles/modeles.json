@@ -1,0 +1,16 @@
+{
+  "_lisez-moi": "Les modèles 3D de la ville, générés par scripts/generer-modeles.mjs (Tripo, image vers 3D). genre fixe le budget de triangles ; animations : préréglages Tripo pour les personnages.",
+  "modeles": [
+    {
+      "id": "maison-du-personnage",
+      "genre": "batiment",
+      "image": "content/modeles/images/maison-du-personnage.png"
+    },
+    {
+      "id": "forain-chamboule",
+      "genre": "personnage",
+      "image": "content/modeles/images/forain-chamboule.png",
+      "animations": ["preset:idle", "preset:walk"]
+    }
+  ]
+}

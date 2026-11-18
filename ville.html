@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+    <meta name="theme-color" content="#3fa0ff" />
+    <title>La ville</title>
+    <link rel="icon" href="/icone.svg" type="image/svg+xml" />
+  </head>
+  <body class="ville">
+    <canvas id="scene" aria-label="La ville"></canvas>
+
+    <div id="zone-regard" class="zone-regard"></div>
+    <div id="zone-joystick" class="zone-joystick">
+      <div id="joystick" class="joystick"><div class="bouton-joystick"></div></div>
+    </div>
+    <button id="interagir" class="interagir" type="button" hidden>
+      <span class="interagir-mot">Parler</span>
+      <span id="interagir-texte" class="interagir-texte"></span>
+    </button>
+
+    <section id="dialogue" class="dialogue" hidden aria-live="polite">
+      <p id="dialogue-nom" class="dialogue-nom"></p>
+      <p id="dialogue-texte" class="dialogue-texte"></p>
+      <p class="dialogue-aide">Un mot difficile ? Touche-le pour l’entendre.</p>
+      <button id="dialogue-fermer" class="bouton-principal" type="button">D’accord !</button>
+    </section>
+
+    <script type="module" src="/src/ville/main.ts"></script>
+  </body>
+</html>

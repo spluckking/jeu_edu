@@ -11,7 +11,8 @@ export default defineConfig(({ command, isPreview }) => {
       target: 'es2022',
       // Three.js pèse à lui seul environ 500 ko : c'est attendu.
       chunkSizeWarningLimit: 800,
-      rollupOptions: { input: 'index.html' },
+      // ville.html : la ville en construction (docs/VILLE.md), à part du jeu actuel.
+      rollupOptions: { input: { main: 'index.html', ville: 'ville.html' } },
     },
     plugins: [
       VitePWA({
