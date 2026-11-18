@@ -10,7 +10,20 @@
       "id": "forain-chamboule",
       "genre": "personnage",
       "image": "content/modeles/images/forain-chamboule.png",
-      "animations": ["preset:idle", "preset:walk"]
+      "animations": [
+        "preset:idle",
+        "preset:walk"
+      ]
+    },
+    {
+      "id": "enfant",
+      "genre": "personnage",
+      "animations": [
+        "preset:idle",
+        "preset:walk",
+        "preset:run"
+      ],
+      "prompt": "Full-body 3D game character concept for a cozy farming life-sim game, cute chibi anime style: big round head, large shiny friendly eyes, small nose, rosy cheeks, soft rounded shapes, warm pastel colours, gentle hand-painted texture. An 8-year-old boy with fluffy short brown hair, cheerful smile, short-sleeved coral t-shirt, beige knee-length shorts, white socks and brown ankle boots. No hat, nothing in his hands. Standing straight in A-pose, arms slightly away from the body, front view, whole body visible from head to feet, plain light grey background, no shadow on the floor. --no text, logo, watermark, background scenery"
     }
   ]
 }

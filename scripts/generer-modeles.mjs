@@ -4,6 +4,10 @@
 //   node scripts/generer-modeles.mjs                 tout ce qui manque
 //   node scripts/generer-modeles.mjs --refaire ID    régénère ce modèle (nouvelle dépense)
 //   node scripts/generer-modeles.mjs --solde         affiche le solde de crédits API
+//   node scripts/generer-modeles.mjs --image ID      dessine seulement l'image de départ (à regarder avant la 3D)
+//
+// Un modèle a soit une image de départ (« image »), soit une description (« prompt ») : l'image
+// est alors dessinée par Tripo (GPT Image 2, 10 crédits) et gardée dans content/modeles/images/.
 //
 // La liste est dans content/modeles/modeles.json. Chaque tâche Tripo réussie est notée dans
 // content/modeles/taches.json : relancer le script ne repaie pas un modèle déjà fait.
@@ -90,6 +94,19 @@ function alleger(entree, sortie) {
 const lireTaches = () => (existsSync(TACHES) ? JSON.parse(readFileSync(TACHES, 'utf8')) : {});
 const ecrireTaches = (t) => writeFileSync(TACHES, `${JSON.stringify(t, null, 2)}\n`);
 
+/** Dessine l'image de départ d'après la description du modèle (si elle n'existe pas encore). */
+async function imageDeDepart(m) {
+  const fichier = join(RACINE, 'content', 'modeles', 'images', `${m.id}.png`);
+  if (existsSync(fichier)) return fichier;
+  const id = await tache('/generation/text-to-image', { model: 'chat_image_2', prompt: m.prompt, quality: 'medium', output_format: 'png' });
+  const sortie = await attendre(id, 'image');
+  const url = sortie?.image_url ?? sortie?.generated_image_url ?? sortie?.url ?? (Array.isArray(sortie?.image_urls) ? sortie.image_urls[0] : undefined);
+  if (!url) throw new Error(`${m.id} : pas d'image dans la réponse ${JSON.stringify(sortie).slice(0, 200)}`);
+  await telecharger(url, fichier);
+  console.log(`  → content/modeles/images/${m.id}.png`);
+  return fichier;
+}
+
 async function produire(m, refaire) {
   const taches = lireTaches();
   const deja = refaire ? {} : (taches[m.id] ?? {});
@@ -102,7 +119,7 @@ async function produire(m, refaire) {
   // 1. La géométrie et la texture, à partir de l'image de départ.
   let idModele = deja.modele;
   if (!idModele) {
-    const jeton = await envoyerImage(join(RACINE, m.image));
+    const jeton = await envoyerImage(m.image ? join(RACINE, m.image) : await imageDeDepart(m));
     idModele = await tache('/generation/image-to-model', {
       input: jeton,
       model: 'v3.1-20260211',
@@ -146,6 +163,11 @@ mkdirSync(SORTIE, { recursive: true });
 mkdirSync(BRUTS, { recursive: true });
 if (args.includes('--solde')) {
   console.log(await solde());
+} else if (args.includes('--image')) {
+  const { modeles } = JSON.parse(readFileSync(CATALOGUE, 'utf8'));
+  const m = modeles.find((x) => x.id === args[args.indexOf('--image') + 1]);
+  if (!m?.prompt) throw new Error('modèle inconnu, ou sans description');
+  await imageDeDepart(m);
 } else {
   const { modeles } = JSON.parse(readFileSync(CATALOGUE, 'utf8'));
   const refaire = args[args.indexOf('--refaire') + 1];

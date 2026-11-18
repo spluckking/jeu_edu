@@ -6,5 +6,10 @@
     "modele": "5a0ebd11-7373-4624-84ef-83462622d202",
     "squelette": "fcfebf89-7958-4d1d-92a9-e54541751a15",
     "animations": "da173073-9943-4562-bc7b-a9368089627e"
+  },
+  "enfant": {
+    "modele": "6fb54d35-14d2-4d70-88cd-e0eb754d19e1",
+    "squelette": "bc795917-aa26-4266-afd1-6270c7997089",
+    "animations": "443852cc-b7a7-40c0-a293-673c9f4e1ab6"
   }
 }

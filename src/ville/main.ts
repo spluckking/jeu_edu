@@ -13,12 +13,13 @@ import { garderobeNeuve } from '../recompenses/recompenses.ts';
 import { Atelier } from '../scene/atelier.ts';
 import { choisirPalette } from '../scene/palette.ts';
 import { creerPersonne } from '../scene/personne.ts';
-import { choisirQualite, eclairer, ombrer, semerHerbe } from '../scene/qualite.ts';
+import { choisirQualite, eclairer, ombrer } from '../scene/qualite.ts';
 import { CameraHaute } from '../scene/suivi.ts';
 import { plaque } from '../scene/textures.ts';
 import { dire } from '../son/voix.ts';
 import { installerDictee, type PointInteret } from './dictee-ville.ts';
 import { chargerEtat, sauverEtat } from './etat.ts';
+import { creerSol, semerGazon } from './gazon.ts';
 import { aEntendre, decouper } from './mots.ts';
 
 const adresse = new URLSearchParams(location.search);
@@ -52,7 +53,7 @@ redimensionner();
 const atelier = new Atelier();
 const ville = new THREE.Group();
 scene.add(ville);
-ville.add(new THREE.Mesh(plaque(160, 160, 0, 0, 0), atelier.matHerbe));
+ville.add(creerSol(160));
 const RAYON_PLACE = 9;
 const place = new THREE.CircleGeometry(RAYON_PLACE, 48).rotateX(-Math.PI / 2).translate(0, 0.02, 0);
 {
@@ -140,22 +141,65 @@ async function peupler(): Promise<void> {
 }
 
 // --- Le personnage de l'enfant ------------------------------------------------------------------
-const heros = creerPersonne(atelier, ville, {
-  maillot: 'maillot',
-  pantalon: 0xc79a6b,
-  cheveux: 0xe08a3c,
-  tenue: 0,
-  objets: true,
-  accessoires: garderobeNeuve().porte,
-  peau: 0xfadcc6,
-});
+interface Heros {
+  racine: THREE.Object3D;
+  /** pas : 0 arrêté, 1 à fond. */
+  animer(temps: number, pas: number, salut: number): void;
+}
+
+/** Le personnage modélisé par Tripo : il attend, marche ou court selon la poussée du joystick. */
+function herosTripo(g: GLTF): Heros {
+  const racine = new THREE.Group();
+  const corps = clonerAnime(g.scene);
+  poser(corps, 'y', 1.75, 0, 0, 0);
+  racine.add(corps);
+  ville.add(racine);
+  const m = new THREE.AnimationMixer(corps);
+  const clip = (nom: RegExp): THREE.AnimationAction | null => {
+    const c = g.animations.find((a) => nom.test(a.name));
+    return c ? m.clipAction(c) : null;
+  };
+  const actions = { attente: clip(/idle/i), marche: clip(/walk/i), course: clip(/run/i) };
+  let enCours: THREE.AnimationAction | null = actions.attente;
+  enCours?.play();
+  let avant = 0;
+  return {
+    racine,
+    animer(temps, pas) {
+      const dt = Math.min(0.1, Math.max(0, temps - avant));
+      avant = temps;
+      const voulue = pas < 0.08 ? actions.attente : pas < 0.75 || !actions.course ? actions.marche : actions.course;
+      if (voulue && voulue !== enCours) {
+        voulue.reset().play();
+        if (enCours) voulue.crossFadeFrom(enCours, 0.25, false);
+        enCours = voulue;
+      }
+      // Les pieds suivent la vitesse : pas de glissade quand on avance doucement.
+      if (actions.marche) actions.marche.timeScale = 0.6 + pas * 0.7;
+      m.update(dt);
+    },
+  };
+}
+
+const glbEnfant = await modele('enfant');
+const heros: Heros = glbEnfant
+  ? herosTripo(glbEnfant)
+  : creerPersonne(atelier, ville, {
+      maillot: 'maillot',
+      pantalon: 0xc79a6b,
+      cheveux: 0xe08a3c,
+      tenue: 0,
+      objets: true,
+      accessoires: garderobeNeuve().porte,
+      peau: 0xfadcc6,
+    });
 const etat = await chargerEtat();
 heros.racine.position.set(etat.position.x, 0.06, etat.position.z);
 heros.racine.rotation.y = etat.position.cap;
 
 let animerHerbe: (t: number) => void = () => {};
 if (qualite === 'haute') {
-  const herbe = semerHerbe((x, z) => Math.hypot(x, z) > RAYON_PLACE + 0.4 && !(Math.abs(x) < 1.6 && z < -8 && z > -17) && Math.hypot(x, z + 19) > 4.4, 45000, {
+  const herbe = semerGazon((x, z) => Math.hypot(x, z) > RAYON_PLACE + 0.4 && !(Math.abs(x) < 1.6 && z < -8 && z > -17) && Math.hypot(x, z + 19) > 4.4, 32000, {
     x: 40,
     zMin: -45,
     zMax: 35,
