@@ -38,6 +38,59 @@
         "preset:run"
       ],
       "prompt": "Full-body 3D game character concept for a cozy farming life-sim game, cute chibi anime style: big round head, large shiny friendly eyes, small nose, rosy cheeks, soft rounded shapes, warm pastel colours, gentle hand-painted texture. An 8-year-old boy with fluffy short brown hair, cheerful smile, wearing a real red baseball cap with a curved visor facing forward (brown hair showing on the sides and at the back), short-sleeved coral t-shirt, beige knee-length shorts, white socks and brown ankle boots, and a small rounded green backpack with two straps over his shoulders. Nothing in his hands. Standing straight in A-pose, arms slightly away from the body, front view, whole body visible from head to feet, plain light grey background, no shadow on the floor. --no text, logo, watermark, background scenery"
+    },
+    {
+      "id": "epicerie",
+      "genre": "batiment",
+      "prompt": "Full 3D game asset of a small village grocery shop, cute chibi anime style for a cozy farming life-sim game, soft rounded shapes, warm pastel colours, gentle hand-painted texture. A cosy one-storey shop with cream plaster walls, a striped green and white awning over a big front window, a wooden door, wooden crates of red apples, pears, carrots and tomatoes on a stall in front, a few loaves of bread in the window, a plain wooden sign board above the door with no letters on it. Whole building visible, three-quarter front view, isolated on a plain light grey background, no ground, no shadow. --no text, letters, logo, watermark, people"
+    },
+    {
+      "id": "epiciere",
+      "genre": "personnage",
+      "animations": [
+        "preset:idle"
+      ],
+      "prompt": "Full-body 3D game character concept for a cozy farming life-sim game, cute chibi anime style for a cozy farming life-sim game, soft rounded shapes, warm pastel colours, gentle hand-painted texture, big round head, large friendly eyes, rosy cheeks. A kind round-faced grocer lady in her fifties, grey-brown hair in a neat bun, small round glasses, smiling, light green blouse with rolled-up sleeves, long cream apron with a big front pocket, brown skirt to the knees, comfortable brown shoes. Nothing in her hands. Standing straight in A-pose, arms slightly away from the body, front view, whole body visible from head to feet, plain light grey background, no shadow on the floor. --no text, logo, watermark, background scenery"
+    },
+    {
+      "id": "pommier",
+      "genre": "objet",
+      "prompt": "Full 3D game asset of a small round apple tree with NO fruit on it, cute chibi anime style for a cozy farming life-sim game, soft rounded shapes, warm pastel colours, gentle hand-painted texture: a short sturdy brown trunk and a big fluffy rounded crown of bright green leaves, a few tiny white blossoms. Whole tree visible, front view, isolated on a plain light grey background, no ground, no shadow. --no apples, fruit, text, watermark"
+    },
+    {
+      "id": "pomme",
+      "genre": "objet",
+      "prompt": "A single shiny red apple with a short brown stem and one green leaf, 3D game asset, cute chibi anime style for a cozy farming life-sim game, soft rounded shapes, warm pastel colours, gentle hand-painted texture, front view, isolated on a plain light grey background, no shadow. --no text, watermark, other fruit"
+    },
+    {
+      "id": "icone-pomme",
+      "genre": "icone",
+      "prompt": "A single shiny red apple with a green leaf, game inventory icon, cute chibi anime style for a cozy farming life-sim game, soft rounded shapes, warm pastel colours, gentle hand-painted texture, centered, seen slightly from above, soft light, plain very light cream background, no shadow on the floor. --no text, logo, watermark, hands, table"
+    },
+    {
+      "id": "icone-poire",
+      "genre": "icone",
+      "prompt": "A single ripe yellow-green pear with a small leaf, game inventory icon, cute chibi anime style for a cozy farming life-sim game, soft rounded shapes, warm pastel colours, gentle hand-painted texture, centered, seen slightly from above, soft light, plain very light cream background, no shadow on the floor. --no text, logo, watermark, hands, table"
+    },
+    {
+      "id": "icone-carotte",
+      "genre": "icone",
+      "prompt": "A single orange carrot with green leafy top, game inventory icon, cute chibi anime style for a cozy farming life-sim game, soft rounded shapes, warm pastel colours, gentle hand-painted texture, centered, seen slightly from above, soft light, plain very light cream background, no shadow on the floor. --no text, logo, watermark, hands, table"
+    },
+    {
+      "id": "icone-tomate",
+      "genre": "icone",
+      "prompt": "A single round red tomato with a green star-shaped stem, game inventory icon, cute chibi anime style for a cozy farming life-sim game, soft rounded shapes, warm pastel colours, gentle hand-painted texture, centered, seen slightly from above, soft light, plain very light cream background, no shadow on the floor. --no text, logo, watermark, hands, table"
+    },
+    {
+      "id": "icone-pain",
+      "genre": "icone",
+      "prompt": "A single golden crusty french country bread loaf, game inventory icon, cute chibi anime style for a cozy farming life-sim game, soft rounded shapes, warm pastel colours, gentle hand-painted texture, centered, seen slightly from above, soft light, plain very light cream background, no shadow on the floor. --no text, logo, watermark, hands, table"
+    },
+    {
+      "id": "icone-lait",
+      "genre": "icone",
+      "prompt": "A single glass bottle of milk with a blue cap, game inventory icon, cute chibi anime style for a cozy farming life-sim game, soft rounded shapes, warm pastel colours, gentle hand-painted texture, centered, seen slightly from above, soft light, plain very light cream background, no shadow on the floor. --no text, logo, watermark, hands, table"
     }
   ]
 }

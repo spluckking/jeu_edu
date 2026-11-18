@@ -29,3 +29,11 @@ Questions qui peuvent attendre. Elles ne bloquent pas le jeu.
    - concours : « Le concours d’écriture ! Demain, c’est la dictée. Écris tous les mots de la semaine, sans aide. À la fin, on reprend ensemble ceux qui manquent. », « Bravo pour le concours ! … du premier coup. » ;
    - mur des mots : « Ces mots sont sus pour toujours. Touche-en un pour l’entendre. », « Su pour toujours ! « … » est gravé sur le mur des mots. ».
    Le panneau parent de la ville (`ville.html?parent`) est provisoire : il rejoindra l'espace parent du jeu.
+12. **Ville, tranche 1B (l'épicerie)** (`content/ville/epicerie.json`, textes d'essai) :
+   - produits et prix : pomme 1 €, poire 2 €, carotte 1 €, tomate 2 €, pain 3 €, bouteille de lait 2 € ; l'épicière rachète les pommes 1 € pièce, 5 au plus par jour ; le pommier donne 3 pommes, qui repoussent 2 jours après la dernière ;
+   - cadeau de bienvenue : 10 € (un billet de 5 €, deux pièces de 2 €, une pièce de 1 €), avec « Bonjour ! Tu es nouveau en ville ? Voici 10 euros pour faire tes premières courses. Range-les bien dans ton porte-monnaie ! » ;
+   - payer : « Pose tes pièces sur le comptoir. », « Il manque encore un peu d’argent. », « Tu me donnes trop : garde ta pièce de … , je n’en ai pas besoin. », « C’est le compte juste, merci ! » ;
+   - rendre la monnaie : « Le pain coûte 3 €, tu me donnes 5 €. Combien dois-je te rendre ? Prends les pièces dans ma caisse. », puis « Pas tout à fait. Compte à partir de 3 € jusqu’à 5 €. », et à la deuxième erreur « Regarde : de 3 € à 5 €, il y a 2 €. Je te rends 2 €. » ;
+   - vendre : « Je te prends 3 pommes à 1 € chacune. Voilà 3 € ! », « J’ai assez de pommes pour aujourd’hui. Reviens demain ! », « Tu n’as pas de pommes. Il y en a sur le pommier, près de la place ! » ;
+   - pommier : « Une pomme dans ton panier ! », « Plus de pommes pour l’instant. Elles repoussent dans quelques jours. ».
+   L'épicière n'a pas encore de voix enregistrée (salutation Azure à générer quand les textes seront validés).

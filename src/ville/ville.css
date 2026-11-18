@@ -282,3 +282,211 @@ body.ville #scene {
   align-items: center;
   font-size: 1.1rem;
 }
+
+/* --- L'épicerie (tranche 1B) ------------------------------------------------------------------ */
+
+/* Le porte-monnaie et le panier, toujours visibles en haut à gauche. */
+.hud-ville {
+  position: fixed;
+  top: calc(14px + env(safe-area-inset-top));
+  left: 16px;
+  z-index: 4;
+  display: flex;
+  gap: 10px;
+}
+
+.hud-argent,
+.hud-panier {
+  min-width: 96px;
+  height: 52px;
+  padding: 0 16px 0 52px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--papier) no-repeat 12px center / 30px 30px;
+  box-shadow: var(--ombre);
+  color: var(--encre);
+  font: 700 1.3rem var(--police);
+}
+
+.hud-argent {
+  background-image: radial-gradient(circle at 50% 50%, #f6d36b 0 52%, #c9a33a 53% 64%, transparent 65%);
+}
+
+.hud-panier {
+  background-image: url('/icones/icone-pomme.webp');
+}
+
+.texte-a-lire .mot {
+  border-radius: 8px;
+  padding: 0 2px;
+  cursor: pointer;
+}
+
+.texte-a-lire .mot.entendu {
+  background: var(--orange-pale);
+  box-shadow: 0 0 0 2px var(--jaune);
+}
+
+.legende {
+  margin: 14px 0 4px;
+  color: var(--encre-douce);
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.remarque {
+  min-height: 1.6em;
+  color: var(--rouge-fonce);
+}
+
+/* Les pièces et les billets : assez gros pour le doigt, lisibles d'un coup d'œil. */
+.rangee-argent {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  min-height: 72px;
+  padding: 8px;
+  border-radius: 18px;
+}
+
+.comptoir {
+  background: #f3e2c6;
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.12);
+}
+
+.caisse {
+  background: #e7efe0;
+}
+
+.piece,
+.billet {
+  border: 0;
+  color: var(--encre);
+  font: 700 1.05rem var(--police);
+  box-shadow: 0 3px 0 rgba(0, 0, 0, 0.18);
+  cursor: pointer;
+  transition: translate 0.15s;
+}
+
+.piece:active,
+.billet:active {
+  translate: 0 2px;
+}
+
+.piece {
+  width: 62px;
+  height: 62px;
+  border-radius: 50%;
+}
+
+/* 1 € : centre doré, couronne argentée ; 2 € : l'inverse. */
+.argent-100 {
+  background: radial-gradient(circle, #f2cf63 0 58%, #cfd3d8 59%);
+}
+
+.argent-200 {
+  width: 68px;
+  height: 68px;
+  background: radial-gradient(circle, #d9dde2 0 58%, #eac65a 59%);
+}
+
+.billet {
+  width: 104px;
+  height: 58px;
+  border-radius: 8px;
+  outline: 2px dashed rgba(255, 255, 255, 0.55);
+  outline-offset: -7px;
+}
+
+.argent-500 {
+  background: #c9c2b8;
+}
+
+.argent-1000 {
+  background: #f0a08e;
+}
+
+.argent-2000 {
+  background: #92b7e6;
+}
+
+.grille-produits {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 12px;
+  margin: 12px 0;
+}
+
+.produit {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 8px;
+  border: 0;
+  border-radius: 20px;
+  background: #fff;
+  box-shadow: 0 3px 0 rgba(0, 0, 0, 0.08);
+  color: var(--encre);
+  font: 1.1rem var(--police);
+}
+
+button.produit {
+  cursor: pointer;
+}
+
+.produit-icone {
+  width: 84px;
+  height: 84px;
+  border-radius: 16px;
+}
+
+.produit-prix,
+.etiquette-prix {
+  padding: 2px 12px;
+  border-radius: 999px;
+  background: var(--jaune);
+  font-weight: 700;
+}
+
+.etiquette {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-size: 1.4rem;
+}
+
+.etiquette .produit-icone {
+  width: 72px;
+  height: 72px;
+}
+
+/* Une petite bulle qui annonce ce qui vient de se passer (pomme cueillie…). */
+.bulle-ville {
+  position: fixed;
+  top: 22%;
+  left: 50%;
+  z-index: 6;
+  translate: -50% 0;
+  margin: 0;
+  padding: 14px 24px;
+  border-radius: 999px;
+  background: var(--papier);
+  box-shadow: var(--ombre);
+  font-size: 1.3rem;
+  animation: apparaitre 0.3s var(--rebond);
+  pointer-events: none;
+}
+
+/* Dans une carte d'exercice : le texte se lit comme un dialogue, les rangées prennent la largeur. */
+.exercice .texte-a-lire {
+  font-size: 1.45rem;
+  line-height: 1.55;
+}
+
+.exercice .grille-produits,
+.exercice .rangee-argent {
+  align-self: stretch;
+  justify-content: center;
+}

@@ -16,5 +16,19 @@
     "modele": "79128576-4e2b-4b5b-85fe-6df9c017ac27",
     "squelette": "94c2ad10-d8f9-498c-925c-753865da3428",
     "animations": "d1271dfa-ad3f-4acb-ac91-2a8391aa694b"
+  },
+  "epicerie": {
+    "modele": "9bf13162-7c81-44f6-b2d8-199f8ea05ea7"
+  },
+  "epiciere": {
+    "modele": "db64fec9-f405-49e1-b1d5-f71208e21e10",
+    "squelette": "9007471f-da5a-4b3a-929b-a981120fe5d3",
+    "animations": "61fad936-a691-42f8-a708-4026a48965a8"
+  },
+  "pommier": {
+    "modele": "9d46e471-b477-4dd7-b8f2-397fb10d15c8"
+  },
+  "pomme": {
+    "modele": "010cefaf-bf52-47bd-bf8d-f4a541c87c09"
   }
 }

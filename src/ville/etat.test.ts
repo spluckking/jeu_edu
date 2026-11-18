@@ -16,4 +16,21 @@ describe('état de la ville', () => {
   it('une position abîmée reprend la position de départ', () => {
     expect(lireEtat({ position: { x: 'a', z: 1, cap: 0 } }).position).toEqual(etatNeuf().position);
   });
+
+  it('reprend une sauvegarde de la version 1 sans argent ni panier', () => {
+    const e = lireEtat({ version: 1, position: { x: 1, z: 2, cap: 0 }, lus: ['forain-accueil'] });
+    expect(e.version).toBe(2);
+    expect(e.position).toEqual({ x: 1, z: 2, cap: 0 });
+    expect(e.porteMonnaie).toEqual({});
+    expect(e.panier).toEqual({});
+    expect(e.pommier).toEqual(etatNeuf().pommier);
+  });
+
+  it('garde l’argent, le panier et le pommier, sans les valeurs abîmées', () => {
+    const e = lireEtat({ porteMonnaie: { 500: 1, 200: -1, 100: 1.5 }, panier: { pomme: 2, pain: 'x' }, pommier: { restantes: 0, repousse: '2026-11-20' }, ventes: { jour: '2026-11-18', nombre: 3 } });
+    expect(e.porteMonnaie).toEqual({ 500: 1 });
+    expect(e.panier).toEqual({ pomme: 2 });
+    expect(e.pommier).toEqual({ restantes: 0, repousse: '2026-11-20' });
+    expect(e.ventes).toEqual({ jour: '2026-11-18', nombre: 3 });
+  });
 });

@@ -19,6 +19,7 @@ import { CameraHaute } from '../scene/suivi.ts';
 import { plaque } from '../scene/textures.ts';
 import { dire } from '../son/voix.ts';
 import { installerDictee, type PointInteret } from './dictee-ville.ts';
+import { installerEpicerie } from './epicerie-ville.ts';
 import { chargerEtat, sauverEtat } from './etat.ts';
 import { creerSol, semerGazon } from './gazon.ts';
 import { aEntendre, decouper } from './mots.ts';
@@ -82,7 +83,12 @@ ville.add(new THREE.Mesh(plaque(2.6, 8, 0, 0.018, -12.5), atelier.matDalles));
 }
 
 /** Ce qui arrête le personnage : des cercles (x, z, rayon). */
-const obstacles: Array<{ x: number; z: number; r: number }> = [{ x: 0, z: 0, r: 2.6 }];
+const obstacles: Array<{ x: number; z: number; r: number }> = [
+  { x: 0, z: 0, r: 2.6 },
+  { x: 14, z: 3, r: 3.4 },
+  { x: 10.3, z: 4.6, r: 0.6 },
+  { x: -11, z: 8.5, r: 1.1 },
+];
 
 // --- Les modèles Tripo ------------------------------------------------------------------------
 const chargeur = new GLTFLoader();
@@ -107,6 +113,17 @@ function poser(o: THREE.Object3D, axe: 'x' | 'y', voulu: number, x: number, z: n
 }
 
 const melangeurs: THREE.AnimationMixer[] = [];
+
+// L'épicerie, au bord de la place, face au centre ; l'épicière devant ; le pommier de l'autre côté.
+const EPICERIE = { x: 14, z: 3, cap: -Math.PI / 2 };
+const EPICIERE = { x: 10.3, z: 4.6, cap: -2.1 };
+const POMMIER = { x: -11, z: 8.5 };
+const pommesArbre: THREE.Object3D[] = [];
+let pommesVisibles = 0;
+function montrerPommes(n: number): void {
+  pommesVisibles = n;
+  pommesArbre.forEach((p, i) => (p.visible = i < n));
+}
 interface Habitant {
   id: string;
   nom: string;
@@ -139,6 +156,42 @@ async function peupler(): Promise<void> {
     const h: Habitant = { id: 'forain-chamboule', nom: 'Le forain', racine: o, dialogue: 'forain-accueil' };
     habitants.push(h);
     points.push({ verbe: 'Parler', nom: h.nom, x: o.position.x, z: o.position.z, action: () => ouvrirDialogue(h) });
+  }
+  // L'épicerie, son épicière devant l'étal, et le pommier (tranche 1B).
+  const boutique = await modele('epicerie');
+  if (boutique) {
+    poser(boutique.scene, 'x', 6.5, EPICERIE.x, EPICERIE.z, EPICERIE.cap);
+    ville.add(boutique.scene);
+  }
+  const epiciere = await modele('epiciere');
+  if (epiciere) {
+    const o = epiciere.animations.length ? clonerAnime(epiciere.scene) : epiciere.scene;
+    poser(o, 'y', 2, EPICIERE.x, EPICIERE.z, EPICIERE.cap);
+    ville.add(o);
+    if (epiciere.animations[0]) {
+      const m = new THREE.AnimationMixer(o);
+      m.clipAction(epiciere.animations[0]).play();
+      melangeurs.push(m);
+    }
+  }
+  const arbre = await modele('pommier');
+  if (arbre) {
+    poser(arbre.scene, 'y', 4.2, POMMIER.x, POMMIER.z, 0.4);
+    ville.add(arbre.scene);
+    const pomme = await modele('pomme');
+    if (pomme) {
+      // Trois pommes accrochées au bord du feuillage, côté promenade.
+      const b = new THREE.Box3().setFromObject(arbre.scene);
+      const t = b.getSize(new THREE.Vector3());
+      for (const [a, h] of [[0.2, 0.55], [1.3, 0.68], [-0.9, 0.62]] as const) {
+        const p = pomme.scene.clone();
+        poser(p, 'y', 0.48, POMMIER.x + Math.sin(a) * t.x * 0.44, POMMIER.z + Math.cos(a) * t.z * 0.44, a);
+        p.position.y = b.min.y + t.y * h;
+        ville.add(p);
+        pommesArbre.push(p);
+      }
+      montrerPommes(pommesVisibles);
+    }
   }
   if (qualite === 'haute') ombrer(ville);
 }
@@ -228,7 +281,7 @@ heros.racine.rotation.y = etat.position.cap;
 
 let animerHerbe: (t: number) => void = () => {};
 if (qualite === 'haute') {
-  const herbe = semerGazon((x, z) => Math.hypot(x, z) > RAYON_PLACE + 0.4 && !(Math.abs(x) < 1.6 && z < -8 && z > -17) && Math.hypot(x, z + 19) > 4.4, 32000, {
+  const herbe = semerGazon((x, z) => Math.hypot(x, z) > RAYON_PLACE + 0.4 && !(Math.abs(x) < 1.6 && z < -8 && z > -17) && Math.hypot(x, z + 19) > 4.4 && Math.hypot(x - 14, z - 3) > 3.8, 32000, {
     x: 40,
     zMin: -45,
     zMax: 35,
@@ -304,6 +357,23 @@ installerDictee({
     commandes.actives = !oui;
     ui.interagir.hidden = true;
   },
+});
+
+installerEpicerie({
+  points,
+  etat: () => etat,
+  changer: (e) => {
+    Object.assign(etat, e);
+    void sauverEtat(etat);
+  },
+  occupe: (oui) => {
+    occupe = oui;
+    commandes.actives = !oui;
+    ui.interagir.hidden = true;
+  },
+  epiciere: EPICIERE,
+  pommier: POMMIER,
+  pommesSurLArbre: montrerPommes,
 });
 
 // --- La promenade ------------------------------------------------------------------------------

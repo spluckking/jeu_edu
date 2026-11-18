@@ -6,6 +6,9 @@
 //   node scripts/generer-modeles.mjs --solde         affiche le solde de crédits API
 //   node scripts/generer-modeles.mjs --image ID      dessine seulement l'image de départ (à regarder avant la 3D)
 //
+// Le genre « icone » n'a pas de 3D : son image est réduite en WebP 256 px dans public/icones/
+// (images de l'interface : produits de l'épicerie…).
+//
 // Un modèle a soit une image de départ (« image »), soit une description (« prompt ») : l'image
 // est alors dessinée par Tripo (GPT Image 2, 10 crédits) et gardée dans content/modeles/images/.
 //
@@ -27,6 +30,7 @@ const BRUTS = join(RACINE, 'node_modules', '.cache', 'modeles');
 const CATALOGUE = join(RACINE, 'content', 'modeles', 'modeles.json');
 const TACHES = join(RACINE, 'content', 'modeles', 'taches.json');
 const GLTF = join(RACINE, 'node_modules', '@gltf-transform', 'cli', 'bin', 'cli.js');
+const ICONES = join(RACINE, 'public', 'icones');
 
 /** Budget de triangles par genre de modèle (docs/VILLE.md). */
 const BUDGET = { personnage: 10000, batiment: 15000, objet: 3000 };
@@ -107,7 +111,21 @@ async function imageDeDepart(m) {
   return fichier;
 }
 
+async function icone(m, refaire) {
+  const fini = join(ICONES, `${m.id}.webp`);
+  if (!refaire && existsSync(fini)) {
+    console.log(`${m.id} : déjà là`);
+    return;
+  }
+  console.log(`${m.id} (icône)`);
+  const { default: sharp } = await import('sharp');
+  mkdirSync(ICONES, { recursive: true });
+  await sharp(await imageDeDepart(m)).resize(256, 256).webp({ quality: 85 }).toFile(fini);
+  console.log(`  → public/icones/${m.id}.webp`);
+}
+
 async function produire(m, refaire) {
+  if (m.genre === 'icone') return icone(m, refaire);
   const taches = lireTaches();
   const deja = refaire ? {} : (taches[m.id] ?? {});
   const fini = join(SORTIE, `${m.id}.glb`);
