@@ -654,3 +654,83 @@ button.produit {
     animation-duration: 40s !important;
   }
 }
+
+/* --- La poste (tranche 1C) ------------------------------------------------------------------ */
+
+.rangee-enveloppes {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  min-height: 70px;
+}
+
+.rangee-enveloppes.file {
+  align-self: stretch;
+  padding: 8px;
+  border-radius: 18px;
+  background: #f3e2c6;
+}
+
+.enveloppe {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px 6px 6px;
+  border: 0;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 3px 0 rgba(0, 0, 0, 0.1);
+  color: var(--encre);
+  font: 1.25rem var(--police);
+  cursor: pointer;
+}
+
+.enveloppe:disabled {
+  cursor: default;
+}
+
+.enveloppe .produit-icone {
+  width: 48px;
+  height: 48px;
+}
+
+.enveloppe.choisie {
+  box-shadow: 0 0 0 4px var(--jaune);
+  translate: 0 -3px;
+}
+
+.rangee-casiers {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+}
+
+.casier {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 84px;
+  height: 84px;
+  border: 0;
+  border-radius: 14px;
+  background: #c99a6b;
+  box-shadow: inset 0 -6px 0 rgba(0, 0, 0, 0.15);
+  color: #fff;
+  cursor: pointer;
+}
+
+.casier.rempli {
+  background: #a9c97a;
+}
+
+.casier-lettre {
+  font: 700 2.2rem var(--police);
+}
+
+.casier-compte {
+  min-height: 1.2em;
+  font-size: 1.1rem;
+}

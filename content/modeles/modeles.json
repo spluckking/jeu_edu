@@ -201,6 +201,29 @@
       "genre": "icone",
       "studio": true,
       "image": "content/modeles/images/seau.png"
+    },
+    {
+      "id": "poste",
+      "genre": "batiment",
+      "studio": true,
+      "image": "content/modeles/images/poste.png",
+      "triangles": 11169
+    },
+    {
+      "id": "postiere",
+      "genre": "personnage",
+      "studio": true,
+      "image": "content/modeles/images/postiere.png",
+      "triangles": 9382,
+      "animations": [
+        "idle (Studio, squelette Mixamo)"
+      ]
+    },
+    {
+      "id": "icone-lettre",
+      "genre": "icone",
+      "studio": true,
+      "image": "content/modeles/images/lettre.png"
     }
   ]
 }

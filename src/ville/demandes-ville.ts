@@ -185,9 +185,16 @@ async function finDeSeance(c: ContexteDemandes, f: HTMLElement): Promise<void> {
  * la conversation a eu lieu ici ; sinon l'habitant fait comme d'habitude (dialogue, boutique).
  * boutique : l'habitant a sa propre boutique, qu'on ouvre après la demande.
  */
+/** Ce qui se passe d'abord quand on parle à un habitant (recevoir une lettre…). */
+const avantDeParler: Array<(habitant: string, nom: string) => Promise<void>> = [];
+export function quandOnParle(f: (habitant: string, nom: string) => Promise<void>): void {
+  avantDeParler.push(f);
+}
+
 export async function parlerA(habitant: string, boutique = false): Promise<boolean> {
   const c = ctx;
   if (!c) return false;
+  for (const f of avantDeParler) await f(habitant, c.noms[habitant] ?? '');
   const jour = aujourdhui();
   let e = c.etat();
   const dj = demandesDuJour(e.demandes, demandes.demandes.map((x) => x.id), jour, demandes.parJour);

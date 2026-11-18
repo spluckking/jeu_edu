@@ -22,6 +22,7 @@ import { installerDictee, type PointInteret } from './dictee-ville.ts';
 import { installerDemandes, majSeance, parlerA } from './demandes-ville.ts';
 import { installerEpicerie, rafraichirHud } from './epicerie-ville.ts';
 import { installerJardin } from './jardin-ville.ts';
+import { installerPoste } from './poste-ville.ts';
 import { installerRiviere } from './riviere-ville.ts';
 import type { Etape } from './jardin.ts';
 import epicerie from '../../content/ville/epicerie.json';
@@ -91,6 +92,8 @@ ville.add(new THREE.Mesh(plaque(2.6, 8, 0, 0.018, -12.5), atelier.matDalles));
 /** Ce qui arrête le personnage : des cercles (x, z, rayon). */
 const obstacles: Array<{ x: number; z: number; r: number }> = [
   { x: 11.6, z: -10.6, r: 1.3 },
+  { x: -13.5, z: -2, r: 3.2 },
+  { x: -9.6, z: -0.4, r: 0.6 },
   { x: -18, z: 1.5, r: 0.9 },
   { x: -20.5, z: 4.8, r: 0.9 },
   { x: -18, z: 8.2, r: 0.9 },
@@ -213,6 +216,7 @@ async function peupler(): Promise<void> {
   for (const id of etat.meubles) await poserMeuble(id);
   await poserPotager();
   await poserRiviere();
+  await poserPoste();
   if (qualite === 'haute') ombrer(ville);
 }
 
@@ -297,6 +301,28 @@ async function poserRiviere(): Promise<void> {
     }
     montrerMures(i, grappesVoulues[i] ?? 0);
   });
+}
+
+// La poste, à l'ouest de la place, face à l'épicerie ; la postière devant sa porte.
+const POSTE = { x: -13.5, z: -2, cap: Math.PI / 2 };
+const POSTIERE = { x: -9.6, z: -0.4, cap: 1.9 };
+async function poserPoste(): Promise<void> {
+  const batiment = await modele('poste');
+  if (batiment) {
+    poser(batiment.scene, 'x', 6, POSTE.x, POSTE.z, POSTE.cap);
+    ville.add(batiment.scene);
+  }
+  const p = await modele('postiere');
+  if (!p) return;
+  const o = p.animations.length ? clonerAnime(p.scene) : p.scene;
+  poser(o, 'y', 2.1, POSTIERE.x, POSTIERE.z, POSTIERE.cap);
+  ville.add(o);
+  const attente = p.animations.find((a) => /idle/i.test(a.name)) ?? p.animations[0];
+  if (attente) {
+    const m = new THREE.AnimationMixer(o);
+    m.clipAction(attente).play();
+    melangeurs.push(m);
+  }
 }
 
 // Les meubles gagnés, devant la maison, de part et d'autre de l'allée.
@@ -405,7 +431,7 @@ heros.racine.rotation.y = etat.position.cap;
 
 let animerHerbe: (t: number) => void = () => {};
 if (qualite === 'haute') {
-  const herbe = semerGazon((x, z) => Math.hypot(x, z) > RAYON_PLACE + 0.4 && !(Math.abs(x) < 1.6 && z < -8 && z > -17) && Math.hypot(x, z + 19) > 4.4 && Math.hypot(x - 14, z - 3) > 3.8 && (Math.abs(x - 8.6) > 2.6 || Math.abs(z + 17) > 2.6), 32000, {
+  const herbe = semerGazon((x, z) => Math.hypot(x, z) > RAYON_PLACE + 0.4 && !(Math.abs(x) < 1.6 && z < -8 && z > -17) && Math.hypot(x, z + 19) > 4.4 && Math.hypot(x - 14, z - 3) > 3.8 && (Math.abs(x - 8.6) > 2.6 || Math.abs(z + 17) > 2.6) && Math.hypot(x + 13.5, z + 2) > 3.6, 32000, {
     x: 40,
     zMin: -45,
     zMax: 35,
@@ -533,6 +559,22 @@ installerRiviere({
   ponton: PONTON,
   buissons: BUISSONS_MURES,
   muresSurBuisson: montrerMures,
+});
+
+installerPoste({
+  points,
+  etat: () => etat,
+  changer: (e) => {
+    Object.assign(etat, e);
+    void sauverEtat(etat);
+  },
+  occupe: (oui) => {
+    occupe = oui;
+    commandes.actives = !oui;
+    ui.interagir.hidden = true;
+  },
+  apresUnChangement: rafraichirHud,
+  postiere: POSTIERE,
 });
 
 installerEpicerie({

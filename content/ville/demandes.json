@@ -7,6 +7,12 @@
       "nom": "colis",
       "pluriel": "colis",
       "article": "le colis"
+    },
+    {
+      "id": "lettre",
+      "nom": "lettre",
+      "pluriel": "lettres",
+      "article": "la lettre"
     }
   ],
   "demandes": [
