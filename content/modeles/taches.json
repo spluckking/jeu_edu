@@ -30,5 +30,23 @@
   },
   "pomme": {
     "modele": "010cefaf-bf52-47bd-bf8d-f4a541c87c09"
+  },
+  "meuble-banc": {
+    "modele": "602776f7-d30e-4df8-9abf-f96638145933"
+  },
+  "meuble-table": {
+    "modele": "2c8586b8-b11e-4686-9667-d1f4d9ca8621"
+  },
+  "meuble-lanterne": {
+    "modele": "7f6d3fee-f545-460e-86ff-da2b68c9ebfc"
+  },
+  "meuble-jardiniere": {
+    "modele": "6224f83d-4a29-463b-8526-6eab7625cf8e"
+  },
+  "meuble-nichoir": {
+    "modele": "052fcf22-2187-4040-b288-5f1723d14c27"
+  },
+  "meuble-brouette": {
+    "modele": "15be35f2-724c-4096-8923-56f8acc31f22"
   }
 }

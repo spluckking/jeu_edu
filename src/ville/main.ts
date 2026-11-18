@@ -19,7 +19,10 @@ import { CameraHaute } from '../scene/suivi.ts';
 import { plaque } from '../scene/textures.ts';
 import { dire } from '../son/voix.ts';
 import { installerDictee, type PointInteret } from './dictee-ville.ts';
-import { installerEpicerie } from './epicerie-ville.ts';
+import { installerDemandes, majSeance, parlerA } from './demandes-ville.ts';
+import { installerEpicerie, rafraichirHud } from './epicerie-ville.ts';
+import epicerie from '../../content/ville/epicerie.json';
+import meubles from '../../content/ville/meubles.json';
 import { chargerEtat, sauverEtat } from './etat.ts';
 import { creerSol, semerGazon } from './gazon.ts';
 import { aEntendre, decouper } from './mots.ts';
@@ -155,7 +158,14 @@ async function peupler(): Promise<void> {
     }
     const h: Habitant = { id: 'forain-chamboule', nom: 'Le forain', racine: o, dialogue: 'forain-accueil' };
     habitants.push(h);
-    points.push({ verbe: 'Parler', nom: h.nom, x: o.position.x, z: o.position.z, action: () => ouvrirDialogue(h) });
+    points.push({
+      verbe: 'Parler',
+      nom: h.nom,
+      x: o.position.x,
+      z: o.position.z,
+      // Sa demande du jour d'abord ; sinon, son dialogue d'accueil.
+      action: () => void parlerA(h.id).then((fait) => fait || ouvrirDialogue(h)),
+    });
   }
   // L'épicerie, son épicière devant l'étal, et le pommier (tranche 1B).
   const boutique = await modele('epicerie');
@@ -193,7 +203,29 @@ async function peupler(): Promise<void> {
       montrerPommes(pommesVisibles);
     }
   }
+  for (const id of etat.meubles) await poserMeuble(id);
   if (qualite === 'haute') ombrer(ville);
+}
+
+// Les meubles gagnés, devant la maison, de part et d'autre de l'allée.
+const PLACES_MEUBLES = [
+  { x: -3.4, z: -13.2, cap: 0.5 },
+  { x: 3.4, z: -13.2, cap: -0.5 },
+  { x: -5.6, z: -15.6, cap: 1.2 },
+  { x: 5.6, z: -15.6, cap: -1.2 },
+  { x: -3, z: -10.4, cap: 0.3 },
+  { x: 3, z: -10.4, cap: -0.3 },
+];
+async function poserMeuble(id: string): Promise<void> {
+  const rang = etat.meubles.indexOf(id);
+  const place = PLACES_MEUBLES[rang];
+  const m = meubles.meubles.find((x) => x.id === id);
+  const g = await modele(id);
+  if (!place || !m || !g) return;
+  poser(g.scene, 'y', m.hauteur, place.x, place.z, place.cap);
+  ville.add(g.scene);
+  obstacles.push({ x: place.x, z: place.z, r: 0.7 });
+  if (qualite === 'haute') ombrer(g.scene);
 }
 
 // --- Le personnage de l'enfant ------------------------------------------------------------------
@@ -351,12 +383,29 @@ installerDictee({
   changer: (d) => {
     etat.dictee = d;
     void sauverEtat(etat);
+    majSeance();
   },
   occupe: (oui) => {
     occupe = oui;
     commandes.actives = !oui;
     ui.interagir.hidden = true;
   },
+});
+
+installerDemandes({
+  etat: () => etat,
+  changer: (e) => {
+    Object.assign(etat, e);
+    void sauverEtat(etat);
+  },
+  occupe: (oui) => {
+    occupe = oui;
+    commandes.actives = !oui;
+    ui.interagir.hidden = true;
+  },
+  noms: { 'forain-chamboule': 'Le forain', epiciere: epicerie.textes.nom },
+  poserMeuble: (id) => void poserMeuble(id),
+  apresUnChangement: rafraichirHud,
 });
 
 installerEpicerie({
@@ -375,6 +424,7 @@ installerEpicerie({
   pommier: POMMIER,
   pommesSurLArbre: montrerPommes,
 });
+majSeance();
 
 // --- La promenade ------------------------------------------------------------------------------
 const VITESSE = 4.2;

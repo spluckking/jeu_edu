@@ -6,13 +6,13 @@
 import epicerie from '../../content/ville/epicerie.json';
 import { aujourdhui } from '../dictee/leitner.ts';
 import { bruitage } from '../son/bruitages.ts';
-import { dire } from '../son/voix.ts';
 import { confettis } from '../ui/confettis.ts';
 import { ajouter, decomposer, euros, juger, pieces, PIECES_RONDES, retirer, somme, total } from './argent.ts';
 import { acheter, cueillir, pommierDuJour, vendre } from './commerce.ts';
 import type { PointInteret } from './dictee-ville.ts';
+import { nomDe, parlerA } from './demandes-ville.ts';
 import type { EtatVille } from './etat.ts';
-import { aEntendre, decouper } from './mots.ts';
+import { bouton, carte, creer, icone, majuscule, piece, remplir, texteALire } from './interface.ts';
 
 export interface ContexteEpicerie {
   points: PointInteret[];
@@ -29,58 +29,15 @@ export interface ContexteEpicerie {
 type Produit = (typeof epicerie.produits)[number];
 const T = epicerie.textes;
 
-const creer = <K extends keyof HTMLElementTagNameMap>(tag: K, classe = '', texte = ''): HTMLElementTagNameMap[K] => {
-  const e = document.createElement(tag);
-  if (classe) e.className = classe;
-  if (texte) e.textContent = texte;
-  return e;
-};
-const bouton = (classe: string, texte: string): HTMLButtonElement => {
-  const b = creer('button', classe, texte);
-  b.type = 'button';
-  return b;
-};
-
-/** Remplace {cle} par sa valeur. */
-const remplir = (texte: string, valeurs: Record<string, string | number>): string => texte.replace(/\{(\w+)\}/g, (_, k: string) => String(valeurs[k] ?? ''));
-const majuscule = (s: string): string => s.charAt(0).toUpperCase() + s.slice(1);
-
-/** Un texte que l'enfant lit lui-même : chaque mot se touche pour l'entendre. */
-function texteALire(texte: string, classe = 'exercice-texte texte-a-lire'): HTMLElement {
-  const p = creer('p', classe);
-  for (const m of decouper(texte)) {
-    if (!m.mot) {
-      p.append(m.texte);
-      continue;
-    }
-    const s = creer('span', 'mot', m.texte);
-    s.addEventListener('click', () => {
-      dire(aEntendre(m.texte));
-      s.classList.add('entendu');
-      document.dispatchEvent(new CustomEvent('mot-touche', { detail: m.texte }));
-    });
-    p.append(s);
-  }
-  return p;
-}
-
-/** Une pièce ou un billet, dessiné en HTML. */
-function piece(valeur: number): HTMLButtonElement {
-  const b = bouton(`${valeur >= 500 ? 'billet' : 'piece'} argent-${valeur}`, euros(valeur));
-  b.setAttribute('aria-label', euros(valeur));
-  return b;
-}
-
-const icone = (id: string): HTMLImageElement => {
-  const img = creer('img', 'produit-icone');
-  img.src = `${import.meta.env.BASE_URL}icones/icone-${id}.webp`;
-  img.alt = '';
-  return img;
-};
-
 // --- Le porte-monnaie et le panier, en haut de l'écran --------------------------------------------
 
 let hud: { argent: HTMLButtonElement; panier: HTMLButtonElement } | null = null;
+
+/** Le porte-monnaie ou le panier ont changé ailleurs (demande, lot…). */
+export function rafraichirHud(): void {
+  if (ctxHud) majHud(ctxHud);
+}
+let ctxHud: ContexteEpicerie | null = null;
 
 function majHud(c: ContexteEpicerie): void {
   if (!hud) return;
@@ -116,25 +73,6 @@ function fermer(c: ContexteEpicerie, f: HTMLElement): void {
   majHud(c);
 }
 
-/** Une carte avec un titre, un texte à lire et des boutons ; renvoie le bouton touché. */
-function carte(f: HTMLElement, titre: string, texte: string, boutons: string[], contenu: HTMLElement[] = []): Promise<number> {
-  return new Promise((ok) => {
-    const s = creer('section', 'exercice');
-    s.append(creer('p', 'exercice-titre', titre), texteALire(texte), ...contenu);
-    const actions = creer('div', 'exercice-actions');
-    boutons.forEach((libelle, i) => {
-      const b = bouton(i === 0 ? 'bouton-principal' : 'bouton-secondaire', libelle);
-      b.addEventListener('click', () => {
-        bruitage.touche();
-        ok(i);
-      });
-      actions.append(b);
-    });
-    s.append(actions);
-    f.replaceChildren(s);
-  });
-}
-
 async function voirPorteMonnaie(c: ContexteEpicerie): Promise<void> {
   const f = ouvrir(c);
   const e = c.etat();
@@ -148,11 +86,9 @@ async function voirPanier(c: ContexteEpicerie): Promise<void> {
   const f = ouvrir(c);
   const e = c.etat();
   const liste = creer('div', 'grille-produits');
-  for (const p of epicerie.produits) {
-    const n = e.panier[p.id] ?? 0;
-    if (!n) continue;
+  for (const [id, n] of Object.entries(e.panier)) {
     const case_ = creer('div', 'produit');
-    case_.append(icone(p.id), creer('span', 'produit-nom', `${n} ${n > 1 ? p.pluriel : p.nom}`));
+    case_.append(icone(id), creer('span', 'produit-nom', `${n} ${n > 1 ? nomDe(id).pluriel : nomDe(id).nom}`));
     liste.append(case_);
   }
   await carte(f, T.panier, liste.childElementCount ? '' : T.panierVide, ['D’accord !'], [liste]);
@@ -395,10 +331,18 @@ function cueillirUnePomme(c: ContexteEpicerie): void {
 }
 
 export function installerEpicerie(c: ContexteEpicerie): void {
+  ctxHud = c;
   installerHud(c);
   c.pommesSurLArbre(pommierDuJour(c.etat().pommier, aujourdhui()).restantes);
   c.points.push(
-    { verbe: 'Parler', nom: T.nom, x: c.epiciere.x, z: c.epiciere.z, action: () => void entrer(c) },
+    {
+      verbe: 'Parler',
+      nom: T.nom,
+      x: c.epiciere.x,
+      z: c.epiciere.z,
+      // D'abord sa demande du jour, s'il y en a une ; puis la boutique.
+      action: () => void parlerA('epiciere', true).then(() => entrer(c)),
+    },
     { verbe: T.cueillir, nom: T.pommier, x: c.pommier.x, z: c.pommier.z, action: () => cueillirUnePomme(c) },
   );
 }

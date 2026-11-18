@@ -490,3 +490,46 @@ button.produit {
   align-self: stretch;
   justify-content: center;
 }
+
+/* La séance du jour, à côté du porte-monnaie : les mots, puis les demandes. */
+.hud-seance {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 52px;
+  padding: 0 16px;
+  border-radius: 999px;
+  background: var(--papier);
+  box-shadow: var(--ombre);
+  font-size: 1rem;
+}
+
+.seance-titre {
+  font-weight: 700;
+}
+
+.seance-etape {
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: var(--orange-pale);
+}
+
+.seance-etape.faite {
+  background: var(--vert-pale);
+  color: #3f7a1f;
+  font-weight: 700;
+}
+
+/* Ce qu'on va donner à l'habitant. */
+.plateau {
+  min-height: 120px;
+  padding: 8px;
+  border-radius: 18px;
+  background: #f3e2c6;
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.12);
+}
+
+.produit.lot .produit-icone {
+  width: 140px;
+  height: 140px;
+}

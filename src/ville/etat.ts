@@ -4,9 +4,10 @@
 import { dicteeNeuve, type EtatDictee } from '../dictee/etat.ts';
 import type { PorteMonnaie } from './argent.ts';
 import { POMMES_PAR_ARBRE, type Panier, type Pommier, type Ventes } from './commerce.ts';
+import { demandesNeuves, type EtatDemandes } from './demandes.ts';
 
 export interface EtatVille {
-  version: 2;
+  version: 3;
   /** Où se trouve le personnage, et vers où il regarde. */
   position: { x: number; z: number; cap: number };
   /** Les dialogues déjà lus. */
@@ -20,11 +21,17 @@ export interface EtatVille {
   pommier: Pommier;
   /** Récoltes revendues à l'épicière ce jour-là (elle en prend un nombre limité). */
   ventes: Ventes;
+  /** Les demandes du jour des habitants. */
+  demandes: EtatDemandes;
+  /** Le jour où le lot de fin de séance a été choisi. */
+  lotChoisi: string;
+  /** Les meubles gagnés, posés devant la maison. */
+  meubles: string[];
 }
 
 export function etatNeuf(): EtatVille {
   return {
-    version: 2,
+    version: 3,
     position: { x: 0, z: 6, cap: Math.PI },
     lus: [],
     dictee: dicteeNeuve(),
@@ -32,6 +39,9 @@ export function etatNeuf(): EtatVille {
     panier: {},
     pommier: { restantes: POMMES_PAR_ARBRE, repousse: null },
     ventes: { jour: '', nombre: 0 },
+    demandes: demandesNeuves(),
+    lotChoisi: '',
+    meubles: [],
   };
 }
 
@@ -41,7 +51,7 @@ function compteur(v: unknown): Record<string, number> {
   return Object.fromEntries(Object.entries(v).filter((e): e is [string, number] => Number.isInteger(e[1]) && e[1] > 0));
 }
 
-/** Relit un état brut (version 1 ou 2) ; un état illisible repart de zéro plutôt que de bloquer le jeu. */
+/** Relit un état brut (versions 1 à 3) ; un état illisible repart de zéro plutôt que de bloquer le jeu. */
 export function lireEtat(brut: unknown): EtatVille {
   const neuf = etatNeuf();
   if (typeof brut !== 'object' || brut === null) return neuf;
@@ -50,8 +60,10 @@ export function lireEtat(brut: unknown): EtatVille {
   const nombre = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
   const pom = o.pommier;
   const v = o.ventes;
+  const d = o.demandes;
+  const textes = (x: unknown): string[] => (Array.isArray(x) ? x.filter((y): y is string => typeof y === 'string') : []);
   return {
-    version: 2,
+    version: 3,
     position: p && nombre(p.x) && nombre(p.z) && nombre(p.cap) ? { x: p.x, z: p.z, cap: p.cap } : neuf.position,
     lus: Array.isArray(o.lus) ? o.lus.filter((x): x is string => typeof x === 'string') : [],
     // L'état de la dictée n'est écrit que par le jeu lui-même : on le reprend s'il a la bonne forme.
@@ -67,6 +79,19 @@ export function lireEtat(brut: unknown): EtatVille {
         ? { restantes: Math.min(pom.restantes, POMMES_PAR_ARBRE), repousse: pom.repousse }
         : neuf.pommier,
     ventes: v && typeof v.jour === 'string' && Number.isInteger(v.nombre) ? { jour: v.jour, nombre: v.nombre } : neuf.ventes,
+    // Les versions 1 et 2 n'avaient ni demandes, ni lot, ni meubles.
+    demandes:
+      d && typeof d.jour === 'string'
+        ? {
+            jour: d.jour,
+            ids: textes(d.ids),
+            acceptees: textes(d.acceptees),
+            faites: textes(d.faites),
+            historique: Object.fromEntries(Object.entries(typeof d.historique === 'object' && d.historique ? d.historique : {}).filter((x): x is [string, string] => typeof x[1] === 'string')),
+          }
+        : demandesNeuves(),
+    lotChoisi: typeof o.lotChoisi === 'string' ? o.lotChoisi : '',
+    meubles: textes(o.meubles),
   };
 }
 

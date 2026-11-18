@@ -19,7 +19,9 @@ describe('état de la ville', () => {
 
   it('reprend une sauvegarde de la version 1 sans argent ni panier', () => {
     const e = lireEtat({ version: 1, position: { x: 1, z: 2, cap: 0 }, lus: ['forain-accueil'] });
-    expect(e.version).toBe(2);
+    expect(e.version).toBe(3);
+    expect(e.demandes).toEqual(etatNeuf().demandes);
+    expect(e.meubles).toEqual([]);
     expect(e.position).toEqual({ x: 1, z: 2, cap: 0 });
     expect(e.porteMonnaie).toEqual({});
     expect(e.panier).toEqual({});
@@ -32,5 +34,12 @@ describe('état de la ville', () => {
     expect(e.panier).toEqual({ pomme: 2 });
     expect(e.pommier).toEqual({ restantes: 0, repousse: '2026-11-20' });
     expect(e.ventes).toEqual({ jour: '2026-11-18', nombre: 3 });
+  });
+
+  it('garde les demandes du jour et les meubles gagnés', () => {
+    const e = lireEtat({ demandes: { jour: '2026-11-18', ids: ['a', 3], acceptees: ['a'], faites: [], historique: { a: '2026-11-11', b: 4 } }, lotChoisi: '2026-11-18', meubles: ['meuble-banc'] });
+    expect(e.demandes).toEqual({ jour: '2026-11-18', ids: ['a'], acceptees: ['a'], faites: [], historique: { a: '2026-11-11' } });
+    expect(e.lotChoisi).toBe('2026-11-18');
+    expect(e.meubles).toEqual(['meuble-banc']);
   });
 });

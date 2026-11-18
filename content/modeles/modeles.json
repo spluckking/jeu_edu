@@ -91,6 +91,47 @@
       "id": "icone-lait",
       "genre": "icone",
       "prompt": "A single glass bottle of milk with a blue cap, game inventory icon, cute chibi anime style for a cozy farming life-sim game, soft rounded shapes, warm pastel colours, gentle hand-painted texture, centered, seen slightly from above, soft light, plain very light cream background, no shadow on the floor. --no text, logo, watermark, hands, table"
+    },
+    {
+      "id": "meuble-banc",
+      "genre": "objet",
+      "icone": true,
+      "prompt": "Full 3D game asset of a small wooden garden bench painted soft blue, with curved armrests, garden furniture for a cosy village house, cute chibi anime style for a cozy farming life-sim game, soft rounded shapes, warm pastel colours, gentle hand-painted texture. Whole object visible, three-quarter front view, isolated on a plain light grey background, no ground, no shadow. --no text, letters, logo, watermark, people, animals"
+    },
+    {
+      "id": "meuble-table",
+      "genre": "objet",
+      "icone": true,
+      "prompt": "Full 3D game asset of a small round wooden garden table with two little matching chairs, garden furniture for a cosy village house, cute chibi anime style for a cozy farming life-sim game, soft rounded shapes, warm pastel colours, gentle hand-painted texture. Whole object visible, three-quarter front view, isolated on a plain light grey background, no ground, no shadow. --no text, letters, logo, watermark, people, animals"
+    },
+    {
+      "id": "meuble-lanterne",
+      "genre": "objet",
+      "icone": true,
+      "prompt": "Full 3D game asset of a black iron garden lamp post with a warm glowing lantern on top, garden furniture for a cosy village house, cute chibi anime style for a cozy farming life-sim game, soft rounded shapes, warm pastel colours, gentle hand-painted texture. Whole object visible, three-quarter front view, isolated on a plain light grey background, no ground, no shadow. --no text, letters, logo, watermark, people, animals"
+    },
+    {
+      "id": "meuble-jardiniere",
+      "genre": "objet",
+      "icone": true,
+      "prompt": "Full 3D game asset of a long wooden planter box full of colourful flowers, garden furniture for a cosy village house, cute chibi anime style for a cozy farming life-sim game, soft rounded shapes, warm pastel colours, gentle hand-painted texture. Whole object visible, three-quarter front view, isolated on a plain light grey background, no ground, no shadow. --no text, letters, logo, watermark, people, animals"
+    },
+    {
+      "id": "meuble-nichoir",
+      "genre": "objet",
+      "icone": true,
+      "prompt": "Full 3D game asset of a cute wooden birdhouse with a red roof on a tall wooden pole, garden furniture for a cosy village house, cute chibi anime style for a cozy farming life-sim game, soft rounded shapes, warm pastel colours, gentle hand-painted texture. Whole object visible, three-quarter front view, isolated on a plain light grey background, no ground, no shadow. --no text, letters, logo, watermark, people, animals"
+    },
+    {
+      "id": "meuble-brouette",
+      "genre": "objet",
+      "icone": true,
+      "prompt": "Full 3D game asset of a small wooden wheelbarrow full of flower pots, garden furniture for a cosy village house, cute chibi anime style for a cozy farming life-sim game, soft rounded shapes, warm pastel colours, gentle hand-painted texture. Whole object visible, three-quarter front view, isolated on a plain light grey background, no ground, no shadow. --no text, letters, logo, watermark, people, animals"
+    },
+    {
+      "id": "icone-colis",
+      "genre": "icone",
+      "prompt": "A single small cardboard parcel tied with a red ribbon bow, game inventory icon, cute chibi anime style for a cozy farming life-sim game, soft rounded shapes, warm pastel colours, gentle hand-painted texture, centered, seen slightly from above, soft light, plain very light cream background, no shadow on the floor. --no text, letters, logo, watermark, hands, table"
     }
   ]
 }

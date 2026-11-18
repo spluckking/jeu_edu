@@ -111,7 +111,7 @@ async function imageDeDepart(m) {
   return fichier;
 }
 
-async function icone(m, refaire) {
+async function icone(m, refaire, source) {
   const fini = join(ICONES, `${m.id}.webp`);
   if (!refaire && existsSync(fini)) {
     console.log(`${m.id} : déjà là`);
@@ -120,7 +120,7 @@ async function icone(m, refaire) {
   console.log(`${m.id} (icône)`);
   const { default: sharp } = await import('sharp');
   mkdirSync(ICONES, { recursive: true });
-  await sharp(await imageDeDepart(m)).resize(256, 256).webp({ quality: 85 }).toFile(fini);
+  await sharp(source ?? (await imageDeDepart(m))).resize(256, 256).webp({ quality: 85 }).toFile(fini);
   console.log(`  → public/icones/${m.id}.webp`);
 }
 
@@ -174,6 +174,8 @@ async function produire(m, refaire) {
   await telecharger(url, brut);
   alleger(brut, fini);
   console.log(`  → public/modeles/${m.id}.glb`);
+  // « icone » : l'image de départ sert aussi d'image dans l'interface (lots, panier…).
+  if (m.icone) await icone({ ...m, id: m.id }, true, m.image ? join(RACINE, m.image) : join(RACINE, 'content', 'modeles', 'images', `${m.id}.png`));
 }
 
 const args = process.argv.slice(2);
