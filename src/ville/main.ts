@@ -29,6 +29,7 @@ import { jourDe } from '../memoire/jours.ts';
 import { surveillerModeApp } from '../app/modeApp.ts';
 import { surveillerMiseAJour } from '../app/miseAJour.ts';
 import { ecrirePrenom } from '../ui/prenom.ts';
+import { avecPrenom, retenirPrenomEcrit } from './prenom-ecrit.ts';
 import { construirePiece, dedans, ENTREE_INTERIEUR, SORTIE_INTERIEUR, INTERIEUR, PANNEAU_PRENOM, resterDansLaPiece, tapis } from './maison-interieur.ts';
 import { bruitage, demarrerSon } from '../son/bruitages.ts';
 import { musique, type Piste } from '../son/musique.ts';
@@ -817,6 +818,7 @@ const heros: Heros = glbEnfant
     });
 const etat = await chargerEtat();
 heros.racine.position.set(etat.position.x, 0.06, etat.position.z);
+retenirPrenomEcrit(etat.prenom);
 /** L'enfant est dans sa maison (il y était peut-être en quittant le jeu). */
 let dansLaMaison = dedans(etat.position.x, etat.position.z);
 heros.racine.rotation.y = etat.position.cap;
@@ -859,7 +861,7 @@ function ouvrirDialogue(h: Habitant): void {
   ui.interagir.hidden = true;
   ui.nom.textContent = h.nom;
   ui.texte.replaceChildren(
-    ...decouper(d.texte).map((m) => {
+    ...decouper(avecPrenom(d.texte)).map((m) => {
       if (!m.mot) return document.createTextNode(m.texte);
       const s = document.createElement('span');
       s.className = 'mot';
@@ -1296,6 +1298,7 @@ async function choisirPrenom(): Promise<void> {
   commandes.actives = avant;
   if (!prenom) return;
   etat.prenom = prenom;
+  retenirPrenomEcrit(prenom);
   pastillePrenom.textContent = prenom;
   void sauverEtat(etat);
 }
