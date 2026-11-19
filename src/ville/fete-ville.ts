@@ -30,7 +30,8 @@ import { creerPeche } from '../stands/peche.ts';
 import type { JeuDeStand } from '../stands/stand.ts';
 import { confettis } from '../ui/confettis.ts';
 import fete from '../../content/ville/fete.json';
-import { aAvanceCetteNuit, chantierOuvert, compterJournee, epreuveOuverte, passerEpreuve, PROBLEMES_EPREUVE, type EtatAttraction } from './attraction.ts';
+import { demanderUnPrenom } from '../ui/prenom.ts';
+import { aAvanceCetteNuit, aDejaManque, chantierOuvert, compterJournee, epreuveOuverte, passerEpreuve, problemesDeLEpreuve, type EtatAttraction } from './attraction.ts';
 import type { PointInteret } from './dictee-ville.ts';
 import { carte, creer } from './interface.ts';
 import { fichierForain } from './voix-forains.ts';
@@ -182,6 +183,7 @@ function carteFini(merci: boolean): void {
   q('.carte-bouton').textContent = 'Jouer';
   // Juste après le merci, le forain part aider : on rejouera une autre fois.
   q('.carte-bouton').hidden = merci;
+  q('.carte-retour').textContent = 'Retour à la fête';
   (q('.carte-bouton') as HTMLButtonElement).disabled = elementsDuStand().length === 0;
   q('.carte-retour').hidden = false;
 }
@@ -207,14 +209,16 @@ function montrerCarte(type: TypeManche, apresUneManche: boolean): void {
   q('.carte-texte').textContent = texte;
   q('.carte-bouton').textContent = type === 'libre' ? 'Jouer' : 'C’est parti !';
   (q('.carte-bouton') as HTMLButtonElement).disabled = elementsDuStand().length === 0;
-  q('.carte-retour').hidden = !apresUneManche;
+  // Le forain propose sa manche : on peut revenir plus tard.
+  q('.carte-retour').textContent = apresUneManche ? 'Retour à la fête' : 'Plus tard';
+  q('.carte-retour').hidden = false;
 }
 
 function lancerManche(): void {
   const r = revisions(jeu);
   const ids =
     typeManche === 'epreuve'
-      ? Array.from({ length: PROBLEMES_EPREUVE }, (_, i) => `defi-${i}`)
+      ? Array.from({ length: problemesDeLEpreuve(ctx.etat()) }, (_, i) => `defi-${i}`)
       : typeManche === 'semaine'
         ? r.semaine
         : typeManche === 'memoire'
@@ -223,6 +227,7 @@ function lancerManche(): void {
             ? elementsDuStand().slice(0, restants(jeu) ?? 0)
             : elementsDuStand();
   reussisEpreuve = 0;
+  totalEpreuve = ids.length;
   musique.demarrer(typeManche === 'epreuve' ? 'chantier' : jeu.id);
   const focus = sauvegarde.preparation?.focus ?? [];
   const choisis = focus.length && typeManche !== 'epreuve' ? ordonner(melanger(ids, Math.random), focus).slice(0, 8) : ids;
@@ -359,6 +364,7 @@ function suite(): void {
 // --- Le grand défi de l'attraction -------------------------------------------------------------
 let epreuve: JeuDeStand;
 let reussisEpreuve = 0;
+let totalEpreuve = 0;
 
 function validerEpreuve(reussi: boolean): void {
   if (!manche) return;
@@ -397,28 +403,44 @@ function finirEpreuve(): void {
   const id = e.enCours;
   fermerStand();
   if (!id) return;
-  const apres = passerEpreuve(e, aujourdhui(), reussisEpreuve, ctx.suivante(id));
+  const apres = passerEpreuve(e, aujourdhui(), reussisEpreuve, totalEpreuve, ctx.suivante(id));
   ctx.changer(apres);
   const reussi = apres.construites.length > e.construites.length;
   if (reussi) {
     bruitage.finDeManche();
     confettis(80);
     ctx.majFete(true);
+    void direAttraction(fete.attraction.reussite, ['D’accord'], e);
+    return;
   }
-  void direAttraction(reussi ? fete.attraction.reussite : fete.attraction.rate);
+  // Manqué : on peut réessayer tout de suite, avec un seul problème.
+  void direAttraction(fete.attraction.rate, ['Je réessaie', 'Plus tard']).then((choix) => {
+    if (choix === 0) ouvrirEpreuve();
+  });
+}
+
+/** Les trois prénoms proposés pour le forain d'une attraction. */
+const PRENOMS_ATTRACTION: Record<string, readonly string[]> = { 'grande-roue': ['Gustave', 'Firmin', 'Émile'] };
+
+/** Comment on appelle le forain de l'attraction : son prénom, s'il en a un. */
+export function nomDuForainDeLAttraction(e: EtatAttraction = ctx.etat()): string {
+  const id = e.enCours ?? e.construites[e.construites.length - 1] ?? '';
+  return e.prenoms[id] ?? fete.attraction.nom;
 }
 
 /** Le forain de l'attraction dit une phrase, dans une carte ; rend le bouton choisi. */
-async function direAttraction(texte: string, boutons = ['D’accord']): Promise<number> {
+async function direAttraction(texte: string, boutons = ['D’accord'], etat?: EtatAttraction): Promise<number> {
   ctx.occupe(true);
   const f = creer('div', 'exercice-fond');
   document.body.append(f);
   parlerForain('roue', texte);
-  const choix = await carte(f, fete.attraction.nom, texte, boutons);
+  const choix = await carte(f, nomDuForainDeLAttraction(etat), texte, boutons);
   f.remove();
   ctx.occupe(false);
   return choix;
 }
+
+let pointDuForain: PointInteret | null = null;
 
 /** On parle au forain de l'attraction. */
 async function parlerAuForainDeLAttraction(): Promise<void> {
@@ -428,13 +450,21 @@ async function parlerAuForainDeLAttraction(): Promise<void> {
     await direAttraction(fete.attraction.ouverte);
     return;
   }
-  if (epreuveOuverte(e, new Date())) {
-    const choix = await direAttraction(fete.attraction.defi, ['C’est parti !', 'Plus tard']);
-    if (choix === 0) ouvrirEpreuve();
+  // La première rencontre : il se présente, et l'enfant lui donne un prénom.
+  const id = e.enCours;
+  if (!e.prenoms[id]) {
+    parlerForain('roue', fete.attraction.avant);
+    ctx.occupe(true);
+    const prenom = await demanderUnPrenom(PRENOMS_ATTRACTION[id] ?? PRENOMS_ATTRACTION['grande-roue'] ?? [], 'le forain de la grande roue', fete.attraction.avant);
+    ctx.occupe(false);
+    ctx.changer({ ...ctx.etat(), prenoms: { ...ctx.etat().prenoms, [id]: prenom } });
+    if (pointDuForain) pointDuForain.nom = prenom;
     return;
   }
-  if (e.essaiLe === jour) {
-    await direAttraction(fete.attraction.dejaEssaye);
+  if (epreuveOuverte(e, new Date())) {
+    const deNouveau = aDejaManque(e);
+    const choix = await direAttraction(deNouveau ? fete.attraction.dejaEssaye : fete.attraction.defi, ['C’est parti !', 'Plus tard']);
+    if (choix === 0) ouvrirEpreuve();
     return;
   }
   if (e.compteLe === jour) {
@@ -609,7 +639,8 @@ export async function installerFete(c: ContexteFete): Promise<void> {
     const p = c.maneges[id];
     c.points.push({ verbe: 'Monter', nom: NOMS_MANEGES[id], x: p.x, z: p.z, action: () => void monterSurLeManege(id) });
   }
-  c.points.push({ verbe: 'Parler', nom: fete.attraction.nom, x: c.forainAttraction.x, z: c.forainAttraction.z, action: () => void parlerAuForainDeLAttraction() });
+  pointDuForain = { verbe: 'Parler', nom: nomDuForainDeLAttraction(), x: c.forainAttraction.x, z: c.forainAttraction.z, action: () => void parlerAuForainDeLAttraction() };
+  c.points.push(pointDuForain);
   // Les forains ont peut-être déjà fini aujourd'hui, lors d'une visite précédente.
   verifierLaJournee();
   c.majFete();

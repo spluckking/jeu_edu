@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   aAvanceCetteNuit,
+  aDejaManque,
   attractionNeuve,
   chantierOuvert,
   commencer,
@@ -11,6 +12,7 @@ import {
   lireAttraction,
   lundiSuivant,
   passerEpreuve,
+  problemesDeLEpreuve,
   vendrediDEpreuve,
 } from './attraction.ts';
 
@@ -57,23 +59,32 @@ describe('l’attraction en construction', () => {
     expect(epreuveOuverte(commencer(attractionNeuve('x'), VENDREDI), a(15))).toBe(false);
   });
 
-  it('épreuve manquée : on réessaie le lendemain', () => {
-    const e = passerEpreuve(roue(), VENDREDI, 1, null);
+  it('épreuve manquée : on réessaie tout de suite, avec un seul problème', () => {
+    expect(problemesDeLEpreuve(roue())).toBe(3);
+    const e = passerEpreuve(roue(), VENDREDI, 1, 3, null);
     expect(e.enCours).toBe('grande-roue');
-    expect(epreuveOuverte(e, a(16))).toBe(false);
-    expect(epreuveOuverte(e, a(10, '2026-11-21'))).toBe(true);
+    expect(aDejaManque(e)).toBe(true);
+    expect(epreuveOuverte(e, a(16))).toBe(true);
+    expect(problemesDeLEpreuve(e)).toBe(1);
     expect(e.epreuves).toEqual([{ jour: VENDREDI, attraction: 'grande-roue', reussis: 1, total: 3 }]);
+    // Encore manquée : on peut réessayer encore.
+    const encore = passerEpreuve(e, VENDREDI, 0, 1, null);
+    expect(encore.enCours).toBe('grande-roue');
+    expect(epreuveOuverte(encore, a(17))).toBe(true);
+    // Le problème seul, réussi : la roue est construite.
+    expect(passerEpreuve(encore, VENDREDI, 1, 1, null).construites).toEqual(['grande-roue']);
   });
 
   it('épreuve réussie : l’attraction est construite, la suivante commence le lundi', () => {
-    const e = passerEpreuve(compterJournee(roue(), JEUDI), VENDREDI, 2, 'carrousel');
+    const e = passerEpreuve({ ...compterJournee(roue(), JEUDI), prenoms: { 'grande-roue': 'Firmin' } }, VENDREDI, 2, 3, 'carrousel');
+    expect(e.prenoms).toEqual({ 'grande-roue': 'Firmin' });
     expect(e.construites).toEqual(['grande-roue']);
     expect(e.enCours).toBe('carrousel');
     expect(e.debut).toBe(lundiSuivant(VENDREDI));
     expect(e.debut).toBe('2026-11-23');
     expect(e.etapes).toBe(0);
     expect(chantierOuvert(e, '2026-11-22')).toBe(false);
-    const fin = passerEpreuve(roue(), VENDREDI, 3, null);
+    const fin = passerEpreuve(roue(), VENDREDI, 3, 3, null);
     expect(fin.enCours).toBeNull();
     expect(chantierOuvert(fin, VENDREDI)).toBe(false);
   });

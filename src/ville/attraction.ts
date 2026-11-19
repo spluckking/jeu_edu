@@ -1,14 +1,16 @@
 // L'attraction en construction à la fête foraine. Chaque journée où l'enfant aide les cinq forains,
 // le chantier avance d'une étape (pour le plaisir de le voir monter : ça ne débloque rien). Ce qui
 // termine l'attraction, c'est l'épreuve que propose son forain à partir du vendredi midi, que
-// l'enfant ait aidé ou non. Réussie, l'attraction ouvre ; la suivante commence le lundi d'après.
+// l'enfant ait aidé ou non : 3 problèmes, 2 justes suffisent. Manquée, l'enfant peut réessayer tout
+// de suite, autant de fois qu'il veut, avec un seul problème. Réussie, l'attraction ouvre ; la
+// suivante commence le lundi d'après.
 // Pur : les heures et les jours sont passés en paramètres.
 
 import { ajouterJours, ecartEnJours, jourDe, jourDeSemaine, type Jour } from '../memoire/jours.ts';
 
 /** Les étapes visibles du chantier, une par journée d'aide. */
 export const ETAPES = 5;
-/** L'épreuve : ce nombre de problèmes, dont au moins REUSSIS_POUR_FINIR justes. */
+/** L'épreuve : ce nombre de problèmes, dont au moins REUSSIS_POUR_FINIR justes (au premier essai). */
 export const PROBLEMES_EPREUVE = 3;
 export const REUSSIS_POUR_FINIR = 2;
 /** L'épreuve ouvre le vendredi à partir de cette heure. */
@@ -31,7 +33,7 @@ export interface EtatAttraction {
   etapes: number;
   /** Le dernier jour compté. */
   compteLe: Jour;
-  /** Le jour d'une épreuve manquée (on réessaie le lendemain). */
+  /** Le jour de la dernière épreuve manquée ('' : jamais manquée). */
   essaiLe: Jour;
   /** Le jour où l'enfant a entendu que le chantier avait avancé pendant la nuit. */
   vuLe: Jour;
@@ -39,6 +41,8 @@ export interface EtatAttraction {
   construites: string[];
   /** Les épreuves passées (pour le parent). */
   epreuves: Epreuve[];
+  /** Le prénom que l'enfant a donné au forain de chaque attraction. */
+  prenoms: Record<string, string>;
 }
 
 export const attractionNeuve = (premiere: string | null): EtatAttraction => ({
@@ -50,6 +54,7 @@ export const attractionNeuve = (premiere: string | null): EtatAttraction => ({
   vuLe: '',
   construites: [],
   epreuves: [],
+  prenoms: {},
 });
 
 /** À la première visite, le chantier commence aujourd'hui. */
@@ -77,14 +82,20 @@ export function vendrediDEpreuve(debut: Jour): Jour {
   return j;
 }
 
-/** L'épreuve est-elle ouverte à cet instant ? (pas deux fois le même jour après un échec) */
+/** L'épreuve est-elle ouverte à cet instant ? */
 export function epreuveOuverte(e: EtatAttraction, instant: Date): boolean {
   const jour = jourDe(instant);
-  if (!chantierOuvert(e, jour) || e.essaiLe === jour) return false;
+  if (!chantierOuvert(e, jour)) return false;
   const vendredi = vendrediDEpreuve(e.debut);
   const ecart = ecartEnJours(vendredi, jour);
   return ecart > 0 || (ecart === 0 && instant.getHours() >= HEURE_EPREUVE);
 }
+
+/** L'enfant a-t-il déjà manqué l'épreuve de cette attraction ? */
+export const aDejaManque = (e: EtatAttraction): boolean => e.essaiLe !== '';
+
+/** Le nombre de problèmes de la prochaine épreuve : un seul après un échec. */
+export const problemesDeLEpreuve = (e: EtatAttraction): number => (aDejaManque(e) ? 1 : PROBLEMES_EPREUVE);
 
 /** Le lundi qui suit ce jour. */
 export function lundiSuivant(jour: Jour): Jour {
@@ -93,13 +104,14 @@ export function lundiSuivant(jour: Jour): Jour {
   return j;
 }
 
-/** Le résultat de l'épreuve. Réussie : l'attraction est construite, la suivante (s'il y en a une)
- *  commence le lundi d'après. Manquée : on réessaie le lendemain. */
-export function passerEpreuve(e: EtatAttraction, jour: Jour, reussis: number, suivante: string | null): EtatAttraction {
+/** Le résultat de l'épreuve (total : le nombre de problèmes posés). Réussie : l'attraction est
+ *  construite, la suivante (s'il y en a une) commence le lundi d'après. Manquée : on peut réessayer
+ *  tout de suite, avec un seul problème. */
+export function passerEpreuve(e: EtatAttraction, jour: Jour, reussis: number, total: number, suivante: string | null): EtatAttraction {
   if (!e.enCours) return e;
-  const epreuves = [...e.epreuves, { jour, attraction: e.enCours, reussis, total: PROBLEMES_EPREUVE }];
-  if (reussis < REUSSIS_POUR_FINIR) return { ...e, essaiLe: jour, epreuves };
-  return { ...attractionNeuve(suivante), debut: suivante ? lundiSuivant(jour) : '', construites: [...e.construites, e.enCours], epreuves };
+  const epreuves = [...e.epreuves, { jour, attraction: e.enCours, reussis, total }];
+  if (reussis < (total === 1 ? 1 : REUSSIS_POUR_FINIR)) return { ...e, essaiLe: jour, epreuves };
+  return { ...attractionNeuve(suivante), debut: suivante ? lundiSuivant(jour) : '', construites: [...e.construites, e.enCours], epreuves, prenoms: e.prenoms };
 }
 
 /** Relit l'état gardé ; une forme abîmée repart de la première attraction. */
@@ -121,5 +133,6 @@ export function lireAttraction(brut: unknown, premiere: string | null): EtatAttr
     epreuves: Array.isArray(o.epreuves)
       ? o.epreuves.filter((p): p is Epreuve => typeof p === 'object' && p !== null && typeof p.jour === 'string' && typeof p.attraction === 'string' && Number.isInteger(p.reussis) && Number.isInteger(p.total))
       : [],
+    prenoms: Object.fromEntries(Object.entries(typeof o.prenoms === 'object' && o.prenoms ? o.prenoms : {}).filter((x): x is [string, string] => typeof x[1] === 'string')),
   };
 }

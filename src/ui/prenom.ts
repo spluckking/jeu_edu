@@ -5,6 +5,11 @@ import type { IdStand } from '../scene/fete.ts';
 import { bruitage } from '../son/bruitages.ts';
 
 export function demanderPrenom(id: IdStand, presentation: string): Promise<string> {
+  return demanderUnPrenom(PROPOSITIONS[id], METIERS[id], presentation);
+}
+
+/** Le même choix pour un autre personnage : trois prénoms proposés, ou un prénom écrit. */
+export function demanderUnPrenom(propositions: readonly string[], metier: string, presentation: string): Promise<string> {
   return new Promise((fini) => {
     const fond = document.createElement('div');
     fond.className = 'vitrine-fond';
@@ -36,10 +41,10 @@ export function demanderPrenom(id: IdStand, presentation: string): Promise<strin
     const proposer = (): void => {
       const liste = document.createElement('div');
       liste.className = 'lecture-choix';
-      liste.append(...PROPOSITIONS[id].map((p) => bouton('choix', p, () => choisir(p))));
+      liste.append(...propositions.map((p) => bouton('choix', p, () => choisir(p))));
       carte.replaceChildren(
         texte('lecture-texte', presentation),
-        texte('lecture-titre', `Comment s’appelle ${METIERS[id]} ?`),
+        texte('lecture-titre', `Comment s’appelle ${metier} ?`),
         liste,
         bouton('bouton-secondaire', 'Un autre prénom', () => {
           bruitage.touche();
@@ -66,7 +71,7 @@ export function demanderPrenom(id: IdStand, presentation: string): Promise<strin
       const boutons = document.createElement('div');
       boutons.className = 'lecture-boutons';
       boutons.append(bouton('bouton-secondaire', 'Retour', proposer), valider);
-      carte.replaceChildren(texte('lecture-titre', `Écris le prénom de ${METIERS[id]}.`), champ, boutons);
+      carte.replaceChildren(texte('lecture-titre', `Écris le prénom de ${metier}.`), champ, boutons);
       champ.focus();
     };
     proposer();
