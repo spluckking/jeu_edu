@@ -99,6 +99,8 @@ interface Lecture {
 }
 let lecture: Lecture | null = null;
 let voulue: Piste | null = null;
+/** Le morceau vraiment lancé : seulement une fois le son prêt (après le premier toucher). */
+let lancee: Piste | null = null;
 
 /** Joue une boucle : chaque tour commence FONDU secondes avant la fin du précédent, en fondu. */
 function boucler(l: Lecture, tampon: AudioBuffer, debut: number): void {
@@ -171,6 +173,7 @@ export const musique = {
     voulue = piste;
     const son = sortieSon();
     if (!son || volumes.musique <= 0) return;
+    lancee = piste;
     ambiance(piste);
     if (lecture?.piste === piste) return;
     void charger(`musique-${piste}`).then((tampon) => {
@@ -196,10 +199,11 @@ export const musique = {
   },
   /** Le morceau qui joue (ou qui se charge), s'il y en a un. */
   actuelle(): Piste | null {
-    return sortieSon() ? voulue : null;
+    return lancee;
   },
   arreter(): void {
     voulue = null;
+    lancee = null;
     ambiance(null);
     arreterFabriquee();
     if (lecture) couper(lecture);
