@@ -5,6 +5,7 @@
 // les fleurs.
 
 import * as THREE from 'three';
+import { enParcelles } from '../scene/parcelles.ts';
 
 /** Bruit de valeur et sa somme sur plusieurs échelles, partagés par le sol et les touffes. */
 const BRUIT_GLSL = /* glsl */ `
@@ -140,8 +141,8 @@ export function semerGazon(libre: (x: number, z: number) => boolean, nombre: num
     n++;
   }
   touffes.count = n;
-  touffes.frustumCulled = false;
-  racine.add(touffes);
+  // En parcelles : seules celles qui sont à l'écran sont dessinées.
+  racine.add(enParcelles(touffes, 16, 0.3));
 
   // Des fleurs en petites grappes (blanches, jaunes, roses, mauves), jamais isolées au hasard.
   const fleur = new THREE.IcosahedronGeometry(0.1, 1);
@@ -165,8 +166,7 @@ export function semerGazon(libre: (x: number, z: number) => boolean, nombre: num
     }
   }
   fleurs.count = f;
-  fleurs.frustumCulled = false;
-  racine.add(fleurs);
+  racine.add(enParcelles(fleurs, 16));
 
   return {
     racine,
