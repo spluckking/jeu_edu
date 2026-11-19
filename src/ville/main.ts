@@ -28,6 +28,8 @@ import attractions from '../../content/ville/attractions.json';
 import { jourDe } from '../memoire/jours.ts';
 import { surveillerModeApp } from '../app/modeApp.ts';
 import { surveillerMiseAJour } from '../app/miseAJour.ts';
+import { bruitage, demarrerSon } from '../son/bruitages.ts';
+import { musique, type Piste } from '../son/musique.ts';
 import type { IdStand } from '../scene/fete.ts';
 import type { IdManege } from '../detente/objectifs.ts';
 import { installerProjets } from './projets-ville.ts';
@@ -38,20 +40,21 @@ import epicerie from '../../content/ville/epicerie.json';
 import meubles from '../../content/ville/meubles.json';
 import { chargerEtat, sauverEtat } from './etat.ts';
 import { creerSol, semerGazon } from './gazon.ts';
-import { BORDS, BUISSONS_MURES, dansLEau, devantLeStand, FETE, LIEUX, occupe as occupeMonde, PONT, RAYON_PLACE, surLePont } from './monde.ts';
-import { dessinerMonde, placesDesArbres, planterArbres } from './monde-scene.ts';
+import { BORDS, BUISSONS_MURES, dansLaFete, dansLEau, devantLeStand, FETE, LIEUX, occupe as occupeMonde, PONT, RAYON_PLACE, surLePont } from './monde.ts';
+import { dessinerMonde, guirlandes, placesDesArbres, planterArbres } from './monde-scene.ts';
 
 /** Le forain du chamboule-tout, à la fête foraine, juste après le portail. */
 const FORAIN = devantLeStand(FETE.stands.chamboule);
-/** Le forain de la grande roue, au bout de l'allée, devant elle. */
-const FORAIN_ROUE = { x: FETE.roue.x - 5.5, z: FETE.roue.z + 2, cap: -Math.PI / 2 };
-/** Où viennent aider les forains qui ont fini leur journée : en rang, au pied de la roue, côté sud. */
-const AIDES_ROUE = [-2, -1, 0, 1, 2].map((a) => ({ x: FETE.roue.x + a * 1.5, z: FETE.roue.z + 6 + Math.abs(a) * -0.4, cap: Math.PI - a * 0.12 }));
+/** Le forain de la grande roue, et où viennent aider les forains qui ont fini leur journée. */
+const FORAIN_ROUE = FETE.forainRoue;
+const AIDES_ROUE = FETE.aidesRoue;
 import { aEntendre, decouper } from './mots.ts';
 
 const adresse = new URLSearchParams(location.search);
 /** Essais seulement : plan rapproché sur le héros (voir « ?essai » en bas). */
 let grosPlan: { angle: number } | null = null;
+/** Essais seulement : une caméra fixe (position, cible). */
+let vueFixe: [number, number, number, number, number, number] | null = null;
 const qualite = choisirQualite(adresse.get('qualite') ?? 'haute');
 const palette = choisirPalette('naturelle');
 const el = <T extends HTMLElement>(id: string): T => document.getElementById(id) as T;
@@ -132,7 +135,7 @@ const ABORDS = [
   { ...LIEUX.tour, r: 3.2 },
   { ...LIEUX.ponton, r: 3 },
   { ...LIEUX.portailFete, r: 5 },
-  { ...LIEUX.fete, r: 20 },
+  { ...LIEUX.fete, r: Math.max(FETE.rx, FETE.rz) + 1 },
   ...BUISSONS_MURES.map((b) => ({ ...b, r: 2.2 })),
 ];
 
@@ -147,6 +150,11 @@ async function modele(id: string): Promise<GLTF | null> {
 }
 /** Tripo exporte ses modèles face à +x : ce quart de tour les remet face à +z (vers la caméra). */
 const FACE_TRIPO = -Math.PI / 2;
+/** Les stands et le décor de la fête, faits d'après une image de trois quarts, ont leur devant
+ *  ailleurs : ce quart de tour de plus les remet face à la caméra. */
+const FACE_DECOR = Math.PI / 2;
+/** Même chose pour certains forains (mesuré sur chaque modèle, vu des quatre côtés). */
+const FACE_FORAINS: Record<string, number> = { confiserie: Math.PI / 2, chantier: Math.PI / 2, horloge: Math.PI / 2, peche: Math.PI / 2 };
 
 /** Met un modèle à la bonne taille et le pose au sol. cap : 0 = face à la caméra. */
 function poser(o: THREE.Object3D, axe: 'x' | 'y', voulu: number, x: number, z: number, cap: number): void {
@@ -192,7 +200,7 @@ function montrerPommes(n: number): void {
   pommesArbre.forEach((p, i) => (p.visible = i < n));
 }
 /** Les forains des stands : leur modèle, et le sens où ils regardent devant leur stand. */
-const forainsDesStands = new Map<string, { o: THREE.Object3D; cap: number }>();
+const forainsDesStands = new Map<string, { o: THREE.Object3D; cap: number; face: number }>();
 interface Habitant {
   id: string;
   nom: string;
@@ -224,7 +232,7 @@ async function peupler(): Promise<void> {
     }
     const h: Habitant = { id: 'forain-chamboule', nom: 'Le forain', racine: o, dialogue: 'forain-accueil' };
     habitants.push(h);
-    forainsDesStands.set('chamboule', { o, cap: FORAIN.cap });
+    forainsDesStands.set('chamboule', { o, cap: FORAIN.cap, face: 0 });
     points.push({
       verbe: 'Parler',
       nom: h.nom,
@@ -463,7 +471,7 @@ async function poserFete(): Promise<void> {
   for (const [id, s] of Object.entries(FETE.stands)) {
     const stand = await modele(`stand-${id}`);
     if (stand) {
-      poserCentre(stand.scene, 5, s.x, s.z, s.cap);
+      poserCentre(stand.scene, 5, s.x, s.z, s.cap + FACE_DECOR);
       ville.add(stand.scene);
     }
     obstacles.push({ x: s.x, z: s.z, r: 2.3 });
@@ -472,9 +480,9 @@ async function poserFete(): Promise<void> {
     if (!f) continue;
     const o = f.animations.length ? clonerAnime(f.scene) : f.scene;
     const p = devantLeStand(s);
-    poser(o, 'y', 2.1, p.x, p.z, p.cap);
+    poser(o, 'y', 2.1, p.x, p.z, p.cap + (FACE_FORAINS[id] ?? 0));
     ville.add(o);
-    forainsDesStands.set(id, { o, cap: p.cap });
+    forainsDesStands.set(id, { o, cap: p.cap, face: FACE_FORAINS[id] ?? 0 });
     const attente = f.animations.find((a) => /idle/i.test(a.name)) ?? f.animations[0];
     if (attente) {
       const m = new THREE.AnimationMixer(o);
@@ -492,6 +500,35 @@ async function poserFete(): Promise<void> {
     }
     obstacles.push({ x: m.x, z: m.z, r: longueur / 2.4 });
   }
+  // Le décor : chaque modèle n'est chargé qu'une fois, puis copié.
+  const charges = new Map<string, GLTF | null>();
+  for (const d of FETE.deco) {
+    if (!charges.has(d.modele)) charges.set(d.modele, await modele(d.modele));
+    const g = charges.get(d.modele);
+    if (g) {
+      const o = g.scene.clone();
+      poserCentre(o, d.longueur, d.x, d.z, d.cap + FACE_DECOR);
+      ville.add(o);
+    }
+    obstacles.push({ x: d.x, z: d.z, r: d.r });
+  }
+  // Les lampadaires de l'allée, et les fanions tendus entre eux : en travers de l'allée, et le
+  // long de chaque côté.
+  const lampe = await modele('lampadaire');
+  const HAUT = 3.7;
+  for (const l of FETE.lampadaires) {
+    if (lampe) {
+      const o = lampe.scene.clone();
+      poser(o, 'y', 4.3, l.x, l.z, 0);
+      ville.add(o);
+    }
+    obstacles.push({ x: l.x, z: l.z, r: 0.35 });
+  }
+  const L = FETE.lampadaires.map((l) => new THREE.Vector3(l.x, HAUT, l.z));
+  const fils: Array<[THREE.Vector3, THREE.Vector3]> = [];
+  for (let i = 0; i + 1 < L.length; i += 2) fils.push([L[i]!, L[i + 1]!]);
+  for (let i = 0; i + 2 < L.length; i++) fils.push([L[i]!, L[i + 2]!]);
+  ville.add(guirlandes(fils));
   const roue = await modele('grande-roue');
   if (roue) {
     poserCentre(roue.scene, 12, FETE.roue.x, FETE.roue.z, FETE.roue.cap);
@@ -514,7 +551,7 @@ async function poserFete(): Promise<void> {
   const forainRoue = await modele('forain-roue');
   if (forainRoue) {
     const o = forainRoue.animations.length ? clonerAnime(forainRoue.scene) : forainRoue.scene;
-    poser(o, 'y', 2.1, FORAIN_ROUE.x, FORAIN_ROUE.z, FORAIN_ROUE.cap);
+    poser(o, 'y', 2.1, FORAIN_ROUE.x, FORAIN_ROUE.z, FORAIN_ROUE.cap + Math.PI / 2);
     ville.add(o);
     const attente = forainRoue.animations.find((a) => /idle/i.test(a.name)) ?? forainRoue.animations[0];
     if (attente) {
@@ -544,13 +581,13 @@ function majFete(festif = false): void {
   partVoulue = roueConstruite() || !chantier ? 1 : 0.3 + (0.55 * etapesVisibles(etat.attraction, jour)) / ETAPES;
   if (!festif) partRoue = partVoulue;
   let rang = 0;
-  for (const [id, { o, cap }] of forainsDesStands) {
+  for (const [id, { o, cap, face }] of forainsDesStands) {
     const s = FETE.stands[id as keyof typeof FETE.stands];
     const aide = chantier && standFini(id as keyof typeof FETE.stands);
     const p = aide ? (AIDES_ROUE[rang++] ?? devantLeStand(s)) : devantLeStand(s);
     o.position.x = p.x;
     o.position.z = p.z;
-    o.rotation.y = (aide ? p.cap : cap) + FACE_TRIPO;
+    o.rotation.y = (aide ? p.cap : cap) + FACE_TRIPO + face;
     // Le bouton « Parler » du forain du chamboule le suit.
     if (id === 'chamboule') {
       const point = points.find((x) => x.nom === 'Le forain' && x.verbe === 'Parler');
@@ -597,10 +634,13 @@ function cameraDuTour(t: number): void {
   const horizontal = taille.x > taille.z ? new THREE.Vector3(1, 0, 0) : new THREE.Vector3(0, 0, 1);
   const p = centre.clone().addScaledVector(horizontal, Math.sin(a) * r);
   p.y = centre.y - Math.cos(a) * r + 0.5;
-  // Un peu devant la roue, côté allée, pour ne pas voir l'intérieur de la nacelle.
-  p.x -= 1.6;
+  // Un peu devant la roue, côté ville, pour ne pas voir l'intérieur de la nacelle ; on regarde la
+  // ville (la place est en 0, 0).
+  const versVille = new THREE.Vector3(-centre.x, 0, -centre.z).normalize();
+  const devant = taille.x > taille.z ? new THREE.Vector3(0, 0, Math.sign(versVille.z) || 1) : new THREE.Vector3(Math.sign(versVille.x) || 1, 0, 0);
+  p.addScaledVector(devant, 1.6);
   camera.position.copy(p);
-  camera.lookAt(p.x - 40, p.y * 0.35, p.z * 0.6);
+  camera.lookAt(p.x + versVille.x * 40, p.y * 0.35, p.z + versVille.z * 40);
 }
 
 // Les meubles gagnés, devant la maison, de part et d'autre de l'allée.
@@ -888,8 +928,8 @@ installerProjets({
 points.push({
   verbe: 'Monter',
   nom: 'La grande roue',
-  x: FORAIN_ROUE.x,
-  z: FETE.roue.z - 2.5,
+  x: FETE.roue.x,
+  z: FETE.roue.z + 6.5,
   visible: roueConstruite,
   action: () => void faireUnTour(),
 });
@@ -912,7 +952,7 @@ void installerFete({
     return attractions.attractions[i + 1]?.id ?? null;
   },
   stands: Object.fromEntries(Object.entries(FETE.stands).map(([id, s]) => [id, devantLeStand(s)])) as unknown as Record<IdStand, { x: number; z: number }>,
-  maneges: Object.fromEntries(Object.entries(FETE.maneges).map(([id, m]) => [id, { x: m.x, z: m.z - 4.2 }])) as unknown as Record<IdManege, { x: number; z: number }>,
+  maneges: Object.fromEntries(Object.entries(FETE.maneges).map(([id, m]) => [id, devantLeStand(m, id === 'autos' ? 5.6 : 4.6)])) as unknown as Record<IdManege, { x: number; z: number }>,
 });
 
 installerEpicerie({
@@ -990,6 +1030,26 @@ function promenade(dt: number): number {
   return force;
 }
 
+// La musique suit l'endroit : la ville, ou la fête dès qu'on approche du portail. On ne la change
+// pas pendant un exercice (le stand a la sienne). À la fête, de temps en temps, un bruit lointain.
+let prochainControle = 0;
+let prochainBruit = 0;
+const BRUITS_FETE = ['fete-cloche', 'fete-rires', 'fete-popcorn', 'fete-orgue'] as const;
+function sonDeLEndroit(maintenant: number): void {
+  if (maintenant < prochainControle || occupe || tourDeRoue) return;
+  prochainControle = maintenant + 1500;
+  const p = heros.racine.position;
+  const aLaFete = dansLaFete(p.x, p.z, 9);
+  const voulue: Piste = aLaFete ? 'promenade' : 'ville';
+  if (musique.actuelle() !== voulue) musique.demarrer(voulue);
+  if (!aLaFete) return;
+  if (!prochainBruit) prochainBruit = maintenant + 6000;
+  if (maintenant > prochainBruit) {
+    prochainBruit = maintenant + 14000 + Math.random() * 20000;
+    bruitage.son(BRUITS_FETE[Math.floor(Math.random() * BRUITS_FETE.length)] ?? 'fete-rires', 0.35);
+  }
+}
+
 // La position est gardée de temps en temps, et quand l'enfant quitte l'écran.
 let dernierEnregistrement = 0;
 function retenirPosition(maintenant: number, forcer = false): void {
@@ -1022,6 +1082,10 @@ renderer.setAnimationLoop(() => {
   const pose = suivi.pose(heros.racine, dt);
   camera.position.copy(pose.position);
   camera.lookAt(pose.cible);
+  if (vueFixe) {
+    camera.position.set(vueFixe[0], vueFixe[1], vueFixe[2]);
+    camera.lookAt(vueFixe[3], vueFixe[4], vueFixe[5]);
+  }
   if (grosPlan) {
     // Essais seulement : la caméra face au héros, à hauteur de tête.
     const h = heros.racine;
@@ -1038,6 +1102,7 @@ renderer.setAnimationLoop(() => {
   if (qualite === 'haute') renderer.shadowMap.needsUpdate = imagesRendues++ % 3 === 0;
   renderer.render(scene, camera);
   if (pas > 0) retenirPosition(performance.now());
+  sonDeLEndroit(performance.now());
   if (boiteFps) {
     images++;
     const ecoule = performance.now() - debutFps;
@@ -1056,6 +1121,8 @@ document.body.dataset.pret = '1';
 // L'appli MiniVille s'ouvre ici : plein écran au premier toucher, et mise à jour proposée
 // seulement quand l'enfant se promène (jamais pendant un exercice ou un dialogue).
 surveillerModeApp();
+// Le son ne peut démarrer qu'après un toucher (règle des navigateurs).
+addEventListener('pointerdown', demarrerSon, { capture: true });
 if (import.meta.env.PROD) surveillerMiseAJour(() => !occupe && !enDialogue);
 
 // « ?essai » : placer le personnage d'un coup (essais et captures).
@@ -1068,6 +1135,9 @@ if (adresse.has('essai')) {
       /** Plan rapproché sur le héros, vu sous cet angle (0 : de face), ou null pour revenir. */
       gros(angle: number | null): void {
         grosPlan = angle === null ? null : { angle };
+      },
+      vue(...v: number[]): void {
+        vueFixe = v.length === 6 ? (v as [number, number, number, number, number, number]) : null;
       },
       grandDefi: essaiGrandDefi,
       tour: () => void faireUnTour(),

@@ -42,8 +42,12 @@ export type Bruit =
   | 'etoile'
   | 'boing'
   | 'boing-rate'
-  | 'mur';
-const BRUITS: Bruit[] = ['pas', 'porte', 'habiller', 'indice', 'construction', 'page', 'tamponneuse', 'etoile', 'boing', 'boing-rate', 'mur'];
+  | 'mur'
+  | 'fete-cloche'
+  | 'fete-rires'
+  | 'fete-popcorn'
+  | 'fete-orgue';
+const BRUITS: Bruit[] = ['pas', 'porte', 'habiller', 'indice', 'construction', 'page', 'tamponneuse', 'etoile', 'boing', 'boing-rate', 'mur', 'fete-cloche', 'fete-rires', 'fete-popcorn', 'fete-orgue'];
 const STANDS_REUSSITE = ['chamboule', 'peche', 'confiserie', 'horloge', 'chantier'];
 const SONS = [
   'bruitage-touche',
