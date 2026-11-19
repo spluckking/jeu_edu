@@ -3,6 +3,7 @@
 // modèle, quel que soit leur nombre).
 
 import * as THREE from 'three';
+import { enParcelles } from '../scene/parcelles.ts';
 import type { GLTF } from 'three/addons/loaders/GLTFLoader.js';
 import { BORDS, ETANG, FETE, hasardStable, LIEUX, LARGEUR_CHEMIN, LARGEUR_RIVIERE, lignes, occupe, surUnChemin, type Point } from './monde.ts';
 
@@ -223,7 +224,8 @@ export function planterArbres(modele: GLTF, hauteur: number, places: ReadonlyArr
     });
     instances.castShadow = true;
     instances.receiveShadow = true;
-    groupe.add(instances);
+    // En parcelles : seuls les arbres à l'écran (ou dans l'ombre du soleil) sont dessinés.
+    groupe.add(enParcelles(instances, 24));
   });
   return groupe;
 }

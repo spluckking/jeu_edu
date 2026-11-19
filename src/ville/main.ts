@@ -69,6 +69,26 @@ const soleil = new THREE.DirectionalLight(0xfff1dc, 1.7);
 scene.add(ciel, soleil);
 if (qualite === 'haute') eclairer(renderer, scene, soleil, ciel);
 soleil.target.position.set(0, 0, -4);
+// L'ombre du soleil suit l'enfant, sur 60 m de côté autour de lui : moins de choses à dessiner dans
+// l'ombre, des ombres plus nettes, et la fête (loin de la place) en a aussi. Recalculée à chaque
+// image : une image sur trois plus lourde que les autres faisait des à-coups en marchant.
+const SOLEIL = soleil.position.clone().sub(soleil.target.position);
+const OMBRE = 30;
+if (qualite === 'haute') {
+  const c = soleil.shadow.camera;
+  c.left = c.bottom = -OMBRE;
+  c.right = c.top = OMBRE;
+  c.updateProjectionMatrix();
+}
+function soleilSur(x: number, z: number): void {
+  // Calé sur les pixels de l'ombre, pour qu'elle ne scintille pas quand l'enfant avance.
+  const pas = (2 * OMBRE) / soleil.shadow.mapSize.x;
+  const cx = Math.round(x / pas) * pas;
+  const cz = Math.round(z / pas) * pas;
+  soleil.target.position.set(cx, 0, cz);
+  soleil.position.set(cx + SOLEIL.x, SOLEIL.y, cz + SOLEIL.z);
+  soleil.target.updateMatrixWorld();
+}
 
 const camera = new THREE.PerspectiveCamera(34, 1, 0.1, 300);
 const suivi = new CameraHaute();
@@ -166,12 +186,58 @@ function poser(o: THREE.Object3D, axe: 'x' | 'y', voulu: number, x: number, z: n
   o.position.y -= new THREE.Box3().setFromObject(o).min.y;
 }
 
-let hauteurPont = 0;
-/** La hauteur du sol sous l'enfant : le tablier du pont fait une bosse douce. */
+/** La hauteur du tablier, mesurée sur le modèle du pont, d'un bout à l'autre (ouest → est). */
+let profilPont: number[] = [];
+/** La hauteur du sol sous l'enfant : sur le pont, celle du tablier, lue dans le profil. */
 function sol(x: number, z: number): number {
-  if (!surLePont(x, z)) return 0.06;
-  const u = (x - LIEUX.pont.x) / (PONT.longueur / 2);
-  return 0.06 + hauteurPont * Math.max(0, 1 - u * u);
+  if (!surLePont(x, z) || profilPont.length < 2) return 0.06;
+  const t = ((x - LIEUX.pont.x) / PONT.longueur + 0.5) * (profilPont.length - 1);
+  const i = Math.max(0, Math.min(profilPont.length - 2, Math.floor(t)));
+  const f = Math.max(0, Math.min(1, t - i));
+  return profilPont[i]! * (1 - f) + profilPont[i + 1]! * f;
+}
+
+/** Mesure le dessus du tablier tous les 25 cm, avec des rayons lancés vers le bas au milieu du pont.
+ *  Aux deux bouts, là où le modèle s'arrête, une petite rampe part du sol. Puis on lisse, pour que
+ *  l'enfant monte sans à-coups (les planches laissent de petits creux). */
+function mesurerPont(pont: THREE.Object3D): number[] {
+  pont.updateMatrixWorld(true);
+  const rayon = new THREE.Raycaster();
+  const bas = new THREE.Vector3(0, -1, 0);
+  const n = Math.round(PONT.longueur / 0.25);
+  const brut: Array<number | null> = [];
+  for (let i = 0; i <= n; i++) {
+    const x = LIEUX.pont.x - PONT.longueur / 2 + (i / n) * PONT.longueur;
+    let h: number | null = null;
+    for (const dz of [-0.4, 0, 0.4]) {
+      rayon.set(new THREE.Vector3(x, 30, LIEUX.pont.z + dz), bas);
+      const touche = rayon.intersectObject(pont, true)[0];
+      if (touche) h = Math.max(h ?? 0, touche.point.y + 0.02);
+    }
+    brut.push(h);
+  }
+  // Les rampes : du sol, au bout du passage, jusqu'au premier point du tablier.
+  const premier = brut.findIndex((h) => h !== null);
+  const dernier = brut.length - 1 - [...brut].reverse().findIndex((h) => h !== null);
+  const plein = brut.map((h, i) => {
+    if (h !== null) return h;
+    if (premier < 0) return 0.06;
+    const [bout, haut] = i < premier ? [premier, brut[premier]!] : [dernier, brut[dernier]!];
+    const loin = i < premier ? premier : brut.length - 1 - dernier;
+    const t = loin > 0 ? 1 - Math.abs(i - bout) / loin : 1;
+    return 0.06 + (haut - 0.06) * t;
+  });
+  return plein.map((_, i) => {
+    let somme = 0;
+    let poids = 0;
+    for (let k = -3; k <= 3; k++) {
+      const v = plein[i + k];
+      if (v === undefined) continue;
+      somme += v * (4 - Math.abs(k));
+      poids += 4 - Math.abs(k);
+    }
+    return somme / poids;
+  });
 }
 
 /** Comme poser, mais le modèle est centré sur sa place et mesuré par sa plus grande longueur au
@@ -455,8 +521,12 @@ async function poserPaysage(): Promise<void> {
   const pont = await modele('pont');
   if (pont) {
     poserCentre(pont.scene, 9.5, LIEUX.pont.x, LIEUX.pont.z, LIEUX.pont.cap);
-    // Le tablier : sa hauteur au milieu, pour que l'enfant monte et descende en traversant.
-    hauteurPont = new THREE.Box3().setFromObject(pont.scene).max.y * 0.42;
+    // Le modèle est très bombé (2,4 m) : aplati de moitié, on le monte et le descend sans peine.
+    pont.scene.scale.y *= 0.5;
+    pont.scene.updateMatrixWorld(true);
+    pont.scene.position.y -= new THREE.Box3().setFromObject(pont.scene).min.y;
+    // Le tablier, mesuré sur le modèle : l'enfant monte et descend en traversant.
+    profilPont = mesurerPont(pont.scene);
     ville.add(pont.scene);
   }
   const portail = await modele('portail-fete');
@@ -1069,7 +1139,6 @@ let images = 0;
 let debutFps = performance.now();
 
 const horloge = new THREE.Clock();
-let imagesRendues = 0;
 renderer.setAnimationLoop(() => {
   const dt = Math.min(0.05, horloge.getDelta());
   const t = horloge.elapsedTime;
@@ -1098,8 +1167,11 @@ renderer.setAnimationLoop(() => {
     camera.fov = pose.champ;
     camera.updateProjectionMatrix();
   }
-  // Les ombres du décor ne bougent pas : recalculées une image sur trois, comme dans le jeu.
-  if (qualite === 'haute') renderer.shadowMap.needsUpdate = imagesRendues++ % 3 === 0;
+  // L'ombre suit l'enfant (voir soleilSur).
+  if (qualite === 'haute') {
+    soleilSur(heros.racine.position.x, heros.racine.position.z);
+    renderer.shadowMap.needsUpdate = true;
+  }
   renderer.render(scene, camera);
   if (pas > 0) retenirPosition(performance.now());
   sonDeLEndroit(performance.now());
