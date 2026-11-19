@@ -2,7 +2,10 @@
 // d'avant, au même endroit (à l'est, après le pont). Les stands gardent exactement leur
 // déroulé (cartes de manche, mémoire des révisions, journal pour le rêve) et écrivent dans la
 // sauvegarde du jeu d'avant : rien de ce que l'enfant a appris n'est perdu, et le rêve continue
-// de lire le même journal. Une manche de révision rapporte 1 € ; un tour de manège coûte 1 €.
+// de lire le même journal. Pas d'euros à la fête : chaque forain a son travail du jour ; fini, il
+// part aider à construire l'attraction et propose le mode « pour le plaisir ». Quand les cinq ont
+// fini, les manèges ouvrent. L'attraction se termine par le grand défi de son forain, à partir du
+// vendredi midi (voir attraction.ts).
 
 import { chargerContenus, lireContenu, type Contenu, type Element, type TypeContenu } from '../contenus/contenus.ts';
 import { jouerDetente, type SuiviDetente } from '../detente/jeux.ts';
@@ -18,7 +21,7 @@ import { ecrireSauvegarde, lireSauvegarde } from '../sauvegarde/stockage.ts';
 import type { Fete, IdStand } from '../scene/fete.ts';
 import { bruitage } from '../son/bruitages.ts';
 import { musique } from '../son/musique.ts';
-import { dire } from '../son/voix.ts';
+import { dire, direEnregistre } from '../son/voix.ts';
 import { chamboule } from '../stands/chamboule.ts';
 import { confiserie } from '../stands/confiserie.ts';
 import { creerDefis } from '../stands/defis.ts';
@@ -26,26 +29,29 @@ import { creerHorloge } from '../stands/horloge.ts';
 import { creerPeche } from '../stands/peche.ts';
 import type { JeuDeStand } from '../stands/stand.ts';
 import { confettis } from '../ui/confettis.ts';
-import { euros } from './argent.ts';
+import fete from '../../content/ville/fete.json';
+import { aAvanceCetteNuit, chantierOuvert, compterJournee, epreuveOuverte, passerEpreuve, PROBLEMES_EPREUVE, type EtatAttraction } from './attraction.ts';
 import type { PointInteret } from './dictee-ville.ts';
 import { carte, creer } from './interface.ts';
+import { fichierForain } from './voix-forains.ts';
 
 export interface ContexteFete {
   points: PointInteret[];
   occupe(oui: boolean): void;
-  /** Le porte-monnaie de la ville. */
-  argent(): number;
-  gagner(centimes: number): void;
-  /** Payer : faux s'il n'y a pas assez. */
-  payer(centimes: number): boolean;
   /** Où sont les stands et les manèges dans la ville. */
   stands: Record<IdStand, { x: number; z: number }>;
   maneges: Record<IdManege, { x: number; z: number }>;
+  /** Où se tient le forain de l'attraction. */
+  forainAttraction: { x: number; z: number };
+  /** L'état de l'attraction, gardé avec la ville. */
+  etat(): EtatAttraction;
+  changer(e: EtatAttraction): void;
+  /** Quelque chose a changé à la fête : forains à replacer, chantier à redessiner (festif : elle
+   *  vient d'être terminée). */
+  majFete(festif?: boolean): void;
+  /** La prochaine attraction de la liste, après celle-ci (ou null). */
+  suivante(id: string): string | null;
 }
-
-/** Ce qu'une manche de révision rapporte, et ce que coûte un tour de manège (centimes). */
-export const GAIN_MANCHE = 100;
-export const PRIX_TOUR = 100;
 
 const aujourdhui = (): Jour => jourDe(new Date());
 
@@ -76,10 +82,10 @@ function suivis(type: TypeContenu): ElementSuivi[] {
 }
 const revisions = (jeu: JeuDeStand): Revisions => revisionsDuJour(aujourdhui(), suivis(jeu.type), sauvegarde.etats);
 const journee = (): Journee => (sauvegarde.journees[aujourdhui()] ??= journeeNeuve());
-function restants(jeu: JeuDeStand): number | null {
-  if (jeu.type === 'defi') return Math.max(0, DEFIS_PAR_SEANCE - journee().defis);
-  if (jeu.type === 'heure') return Math.max(0, HEURES_PAR_SEANCE - (journee().heures ?? 0));
-  if (jeu.type === 'homophone') return Math.max(0, PECHES_PAR_SEANCE - (journee().peches ?? 0));
+function restants(j: JeuDeStand): number | null {
+  if (j.type === 'defi') return Math.max(0, DEFIS_PAR_SEANCE - journee().defis);
+  if (j.type === 'heure') return Math.max(0, HEURES_PAR_SEANCE - (journee().heures ?? 0));
+  if (j.type === 'homophone') return Math.max(0, PECHES_PAR_SEANCE - (journee().peches ?? 0));
   return null;
 }
 
@@ -89,8 +95,8 @@ const feteMuette = new Proxy({}, { get: () => () => undefined }) as unknown as F
 let jeux: Record<IdStand, JeuDeStand>;
 
 // --- Le panneau du stand (les mêmes éléments que dans le jeu d'avant, mêmes styles) -------------
-type TypeManche = 'semaine' | 'memoire' | 'libre' | 'defis';
-const NOMS: Record<TypeManche, string> = { semaine: 'Cette semaine', memoire: 'Mémoire', libre: 'Pour le plaisir', defis: 'Défis du jour' };
+type TypeManche = 'semaine' | 'memoire' | 'libre' | 'defis' | 'epreuve';
+const NOMS: Record<TypeManche, string> = { semaine: 'Cette semaine', memoire: 'Mémoire', libre: 'Pour le plaisir', defis: 'Défis du jour', epreuve: 'Le grand défi' };
 
 const PANNEAU = `
 <section class="stand stand-ville" hidden aria-live="polite">
@@ -131,17 +137,57 @@ let ouvert = false;
 
 const q = <T extends HTMLElement>(sel: string): T => ui.stand.querySelector(sel) as T;
 
-function prochaineManche(): TypeManche {
-  const reste = restants(jeu);
+function prochaineManche(j: JeuDeStand = jeu): TypeManche {
+  const reste = restants(j);
   if (reste !== null) return reste > 0 ? 'defis' : 'libre';
-  const r = revisions(jeu);
+  const r = revisions(j);
   if (r.semaine.length) return 'semaine';
   if (r.memoire.length) return 'memoire';
   return 'libre';
 }
 const elementsDuStand = (): string[] => [...elements.values()].filter((e) => e.type === jeu.type).map((e) => e.id);
 
-function montrerCarte(type: TypeManche, apresUneManche: boolean, gain = 0): void {
+/** Ce forain a-t-il fini son travail du jour ? */
+export const standFini = (id: IdStand): boolean => Boolean(jeux) && prochaineManche(jeux[id]) === 'libre';
+/** Les cinq forains ont-ils fini ? (les manèges ouvrent, le chantier avance) */
+export const toutFini = (): boolean => Boolean(jeux) && (Object.keys(jeux) as IdStand[]).every(standFini);
+
+/** Un forain parle, avec sa voix (enregistrée à l'avance). */
+const parlerForain = (forain: string, texte: string): void => direEnregistre(fichierForain(forain, texte), texte);
+function saluer(id: IdStand): void {
+  const phrases = fete.salutations[id];
+  const p = phrases[Math.floor(Math.random() * phrases.length)];
+  if (p) parlerForain(id, p);
+}
+
+/** Si les cinq forains ont fini, la journée compte pour le chantier (une fois par jour). */
+function verifierLaJournee(): void {
+  if (!toutFini()) return;
+  const avant = ctx.etat();
+  const apres = compterJournee(avant, aujourdhui());
+  if (apres !== avant) ctx.changer(apres);
+}
+
+/** La carte d'un forain qui a fini sa journée (merci : il vient juste de finir). */
+function carteFini(merci: boolean): void {
+  typeManche = 'libre';
+  q('.exercice').hidden = true;
+  q('.carte-manche').hidden = false;
+  q('.progres').replaceChildren();
+  q('.manche-nom').textContent = '';
+  q('.carte-titre').textContent = merci ? 'Bravo !' : `${jeu.titre} de ${nom(jeu.id)}`;
+  const texte = merci ? fete.apresUneManche : fete.finiAujourdhui;
+  q('.carte-texte').textContent = texte;
+  parlerForain(jeu.id, texte);
+  q('.carte-bouton').textContent = 'Jouer';
+  // Juste après le merci, le forain part aider : on rejouera une autre fois.
+  q('.carte-bouton').hidden = merci;
+  (q('.carte-bouton') as HTMLButtonElement).disabled = elementsDuStand().length === 0;
+  q('.carte-retour').hidden = false;
+}
+
+function montrerCarte(type: TypeManche, apresUneManche: boolean): void {
+  q('.carte-bouton').hidden = false;
   typeManche = type;
   q('.exercice').hidden = true;
   q('.carte-manche').hidden = false;
@@ -158,7 +204,7 @@ function montrerCarte(type: TypeManche, apresUneManche: boolean, gain = 0): void
         : type === 'semaine'
           ? `Manche « Cette semaine » : ${jeu.unite(nombre)}.`
           : `Manche « Mémoire » : ${jeu.unite(nombre)} pour ne pas oublier.`;
-  q('.carte-texte').textContent = gain ? `Tu gagnes ${euros(gain)} ! ${texte}` : texte;
+  q('.carte-texte').textContent = texte;
   q('.carte-bouton').textContent = type === 'libre' ? 'Jouer' : 'C’est parti !';
   (q('.carte-bouton') as HTMLButtonElement).disabled = elementsDuStand().length === 0;
   q('.carte-retour').hidden = !apresUneManche;
@@ -166,10 +212,20 @@ function montrerCarte(type: TypeManche, apresUneManche: boolean, gain = 0): void
 
 function lancerManche(): void {
   const r = revisions(jeu);
-  const ids = typeManche === 'semaine' ? r.semaine : typeManche === 'memoire' ? r.memoire : typeManche === 'defis' ? elementsDuStand().slice(0, restants(jeu) ?? 0) : elementsDuStand();
-  musique.demarrer(jeu.id);
+  const ids =
+    typeManche === 'epreuve'
+      ? Array.from({ length: PROBLEMES_EPREUVE }, (_, i) => `defi-${i}`)
+      : typeManche === 'semaine'
+        ? r.semaine
+        : typeManche === 'memoire'
+          ? r.memoire
+          : typeManche === 'defis'
+            ? elementsDuStand().slice(0, restants(jeu) ?? 0)
+            : elementsDuStand();
+  reussisEpreuve = 0;
+  musique.demarrer(typeManche === 'epreuve' ? 'chantier' : jeu.id);
   const focus = sauvegarde.preparation?.focus ?? [];
-  const choisis = focus.length ? ordonner(melanger(ids, Math.random), focus).slice(0, 8) : ids;
+  const choisis = focus.length && typeManche !== 'epreuve' ? ordonner(melanger(ids, Math.random), focus).slice(0, 8) : ids;
   manche = nouvelleManche(choisis, Math.random);
   q('.carte-manche').hidden = true;
   q('.exercice').hidden = false;
@@ -234,6 +290,8 @@ function valider(): void {
   const reussi = jeu.verifier(e, reponse);
   const aide = niveauIndice > 0;
   const duree = Math.round(performance.now() - debutQuestion);
+  // Le grand défi ne touche ni aux niveaux, ni à la mémoire, ni au journal du jeu d'avant.
+  if (typeManche === 'epreuve') return validerEpreuve(reussi);
   if (jeu.type === 'defi') {
     sauvegarde.niveauDefis = ajusterNiveau(sauvegarde.niveauDefis, reussi);
     if (reussi && typeManche === 'defis') journee().defis += 1;
@@ -284,13 +342,123 @@ function valider(): void {
 function suite(): void {
   if (!manche) return;
   if (!mancheFinie(manche)) return poserQuestion();
+  if (typeManche === 'epreuve') return finirEpreuve();
   if (typeManche === 'defis' && (restants(jeu) ?? 0) > 0) return lancerManche();
   musique.arreter();
   bruitage.finDeManche();
   confettis(48);
-  const gain = typeManche === 'libre' ? 0 : GAIN_MANCHE;
-  if (gain) ctx.gagner(gain);
-  montrerCarte(prochaineManche(), true, gain);
+  const prochaine = prochaineManche();
+  if (prochaine !== 'libre') return montrerCarte(prochaine, true);
+  if (typeManche === 'libre') return carteFini(false);
+  // Le travail du jour est fini : merci, et le forain part aider au chantier.
+  carteFini(true);
+  verifierLaJournee();
+  ctx.majFete();
+}
+
+// --- Le grand défi de l'attraction -------------------------------------------------------------
+let epreuve: JeuDeStand;
+let reussisEpreuve = 0;
+
+function validerEpreuve(reussi: boolean): void {
+  if (!manche) return;
+  q('.indice').hidden = true;
+  q('.bouton-indice').hidden = true;
+  if (reussi) {
+    reussisEpreuve++;
+    q('.question-ligne').className = 'question-ligne juste';
+    afficher('juste');
+    bruitage.reussite('chantier');
+    const r = q('.question').getBoundingClientRect();
+    confettis(22, { x: r.left + r.width / 2, y: r.top + r.height / 2 });
+    manche = avancer(manche, true);
+    majProgres();
+    window.setTimeout(suite, 1500);
+    return;
+  }
+  const e = elementCourant();
+  bruitage.erreur();
+  q('.question-ligne').className = 'question-ligne a-revoir';
+  afficher('faux');
+  if (e) {
+    q('.correction').replaceChildren(...jeu.correction(e, saisie.trim()));
+    dire(jeu.voixCorrection(e));
+  }
+  q('.correction').hidden = false;
+  q('.clavier').hidden = true;
+  q('.continuer').hidden = false;
+  // Pas de deuxième essai dans le grand défi : on passe au problème suivant.
+  manche = avancer(manche, true);
+}
+
+function finirEpreuve(): void {
+  musique.arreter();
+  const e = ctx.etat();
+  const id = e.enCours;
+  fermerStand();
+  if (!id) return;
+  const apres = passerEpreuve(e, aujourdhui(), reussisEpreuve, ctx.suivante(id));
+  ctx.changer(apres);
+  const reussi = apres.construites.length > e.construites.length;
+  if (reussi) {
+    bruitage.finDeManche();
+    confettis(80);
+    ctx.majFete(true);
+  }
+  void direAttraction(reussi ? fete.attraction.reussite : fete.attraction.rate);
+}
+
+/** Le forain de l'attraction dit une phrase, dans une carte ; rend le bouton choisi. */
+async function direAttraction(texte: string, boutons = ['D’accord']): Promise<number> {
+  ctx.occupe(true);
+  const f = creer('div', 'exercice-fond');
+  document.body.append(f);
+  parlerForain('roue', texte);
+  const choix = await carte(f, fete.attraction.nom, texte, boutons);
+  f.remove();
+  ctx.occupe(false);
+  return choix;
+}
+
+/** On parle au forain de l'attraction. */
+async function parlerAuForainDeLAttraction(): Promise<void> {
+  const e = ctx.etat();
+  const jour = aujourdhui();
+  if (!e.enCours || !chantierOuvert(e, jour)) {
+    await direAttraction(fete.attraction.ouverte);
+    return;
+  }
+  if (epreuveOuverte(e, new Date())) {
+    const choix = await direAttraction(fete.attraction.defi, ['C’est parti !', 'Plus tard']);
+    if (choix === 0) ouvrirEpreuve();
+    return;
+  }
+  if (e.essaiLe === jour) {
+    await direAttraction(fete.attraction.dejaEssaye);
+    return;
+  }
+  if (e.compteLe === jour) {
+    await direAttraction(fete.attraction.journeeFinie);
+    return;
+  }
+  if (aAvanceCetteNuit(e, jour)) {
+    ctx.changer({ ...e, vuLe: jour });
+    await direAttraction(fete.attraction.lendemain);
+    return;
+  }
+  await direAttraction(fete.attraction.avant);
+}
+
+function ouvrirEpreuve(): void {
+  jeu = epreuve;
+  ouvert = true;
+  ctx.occupe(true);
+  bruitage.ouverture();
+  ui.stand.classList.remove('large');
+  ui.stand.hidden = false;
+  jeu.construireClavier(q('.clavier'), toucher);
+  typeManche = 'epreuve';
+  lancerManche();
 }
 
 export function ouvrirStand(id: IdStand): void {
@@ -301,7 +469,10 @@ export function ouvrirStand(id: IdStand): void {
   ui.stand.classList.toggle('large', jeu.large);
   ui.stand.hidden = false;
   jeu.construireClavier(q('.clavier'), toucher);
-  montrerCarte(prochaineManche(), false);
+  const prochaine = prochaineManche();
+  if (prochaine === 'libre') return carteFini(false);
+  saluer(id);
+  montrerCarte(prochaine, false);
 }
 
 function fermerStand(): void {
@@ -328,17 +499,12 @@ function suiviDetente(id: IdManege): SuiviDetente {
 
 async function monterSurLeManege(id: IdManege): Promise<void> {
   ctx.occupe(true);
-  const f = creer('div', 'exercice-fond');
-  document.body.append(f);
-  const assez = ctx.argent() >= PRIX_TOUR;
-  const choix = await carte(
-    f,
-    NOMS_MANEGES[id],
-    assez ? `Un tour coûte ${euros(PRIX_TOUR)}. Tu as ${euros(ctx.argent())}.` : `Un tour coûte ${euros(PRIX_TOUR)}. Gagne des euros aux stands, en aidant les habitants ou en vendant tes récoltes !`,
-    assez ? ['Je monte !', 'Plus tard'] : ['D’accord'],
-  );
-  f.remove();
-  if (assez && choix === 0 && ctx.payer(PRIX_TOUR)) {
+  if (!toutFini()) {
+    const f = creer('div', 'exercice-fond');
+    document.body.append(f);
+    await carte(f, NOMS_MANEGES[id], fete.manegesFermes, ['D’accord']);
+    f.remove();
+  } else {
     musique.demarrer(id);
     await jouerDetente(id, suiviDetente(id));
     musique.arreter();
@@ -373,6 +539,19 @@ export async function installerFete(c: ContexteFete): Promise<void> {
     }),
     horloge: creerHorloge({ niveau: () => sauvegarde.niveauHorloge.niveau }),
     peche: creerPeche({ niveau: () => sauvegarde.niveauPeche.niveau, noms: () => sauvegarde.forains }),
+  };
+  // Le grand défi : des problèmes du même générateur que les défis, au niveau de l'enfant.
+  epreuve = {
+    ...creerDefis({
+      niveau: () => sauvegarde.niveauDefis.niveau,
+      problemes: true,
+      gens: () => [
+        { nom: nom('chamboule'), feminin: false, objets: 'ballons' },
+        { nom: nom('confiserie'), feminin: true, objets: 'bonbons' },
+        { nom: nom('chantier'), feminin: false, objets: 'boulons' },
+      ],
+    }),
+    titre: 'Le grand défi',
   };
   sauver();
 
@@ -430,8 +609,11 @@ export async function installerFete(c: ContexteFete): Promise<void> {
     const p = c.maneges[id];
     c.points.push({ verbe: 'Monter', nom: NOMS_MANEGES[id], x: p.x, z: p.z, action: () => void monterSurLeManege(id) });
   }
+  c.points.push({ verbe: 'Parler', nom: fete.attraction.nom, x: c.forainAttraction.x, z: c.forainAttraction.z, action: () => void parlerAuForainDeLAttraction() });
+  // Les forains ont peut-être déjà fini aujourd'hui, lors d'une visite précédente.
+  verifierLaJournee();
+  c.majFete();
 }
 
-/** Les euros de départ : les tickets du jeu d'avant, une seule fois (voir reprise). */
-export const ticketsDuJeuDAvant = (): number => sauvegarde?.tickets ?? 0;
-export const garderobeDuJeuDAvant = (): Sauvegarde['garderobe'] | null => sauvegarde?.garderobe ?? null;
+/** Essais seulement : le grand défi tout de suite, sans attendre le vendredi. */
+export const essaiGrandDefi = (): void => ouvrirEpreuve();

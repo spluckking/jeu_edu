@@ -137,6 +137,11 @@ function probleme(hasard: Hasard, niveau: number, gens: readonly Personne[]): Ex
   return { id: `pb-${modele}:${nombres}`, enonce, probleme: true, voix: enonce, reponse: String(reponse), explication };
 }
 
+/** Un problème d'une phrase, jamais un calcul seul (au moins le niveau 2). */
+export function genererProbleme(niveau: number, hasard: Hasard, gens: readonly Personne[]): Exercice {
+  return probleme(hasard, Math.max(2, Math.min(NIVEAU_MAX, niveau)), gens);
+}
+
 /** Un exercice au niveau demandé. Un sur trois environ est un problème, à partir du niveau 2. */
 export function genererExercice(niveau: number, hasard: Hasard, gens: readonly Personne[]): Exercice {
   const n = Math.max(NIVEAU_MIN, Math.min(NIVEAU_MAX, niveau));

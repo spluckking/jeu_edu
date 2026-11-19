@@ -74,19 +74,3 @@ export function euros(centimes: number): string {
   const c = centimes % 100;
   return c === 0 ? `${e} €` : `${e},${String(c).padStart(2, '0')} €`;
 }
-
-/** Payer un prix fixe sans compter soi-même (un tour de manège) : la plus petite pièce qui suffit,
- *  ou plusieurs petites ; la monnaie est rendue. Null si le porte-monnaie ne suffit pas. */
-export function payerSimplement(pm: PorteMonnaie, prix: number): PorteMonnaie | null {
-  if (total(pm) < prix) return null;
-  const tout = pieces(pm).sort((x, y) => x - y);
-  const une = tout.find((v) => v >= prix);
-  if (une !== undefined) return ajouter(retirer(pm, [une]) ?? pm, decomposer(une - prix));
-  // Que des petites pièces : on en donne jusqu'à atteindre le prix.
-  const donne: number[] = [];
-  for (const v of tout.reverse()) {
-    if (somme(donne) >= prix) break;
-    donne.push(v);
-  }
-  return ajouter(retirer(pm, donne) ?? pm, decomposer(somme(donne) - prix));
-}

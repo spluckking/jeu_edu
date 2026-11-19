@@ -367,6 +367,15 @@
       "animations": [
         "idle (Studio, squelette Mixamo)"
       ]
+    },
+    {
+      "id": "forain-roue",
+      "genre": "personnage",
+      "studio": true,
+      "image": "content/modeles/images/forain-roue.png",
+      "animations": [
+        "idle (Studio, squelette Mixamo)"
+      ]
     }
   ]
 }

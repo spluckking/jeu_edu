@@ -1,11 +1,19 @@
 {
-  "_lisez-moi": "La fête foraine de la ville : pas d'euros. Finir tous les exercices du jour fait avancer la construction d'une nouvelle attraction ; son forain remercie et débloque le jeu libre (manèges et mode « pour le plaisir » des stands). salutations : propres à la ville (celles du jeu d'avant, src/son/salutations.ts, ne changent pas), une tirée au hasard, chaque forain garde sa voix. Pas encore branché dans le programme (A_VALIDER.md, point 19). valide=true : textes validés par le parent.",
+  "_lisez-moi": "La fête foraine de la ville : pas d'euros. Un forain qui a fini son travail du jour propose le mode « pour le plaisir » ; quand les cinq ont fini, les manèges ouvrent et la construction de l'attraction avance d'une étape (pour le décor). Ce qui la termine, c'est le grand défi que propose son forain à partir du vendredi midi (voir src/ville/attraction.ts et content/ville/attractions.json). salutations : propres à la ville (celles du jeu d'avant, src/son/salutations.ts, ne changent pas), une tirée au hasard, chaque forain garde sa voix. valide=true : textes validés par le parent. L'épreuve du vendredi s'appelle « le grand défi ». finiAujourdhui, manegesFermes et attraction.nom/defi/reussite/rate/dejaEssaye/ouverte : à valider (A_VALIDER.md, point 20).",
   "valide": true,
   "apresUneManche": "Merci pour ton aide ! Grâce à toi, j’ai fini mon travail plus tôt. Je vais aller aider à construire la nouvelle attraction !",
+  "finiAujourdhui": "Merci, j’ai fini pour aujourd’hui ! Veux-tu encore m’aider ?",
+  "manegesFermes": "Les manèges ouvriront quand tu auras aidé tous les forains.",
   "attraction": {
     "avant": "Bonjour ! Je construis ma nouvelle attraction. Aide les forains à leurs stands : quand ils auront fini, ils viendront m’aider !",
     "journeeFinie": "Bravo ! Grâce à toi, tous les forains sont venus m’aider. Mon attraction a bien avancé aujourd’hui ! Pour te remercier, tu peux jouer librement.",
-    "lendemain": "Regarde ! Mon attraction a avancé pendant la nuit."
+    "lendemain": "Regarde ! Mon attraction a avancé pendant la nuit.",
+    "nom": "Le forain de la grande roue",
+    "defi": "Mon attraction est presque finie ! Pour la terminer, relève mon grand défi : 3 problèmes à résoudre. Tu es prêt ?",
+    "reussite": "Bravo, tu as relevé le grand défi ! Regarde : mon attraction est terminée. Tu peux monter quand tu veux !",
+    "rate": "Ce défi était difficile ! Reviens demain : on essaiera avec d’autres problèmes.",
+    "dejaEssaye": "Reviens demain : on essaiera le grand défi avec d’autres problèmes.",
+    "ouverte": "Mon attraction est ouverte ! Monte faire un tour."
   },
   "salutations": {
     "chamboule": [

@@ -21,6 +21,8 @@ export interface PointInteret {
   x: number;
   z: number;
   action(): void;
+  /** Le bouton n'apparaît que si c'est vrai (par défaut : toujours). */
+  visible?(): boolean;
 }
 
 export interface Contexte {

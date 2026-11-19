@@ -14,6 +14,7 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, unlinkSync, writeFile
 import { join } from 'node:path';
 import { cleVoix, empreinte, normaliserPhrase } from '../src/son/cle-voix.ts';
 import { fichierSalutation, SALUTATIONS } from '../src/son/salutations.ts';
+import { fichierForain, phrasesDesForains, VOIX_FORAINS } from '../src/ville/voix-forains.ts';
 
 const RACINE = new URL('..', import.meta.url).pathname.replace(/^\/([A-Z]:)/, '$1');
 const SORTIE = join(RACINE, 'public', 'voix');
@@ -97,7 +98,9 @@ const echapper = (t) => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/
 
 function ssml(texte, mode, nomVoix, reglage) {
   if (reglage) {
-    return `<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="fr-FR"><voice name="${nomVoix}"><prosody rate="${reglage.debit}" pitch="${reglage.hauteur}">${echapper(texte)}</prosody></voice></speak>`;
+    // Un style (« cheerful »…) seulement pour les voix qui en ont un.
+    const dit = reglage.style ? `<mstts:express-as style="${reglage.style}">${echapper(texte)}</mstts:express-as>` : echapper(texte);
+    return `<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xmlns:mstts="https://www.w3.org/2001/mstts" xml:lang="fr-FR"><voice name="${nomVoix}"><prosody rate="${reglage.debit}" pitch="${reglage.hauteur}">${dit}</prosody></voice></speak>`;
   }
   // Dictée : plus lent, et une vraie pause entre le mot, la phrase et le mot répété.
   const corps =
@@ -179,6 +182,22 @@ for (const [forain, d] of Object.entries(SALUTATIONS)) {
     console.log('salutation', forain, rang + 1);
   }
 }
+
+// Les forains de la ville (content/ville/fete.json), chacun avec sa voix : seuls les fichiers
+// qui manquent sont générés (le nom change avec la phrase ou la voix).
+mkdirSync(join(SORTIE, 'ville'), { recursive: true });
+const fete = JSON.parse(readFileSync(join(RACINE, 'content', 'ville', 'fete.json'), 'utf8'));
+const gardesVille = new Set();
+for (const [forain, phrase] of phrasesDesForains(fete)) {
+  const nom = fichierForain(forain, phrase);
+  if (!nom) continue;
+  gardesVille.add(nom.replace('ville/', ''));
+  const chemin = join(SORTIE, nom);
+  if (existsSync(chemin)) continue;
+  writeFileSync(chemin, await synthetiser(env, normaliserPhrase(phrase), 'normal', VOIX_FORAINS[forain].voix, VOIX_FORAINS[forain]));
+  console.log('forain', forain, phrase.slice(0, 40));
+}
+for (const nom of readdirSync(join(SORTIE, 'ville'))) if (!gardesVille.has(nom)) unlinkSync(join(SORTIE, 'ville', nom));
 
 const ancien = existsSync(MANIFESTE) ? JSON.parse(readFileSync(MANIFESTE, 'utf8')) : { voix, fichiers: {} };
 const fichiers = {};

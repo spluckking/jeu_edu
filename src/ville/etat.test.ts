@@ -19,7 +19,8 @@ describe('état de la ville', () => {
 
   it('reprend une sauvegarde de la version 1 sans argent ni panier', () => {
     const e = lireEtat({ version: 1, position: { x: 1, z: 2, cap: 0 }, lus: ['forain-accueil'] });
-    expect(e.version).toBe(7);
+    expect(e.version).toBe(8);
+    expect(e.attraction.enCours).toBe('grande-roue');
     expect(e.projets.enCours).toBe('boulangerie');
     expect(e.poste).toEqual({ tri: '', aLivrer: [] });
     expect(e.riviere).toEqual({ peche: '', cueillis: { jour: '', buissons: [] } });

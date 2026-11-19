@@ -12,12 +12,17 @@ import { projetsNeufs, type EtatProjets } from './projets.ts';
 /** Le premier grand projet de la ville. */
 export const PREMIER_PROJET = 'boulangerie';
 import { riviereNeuve, type EtatRiviere } from './riviere.ts';
+import { attractionNeuve, lireAttraction, type EtatAttraction } from './attraction.ts';
+import attractions from '../../content/ville/attractions.json';
+
+/** La première attraction construite à la fête foraine. */
+export const PREMIERE_ATTRACTION = attractions.attractions[0]?.id ?? null;
 
 /** Le potager compte toujours ce nombre de parcelles. */
 export const PARCELLES = 4;
 
 export interface EtatVille {
-  version: 7;
+  version: 8;
   /** Où se trouve le personnage, et vers où il regarde. */
   position: { x: number; z: number; cap: number };
   /** Les dialogues déjà lus. */
@@ -45,11 +50,13 @@ export interface EtatVille {
   poste: EtatPoste;
   /** Le grand projet en cours et les lieux déjà construits. */
   projets: EtatProjets;
+  /** L'attraction en construction à la fête foraine, et celles déjà construites. */
+  attraction: EtatAttraction;
 }
 
 export function etatNeuf(): EtatVille {
   return {
-    version: 7,
+    version: 8,
     position: { x: 0, z: 6, cap: Math.PI },
     lus: [],
     dictee: dicteeNeuve(),
@@ -64,6 +71,7 @@ export function etatNeuf(): EtatVille {
     riviere: riviereNeuve(),
     poste: posteNeuve(),
     projets: projetsNeufs(PREMIER_PROJET),
+    attraction: attractionNeuve(PREMIERE_ATTRACTION),
   };
 }
 
@@ -73,7 +81,7 @@ function compteur(v: unknown): Record<string, number> {
   return Object.fromEntries(Object.entries(v).filter((e): e is [string, number] => Number.isInteger(e[1]) && e[1] > 0));
 }
 
-/** Relit un état brut (versions 1 à 7) ; un état illisible repart de zéro plutôt que de bloquer le jeu. */
+/** Relit un état brut (versions 1 à 8) ; un état illisible repart de zéro plutôt que de bloquer le jeu. */
 export function lireEtat(brut: unknown): EtatVille {
   const neuf = etatNeuf();
   if (typeof brut !== 'object' || brut === null) return neuf;
@@ -90,7 +98,7 @@ export function lireEtat(brut: unknown): EtatVille {
   const pj = o.projets;
   const entier = (x: unknown): number => (Number.isInteger(x) && (x as number) >= 0 ? (x as number) : 0);
   return {
-    version: 7,
+    version: 8,
     position: p && nombre(p.x) && nombre(p.z) && nombre(p.cap) ? { x: p.x, z: p.z, cap: p.cap } : neuf.position,
     lus: Array.isArray(o.lus) ? o.lus.filter((x): x is string => typeof x === 'string') : [],
     // L'état de la dictée n'est écrit que par le jeu lui-même : on le reprend s'il a la bonne forme.
@@ -136,6 +144,8 @@ export function lireEtat(brut: unknown): EtatVille {
       pj && (typeof pj.enCours === 'string' || pj.enCours === null)
         ? { enCours: pj.enCours, donnes: compteur(pj.donnes), euros: entier(pj.euros), aides: entier(pj.aides), termine: typeof pj.termine === 'string' ? pj.termine : '', construits: textes(pj.construits) }
         : projetsNeufs(PREMIER_PROJET),
+    // Avant la version 8, pas d'attraction en construction : la première commence.
+    attraction: lireAttraction(o.attraction, PREMIERE_ATTRACTION),
   };
 }
 

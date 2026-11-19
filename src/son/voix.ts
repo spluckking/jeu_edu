@@ -105,3 +105,21 @@ export function saluer(forain: string): void {
   salutation = audio;
   audio.play().catch(() => undefined);
 }
+
+/** Une phrase enregistrée avec la voix d'un personnage (fichier relatif au dossier des voix) ; si le
+ *  fichier manque ou ne se lit pas, la voix de la tablette la dit. */
+export function direEnregistre(fichier: string | null, texte: string): void {
+  if (estMuet()) return;
+  arreter();
+  if (!fichier) return parSynthese(texte, false);
+  const audio = new Audio(`${DOSSIER}${fichier}`);
+  audio.volume = volume;
+  enCours = audio;
+  const secours = (): void => {
+    if (enCours !== audio) return;
+    enCours = null;
+    parSynthese(texte, false);
+  };
+  audio.addEventListener('error', secours);
+  audio.play().catch(secours);
+}

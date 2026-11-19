@@ -1,0 +1,6 @@
+{
+  "_lisez-moi": "Les attractions construites à la fête foraine, dans l'ordre : une par semaine. modele : le fichier dans public/modeles ; forain : celui qui la construit et propose l'épreuve ; jeu : ce qu'on y fait une fois finie (« tour » : un tour pour le plaisir, sans exercice).",
+  "attractions": [
+    { "id": "grande-roue", "nom": "La grande roue", "modele": "grande-roue", "forain": "forain-roue", "jeu": "tour" }
+  ]
+}
