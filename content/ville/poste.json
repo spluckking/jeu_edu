@@ -1,5 +1,5 @@
 {
-  "_lisez-moi": "La poste (tranche 1C). noms : les destinataires du courrier à trier (on trie par la première lettre du nom de famille). livraisons : les lettres à porter aux habitants après le tri, avec l'adresse écrite sur l'enveloppe. paye : ce que la postière donne pour le tri (centimes) ; merci : ce que donne l'habitant qui reçoit sa lettre (rien, choix du parent) ; payeLivraison : ce que la postière donne quand tout le courrier est livré, avec le texte toutLivre (pas encore branché dans le programme). valide=false : textes à relire (A_VALIDER.md).",
+  "_lisez-moi": "La poste (tranche 1C). noms : les destinataires du courrier à trier (on trie par la première lettre du nom de famille). livraisons : les lettres à porter aux habitants après le tri, avec l'adresse écrite sur l'enveloppe. paye : ce que la postière donne pour le tri (centimes) ; merci : ce que donne l'habitant qui reçoit sa lettre (rien, choix du parent) ; payeLivraison : ce que la postière donne quand tout le courrier est livré, avec le texte toutLivre (quand l'enfant revient la voir). valide=false : textes à relire (A_VALIDER.md).",
   "valide": true,
   "noms": [
     "M. Arnaud",

@@ -376,6 +376,12 @@
       "animations": [
         "idle (Studio, squelette Mixamo)"
       ]
+    },
+    {
+      "id": "icone-crepes",
+      "genre": "icone",
+      "studio": true,
+      "image": "content/modeles/images/icone-crepes.png"
     }
   ]
 }

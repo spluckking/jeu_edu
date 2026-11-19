@@ -22,7 +22,7 @@ describe('état de la ville', () => {
     expect(e.version).toBe(8);
     expect(e.attraction.enCours).toBe('grande-roue');
     expect(e.projets.enCours).toBe('boulangerie');
-    expect(e.poste).toEqual({ tri: '', aLivrer: [] });
+    expect(e.poste).toEqual({ tri: '', aLivrer: [], paye: '' });
     expect(e.riviere).toEqual({ peche: '', cueillis: { jour: '', buissons: [] } });
     expect(e.parcelles).toHaveLength(4);
     expect(e.demandes).toEqual(etatNeuf().demandes);
@@ -43,7 +43,7 @@ describe('état de la ville', () => {
 
   it('garde les demandes du jour et les meubles gagnés', () => {
     const e = lireEtat({ demandes: { jour: '2026-11-18', ids: ['a', 3], acceptees: ['a'], faites: [], historique: { a: '2026-11-11', b: 4 } }, lotChoisi: '2026-11-18', meubles: ['meuble-banc'] });
-    expect(e.demandes).toEqual({ jour: '2026-11-18', ids: ['a'], acceptees: ['a'], faites: [], historique: { a: '2026-11-11' } });
+    expect(e.demandes).toEqual({ jour: '2026-11-18', ids: ['a'], acceptees: ['a'], faites: [], historique: { a: '2026-11-11' }, etapes: {} });
     expect(e.lotChoisi).toBe('2026-11-18');
     expect(e.meubles).toEqual(['meuble-banc']);
   });

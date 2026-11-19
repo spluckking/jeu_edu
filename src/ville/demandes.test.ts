@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { accepter, demandesDuJour, demandesNeuves, enMots, lotsProposes, seanceFinie, terminer, verifierDon } from './demandes.ts';
+import { accepter, demandesDuJour, demandesNeuves, enMots, etapeSuivante, lotsProposes, seanceFinie, terminer, verifierDon } from './demandes.ts';
 
 const noms = (id: string): { nom: string; pluriel: string } => ({ nom: id, pluriel: `${id}s` });
 
@@ -30,13 +30,19 @@ describe('donner', () => {
   it('accepte exactement ce qu’il faut', () => {
     expect(verifierDon(besoin, { carotte: 2, pain: 1 })).toEqual({ juste: true });
   });
-  it('dit ce qui manque et ce qui est en trop', () => {
+  it('dit ce qui manque, ce qui est en trop, et ce dont l’habitant n’a pas besoin', () => {
     expect(verifierDon(besoin, { carotte: 1, pain: 1, pomme: 2 })).toEqual({
       juste: false,
       manque: [{ produit: 'carotte', nombre: 1 }],
-      trop: [{ produit: 'pomme', nombre: 2 }],
+      trop: [],
+      inutiles: ['pomme'],
     });
-    expect(verifierDon(besoin, { carotte: 3, pain: 1 })).toEqual({ juste: false, manque: [], trop: [{ produit: 'carotte', nombre: 1 }] });
+    expect(verifierDon(besoin, { carotte: 3, pain: 1 })).toEqual({ juste: false, manque: [], trop: [{ produit: 'carotte', nombre: 1 }], inutiles: [] });
+  });
+  it('un aller-retour passe à l’étape du retour, et repart de zéro le lendemain', () => {
+    const e = etapeSuivante(demandesDuJour(demandesNeuves(), ['colis'], '2026-11-19', 1), 'colis');
+    expect(e.etapes).toEqual({ colis: 1 });
+    expect(demandesDuJour(e, ['colis'], '2026-11-20', 1).etapes).toEqual({});
   });
   it('écrit une liste comme on la dit', () => {
     expect(enMots(besoin, noms)).toBe('2 carottes et 1 pain');

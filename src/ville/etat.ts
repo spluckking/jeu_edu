@@ -123,6 +123,7 @@ export function lireEtat(brut: unknown): EtatVille {
             acceptees: textes(d.acceptees),
             faites: textes(d.faites),
             historique: Object.fromEntries(Object.entries(typeof d.historique === 'object' && d.historique ? d.historique : {}).filter((x): x is [string, string] => typeof x[1] === 'string')),
+            etapes: compteur(d.etapes),
           }
         : demandesNeuves(),
     lotChoisi: typeof o.lotChoisi === 'string' ? o.lotChoisi : '',
@@ -138,7 +139,7 @@ export function lireEtat(brut: unknown): EtatVille {
         ? { peche: riv.peche, cueillis: { jour: riv.cueillis.jour, buissons: Array.isArray(riv.cueillis.buissons) ? riv.cueillis.buissons.filter((x): x is number => Number.isInteger(x)) : [] } }
         : riviereNeuve(),
     // Avant la version 6, pas de poste.
-    poste: po && typeof po.tri === 'string' ? { tri: po.tri, aLivrer: textes(po.aLivrer) } : posteNeuve(),
+    poste: po && typeof po.tri === 'string' ? { tri: po.tri, aLivrer: textes(po.aLivrer), paye: typeof po.paye === 'string' ? po.paye : '' } : posteNeuve(),
     // Avant la version 7, pas de grand projet : la boulangerie commence.
     projets:
       pj && (typeof pj.enCours === 'string' || pj.enCours === null)

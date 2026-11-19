@@ -13,7 +13,7 @@ import { quandOnParle } from './demandes-ville.ts';
 import type { PointInteret } from './dictee-ville.ts';
 import type { EtatVille } from './etat.ts';
 import { bouton, carte, creer, icone, piece, remplir, texteALire } from './interface.ts';
-import { casiers, courrierDuJour, dansLOrdre, initiale, peutTrier } from './poste.ts';
+import { casiers, courrierDuJour, dansLOrdre, initiale, livraisonAPayer, peutTrier } from './poste.ts';
 
 export interface ContextePoste {
   points: PointInteret[];
@@ -141,6 +141,17 @@ async function aLaPoste(c: ContextePoste): Promise<void> {
   const jour = aujourdhui();
   const f = ouvrir(c);
   const e = c.etat();
+  if (livraisonAPayer(e.poste, jour)) {
+    // Tout le courrier est livré : la postière paie la livraison.
+    c.changer({ ...e, porteMonnaie: ajouter(e.porteMonnaie, poste.payeLivraison), poste: { ...e.poste, paye: jour } });
+    bruitage.reussite();
+    confettis();
+    const pieces = creer('div', 'rangee-argent');
+    for (const v of poste.payeLivraison) pieces.append(piece(v));
+    await carte(f, T.nom, T.toutLivre, ['Merci !'], [pieces]);
+    fermer(c, f);
+    return;
+  }
   if (!peutTrier(e.poste, jour)) {
     await carte(f, T.nom, e.poste.aLivrer.length ? T.rappel : T.dejaTrie, ['D’accord'], e.poste.aLivrer.length ? [adresses(e.poste.aLivrer)] : []);
     fermer(c, f);
@@ -159,7 +170,7 @@ async function aLaPoste(c: ContextePoste): Promise<void> {
     ...apres,
     porteMonnaie: ajouter(apres.porteMonnaie, poste.paye),
     panier: mettre(apres.panier, 'lettre', aLivrer.length - apres.poste.aLivrer.length),
-    poste: { tri: jour, aLivrer },
+    poste: { tri: jour, aLivrer, paye: '' },
   });
   bruitage.finDeManche();
   confettis();

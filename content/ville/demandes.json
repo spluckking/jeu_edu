@@ -1,5 +1,5 @@
 {
-  "_lisez-moi": "Les demandes des habitants (tranche 1B). donneur : qui demande ; destinataire : à qui on donne ; fournit : ce que le donneur met dans le panier en confiant la demande ; besoin : ce qu'il faut donner au destinataire (l'action prouve qu'on a compris) ; recompense : les pièces offertes, en centimes. objets : ce qui n'est pas vendu à l'épicerie. valide=false : textes à relire (A_VALIDER.md).",
+  "_lisez-moi": "Les demandes des habitants (tranche 1B). donneur : qui demande ; destinataire : à qui on donne ; fournit : ce que le donneur met dans le panier en confiant la demande ; besoin : ce qu'il faut donner au destinataire (l'action prouve qu'on a compris) ; recompense : les pièces offertes, en centimes. retour : une demande en aller-retour (le destinataire confie à son tour quelque chose à rapporter : fournit ; celui qui le reçoit dit merci et paie : recompense). objets : ce qui n'est pas vendu à l'épicerie. valide=false : textes à relire (A_VALIDER.md).",
   "parJour": 2,
   "objets": [
     {
@@ -13,6 +13,12 @@
       "nom": "lettre",
       "pluriel": "lettres",
       "article": "la lettre"
+    },
+    {
+      "id": "crepes",
+      "nom": "crêpe",
+      "pluriel": "crêpes",
+      "article": "les crêpes"
     }
   ],
   "demandes": [
@@ -42,7 +48,7 @@
     },
     {
       "id": "colis-du-forain",
-      "valide": false,
+      "valide": true,
       "donneur": "epiciere",
       "destinataire": "forain-chamboule",
       "fournit": [
@@ -57,23 +63,33 @@
           "nombre": 1
         }
       ],
-      "recompense": [
-        200
-      ],
+      "recompense": [],
       "texte": "Le forain m’a commandé une bouteille de lait, mais je ne peux pas quitter ma boutique. Peux-tu lui apporter ce colis ? Il est à la fête foraine : suis la grande route vers l’est et passe le pont.",
       "rappel": "Le colis est pour le forain, à la fête foraine, après le pont.",
-      "merci": "Mon colis ! Merci beaucoup. Tiens, voilà 2 € pour ta peine."
+      "merci": "Merci beaucoup mon garçon, l’épicière doit être débordée et moi aussi. Peux-tu la remercier et lui donner ces crêpes ? Ça lui fera grand plaisir.",
+      "retour": {
+        "destinataire": "epiciere",
+        "fournit": [
+          {
+            "produit": "crepes",
+            "nombre": 3
+          }
+        ],
+        "merci": "Merci pour la livraison ! Voici 2 € pour ton aide.",
+        "recompense": [
+          200
+        ]
+      }
     }
   ],
   "textes": {
-    "valide": false,
+    "valide": true,
     "accepter": "D’accord !",
     "plusTard": "Plus tard",
     "avantLesMots": "Bonjour ! Tout à l’heure, j’aurai besoin d’un coup de main. Va d’abord voir le tableau des mots sur la place !",
     "donner": "Donner",
     "choisir": "Choisis dans ton panier ce que tu veux donner.",
     "manque": "Il me manque encore {liste}.",
-    "trop": "Tu m’en donnes trop : je n’ai pas besoin de {liste}.",
     "tropQuantite": "Tu m’en donnes trop : il me faut seulement {liste}.",
     "pasBesoin": "Désolé, je n’ai pas besoin de {produit}.",
     "pasBesoinF": "Désolée, je n’ai pas besoin de {produit}.",

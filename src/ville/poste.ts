@@ -9,9 +9,14 @@ export interface EtatPoste {
   tri: string;
   /** Les habitants qui attendent une lettre. */
   aLivrer: string[];
+  /** Le dernier jour où la postière a payé la livraison (tout le courrier livré). */
+  paye: string;
 }
 
-export const posteNeuve = (): EtatPoste => ({ tri: '', aLivrer: [] });
+export const posteNeuve = (): EtatPoste => ({ tri: '', aLivrer: [], paye: '' });
+
+/** Tout le courrier du jour est livré, et la postière n'a pas encore payé la livraison. */
+export const livraisonAPayer = (e: EtatPoste, jour: string): boolean => e.tri === jour && e.aLivrer.length === 0 && e.paye !== jour;
 
 /** La première lettre d'un nom de famille, sans accent : « Mme Élie » → « E ». */
 export function initiale(nom: string): string {

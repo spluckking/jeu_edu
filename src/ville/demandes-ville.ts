@@ -12,7 +12,7 @@ import { bruitage } from '../son/bruitages.ts';
 import { confettis } from '../ui/confettis.ts';
 import { ajouter } from './argent.ts';
 import { enlever, mettre, type Panier } from './commerce.ts';
-import { accepter, demandesDuJour, enMots, lotsProposes, seanceFinie, terminer, verifierDon } from './demandes.ts';
+import { accepter, demandesDuJour, enMots, etapeSuivante, lotsProposes, seanceFinie, terminer, verifierDon, type EtatDemandes, type Ligne } from './demandes.ts';
 import { aider } from './projets.ts';
 import { bouton, carte, creer, icone, majuscule, piece, remplir, texteALire } from './interface.ts';
 import type { EtatVille } from './etat.ts';
@@ -38,6 +38,39 @@ export function nomDe(id: string): { nom: string; pluriel: string; article: stri
 }
 
 const motsFaits = (e: EtatVille, jour: string): boolean => revisionDuJour(e.dictee, jour).quotidien.fini;
+
+/** Les habitantes : elles disent « Désolée ». */
+const FEMININS = new Set(['epiciere', 'postiere']);
+
+/** Où en est une demande : à qui donner, quoi, ce qu'on reçoit. Un aller-retour a deux étapes ;
+ *  au retour, on rapporte ce que le destinataire a confié. */
+interface Etape {
+  destinataire: string;
+  besoin: Ligne[];
+  merci: string;
+  recompense: number[];
+  rappel: string;
+  /** Ce que le destinataire confie à rapporter (aller d'un aller-retour). */
+  confie: Ligne[];
+}
+function etapeDe(d: Demande, etat: EtatDemandes): Etape {
+  const retour = 'retour' in d ? d.retour : undefined;
+  if (!retour || (etat.etapes[d.id] ?? 0) === 0) {
+    return { destinataire: d.destinataire, besoin: d.besoin, merci: d.merci, recompense: d.recompense, rappel: d.rappel, confie: retour?.fournit ?? [] };
+  }
+  // Au retour, pas de rappel écrit : on rapporte ce qu'on a reçu.
+  return { destinataire: retour.destinataire, besoin: retour.fournit, merci: retour.merci, recompense: retour.recompense, rappel: '', confie: [] };
+}
+
+/** Ce que dit l'habitant quand le don n'est pas juste. */
+function remarques(v: { manque: Ligne[]; trop: Ligne[]; inutiles: string[] }, besoin: readonly Ligne[], habitant: string): string {
+  const phrases: string[] = [];
+  if (v.manque.length) phrases.push(remplir(T.manque, { liste: enMots(v.manque, nomDe) }));
+  // En trop : on redit la bonne quantité (« il me faut seulement 2 carottes »).
+  if (v.trop.length) phrases.push(remplir(T.tropQuantite, { liste: enMots(besoin.filter((b) => v.trop.some((t) => t.produit === b.produit)), nomDe) }));
+  for (const p of v.inutiles) phrases.push(remplir(FEMININS.has(habitant) ? T.pasBesoinF : T.pasBesoin, { produit: nomDe(p).nom }));
+  return phrases.join(' ');
+}
 
 let ctx: ContexteDemandes | null = null;
 let pastille: HTMLElement | null = null;
@@ -119,32 +152,42 @@ function choisirDansLePanier(f: HTMLElement, titre: string, rappel: string, pani
 
 /** Donner à l'habitant ce qu'une demande réclame, jusqu'à ce que ce soit juste (ou « Plus tard »). */
 async function livrer(c: ContexteDemandes, f: HTMLElement, d: Demande): Promise<void> {
-  const nom = c.noms[d.destinataire] ?? '';
-  let rappel = d.rappel;
+  const etape = etapeDe(d, c.etat().demandes);
+  const nom = c.noms[etape.destinataire] ?? '';
+  let rappel = etape.rappel;
   for (;;) {
     const donne = await choisirDansLePanier(f, nom, rappel, c.etat().panier);
     if (!donne) return;
-    const v = verifierDon(d.besoin, donne);
+    const v = verifierDon(etape.besoin, donne);
     if (v.juste) break;
     bruitage.erreur();
-    const phrases: string[] = [];
-    if (v.manque.length) phrases.push(remplir(T.manque, { liste: enMots(v.manque, nomDe) }));
-    if (v.trop.length) phrases.push(remplir(T.trop, { liste: enMots(v.trop, nomDe) }));
-    rappel = phrases.join(' ');
+    rappel = remarques(v, etape.besoin, etape.destinataire);
   }
   let e = c.etat();
   let panier = e.panier;
-  for (const b of d.besoin) panier = enlever(panier, b.produit, b.nombre) ?? panier;
+  for (const b of etape.besoin) panier = enlever(panier, b.produit, b.nombre) ?? panier;
+  // L'aller d'un aller-retour : le destinataire confie quelque chose à rapporter.
+  if (etape.confie.length) {
+    for (const x of etape.confie) panier = mettre(panier, x.produit, x.nombre);
+    c.changer({ ...e, panier, demandes: etapeSuivante(e.demandes, d.id) });
+    c.apresUnChangement();
+    bruitage.reussite();
+    const rangee = creer('div', 'rangee-icones');
+    for (const x of etape.confie) rangee.append(icone(x.produit));
+    await carte(f, nom, etape.merci, ['D’accord !'], [rangee]);
+    await carte(f, nom, remplir(T.fourni, { Liste: majuscule(enMots(etape.confie, nomDe)) }), ['D’accord !'], [rangee.cloneNode(true) as HTMLElement]);
+    return;
+  }
   // Une demande faite compte aussi comme un coup de main pour le grand projet.
-  e = { ...e, panier, porteMonnaie: ajouter(e.porteMonnaie, d.recompense), demandes: terminer(e.demandes, d.id), projets: aider(e.projets) };
+  e = { ...e, panier, porteMonnaie: ajouter(e.porteMonnaie, etape.recompense), demandes: terminer(e.demandes, d.id), projets: aider(e.projets) };
   c.changer(e);
   c.apresUnChangement();
   majSeance();
   bruitage.reussite();
   confettis();
   const rangee = creer('div', 'rangee-argent');
-  for (const v of d.recompense) rangee.append(piece(v));
-  await carte(f, nom, d.merci, ['Merci !'], [rangee]);
+  for (const v of etape.recompense) rangee.append(piece(v));
+  await carte(f, nom, etape.merci, ['Merci !'], [rangee]);
   if (seanceFinie(motsFaits(c.etat(), aujourdhui()), c.etat().demandes)) await finDeSeance(c, f);
 }
 
@@ -202,9 +245,9 @@ export async function parlerA(habitant: string, boutique = false): Promise<boole
   const dj = demandesDuJour(e.demandes, demandes.demandes.map((x) => x.id), jour, demandes.parJour);
   if (dj !== e.demandes) c.changer((e = { ...e, demandes: dj }));
   const duJour = demandes.demandes.filter((d) => dj.ids.includes(d.id) && !dj.faites.includes(d.id));
-  const aLivrer = duJour.find((d) => d.destinataire === habitant && dj.acceptees.includes(d.id));
+  const aLivrer = duJour.find((d) => etapeDe(d, dj).destinataire === habitant && dj.acceptees.includes(d.id));
   const aDonner = duJour.find((d) => d.donneur === habitant && !dj.acceptees.includes(d.id));
-  const enCours = duJour.find((d) => d.donneur === habitant && d.destinataire !== habitant && dj.acceptees.includes(d.id));
+  const enCours = duJour.find((d) => d.donneur === habitant && etapeDe(d, dj).destinataire !== habitant && dj.acceptees.includes(d.id));
   const nom = c.noms[habitant] ?? '';
   if (aLivrer) {
     const f = ouvrir(c);
