@@ -150,6 +150,11 @@ async function modele(id: string): Promise<GLTF | null> {
 }
 /** Tripo exporte ses modèles face à +x : ce quart de tour les remet face à +z (vers la caméra). */
 const FACE_TRIPO = -Math.PI / 2;
+/** Les stands et le décor de la fête, faits d'après une image de trois quarts, ont leur devant
+ *  ailleurs : ce quart de tour de plus les remet face à la caméra. */
+const FACE_DECOR = Math.PI / 2;
+/** Même chose pour certains forains (mesuré sur chaque modèle, vu des quatre côtés). */
+const FACE_FORAINS: Record<string, number> = { confiserie: Math.PI / 2, chantier: Math.PI / 2, horloge: Math.PI / 2, peche: Math.PI / 2 };
 
 /** Met un modèle à la bonne taille et le pose au sol. cap : 0 = face à la caméra. */
 function poser(o: THREE.Object3D, axe: 'x' | 'y', voulu: number, x: number, z: number, cap: number): void {
@@ -195,7 +200,7 @@ function montrerPommes(n: number): void {
   pommesArbre.forEach((p, i) => (p.visible = i < n));
 }
 /** Les forains des stands : leur modèle, et le sens où ils regardent devant leur stand. */
-const forainsDesStands = new Map<string, { o: THREE.Object3D; cap: number }>();
+const forainsDesStands = new Map<string, { o: THREE.Object3D; cap: number; face: number }>();
 interface Habitant {
   id: string;
   nom: string;
@@ -227,7 +232,7 @@ async function peupler(): Promise<void> {
     }
     const h: Habitant = { id: 'forain-chamboule', nom: 'Le forain', racine: o, dialogue: 'forain-accueil' };
     habitants.push(h);
-    forainsDesStands.set('chamboule', { o, cap: FORAIN.cap });
+    forainsDesStands.set('chamboule', { o, cap: FORAIN.cap, face: 0 });
     points.push({
       verbe: 'Parler',
       nom: h.nom,
@@ -466,7 +471,7 @@ async function poserFete(): Promise<void> {
   for (const [id, s] of Object.entries(FETE.stands)) {
     const stand = await modele(`stand-${id}`);
     if (stand) {
-      poserCentre(stand.scene, 5, s.x, s.z, s.cap);
+      poserCentre(stand.scene, 5, s.x, s.z, s.cap + FACE_DECOR);
       ville.add(stand.scene);
     }
     obstacles.push({ x: s.x, z: s.z, r: 2.3 });
@@ -475,9 +480,9 @@ async function poserFete(): Promise<void> {
     if (!f) continue;
     const o = f.animations.length ? clonerAnime(f.scene) : f.scene;
     const p = devantLeStand(s);
-    poser(o, 'y', 2.1, p.x, p.z, p.cap);
+    poser(o, 'y', 2.1, p.x, p.z, p.cap + (FACE_FORAINS[id] ?? 0));
     ville.add(o);
-    forainsDesStands.set(id, { o, cap: p.cap });
+    forainsDesStands.set(id, { o, cap: p.cap, face: FACE_FORAINS[id] ?? 0 });
     const attente = f.animations.find((a) => /idle/i.test(a.name)) ?? f.animations[0];
     if (attente) {
       const m = new THREE.AnimationMixer(o);
@@ -502,7 +507,7 @@ async function poserFete(): Promise<void> {
     const g = charges.get(d.modele);
     if (g) {
       const o = g.scene.clone();
-      poserCentre(o, d.longueur, d.x, d.z, d.cap);
+      poserCentre(o, d.longueur, d.x, d.z, d.cap + FACE_DECOR);
       ville.add(o);
     }
     obstacles.push({ x: d.x, z: d.z, r: d.r });
@@ -546,7 +551,7 @@ async function poserFete(): Promise<void> {
   const forainRoue = await modele('forain-roue');
   if (forainRoue) {
     const o = forainRoue.animations.length ? clonerAnime(forainRoue.scene) : forainRoue.scene;
-    poser(o, 'y', 2.1, FORAIN_ROUE.x, FORAIN_ROUE.z, FORAIN_ROUE.cap);
+    poser(o, 'y', 2.1, FORAIN_ROUE.x, FORAIN_ROUE.z, FORAIN_ROUE.cap + Math.PI / 2);
     ville.add(o);
     const attente = forainRoue.animations.find((a) => /idle/i.test(a.name)) ?? forainRoue.animations[0];
     if (attente) {
@@ -576,13 +581,13 @@ function majFete(festif = false): void {
   partVoulue = roueConstruite() || !chantier ? 1 : 0.3 + (0.55 * etapesVisibles(etat.attraction, jour)) / ETAPES;
   if (!festif) partRoue = partVoulue;
   let rang = 0;
-  for (const [id, { o, cap }] of forainsDesStands) {
+  for (const [id, { o, cap, face }] of forainsDesStands) {
     const s = FETE.stands[id as keyof typeof FETE.stands];
     const aide = chantier && standFini(id as keyof typeof FETE.stands);
     const p = aide ? (AIDES_ROUE[rang++] ?? devantLeStand(s)) : devantLeStand(s);
     o.position.x = p.x;
     o.position.z = p.z;
-    o.rotation.y = (aide ? p.cap : cap) + FACE_TRIPO;
+    o.rotation.y = (aide ? p.cap : cap) + FACE_TRIPO + face;
     // Le bouton « Parler » du forain du chamboule le suit.
     if (id === 'chamboule') {
       const point = points.find((x) => x.nom === 'Le forain' && x.verbe === 'Parler');
