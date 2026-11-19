@@ -28,6 +28,7 @@ import attractions from '../../content/ville/attractions.json';
 import { jourDe } from '../memoire/jours.ts';
 import { surveillerModeApp } from '../app/modeApp.ts';
 import { surveillerMiseAJour } from '../app/miseAJour.ts';
+import { ecrirePrenom } from '../ui/prenom.ts';
 import { bruitage, demarrerSon } from '../son/bruitages.ts';
 import { musique, type Piste } from '../son/musique.ts';
 import type { IdStand } from '../scene/fete.ts';
@@ -1212,6 +1213,22 @@ renderer.setAnimationLoop(() => {
 await peupler();
 document.body.dataset.pret = '1';
 
+// Le prénom du personnage : demandé à la première arrivée, affiché en haut de l'écran ; il se
+// change dans la maison.
+const pastillePrenom = Object.assign(document.createElement('p'), { className: 'hud-prenom', textContent: etat.prenom });
+(document.querySelector('.hud-ville') ?? document.body).prepend(pastillePrenom);
+async function choisirPrenom(): Promise<void> {
+  const avant = commandes.actives;
+  commandes.actives = false;
+  const prenom = await ecrirePrenom('Comment s’appelle ton personnage ?', etat.prenom || undefined);
+  commandes.actives = avant;
+  if (!prenom) return;
+  etat.prenom = prenom;
+  pastillePrenom.textContent = prenom;
+  void sauverEtat(etat);
+}
+if (!etat.prenom && !adresse.has('essai')) void choisirPrenom();
+
 // L'appli MiniVille s'ouvre ici : plein écran au premier toucher, et mise à jour proposée
 // seulement quand l'enfant se promène (jamais pendant un exercice ou un dialogue).
 surveillerModeApp();
@@ -1235,6 +1252,7 @@ if (adresse.has('essai')) {
       },
       grandDefi: essaiGrandDefi,
       tour: () => void faireUnTour(),
+      prenom: () => void choisirPrenom(),
     },
   });
 }

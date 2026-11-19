@@ -813,3 +813,20 @@ button.produit {
   font-size: 1rem;
   font-weight: 700;
 }
+
+/* Le prénom du personnage, en tête de la barre du haut. */
+.hud-prenom {
+  display: flex;
+  align-items: center;
+  height: 52px;
+  margin: 0;
+  padding: 0 18px;
+  border-radius: 999px;
+  background: var(--papier);
+  box-shadow: var(--ombre);
+  color: var(--encre);
+  font: 700 1.3rem var(--police);
+}
+.hud-prenom:empty {
+  display: none;
+}
