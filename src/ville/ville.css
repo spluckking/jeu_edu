@@ -777,3 +777,71 @@ button.produit {
   transform: translateX(-50%);
   z-index: 9;
 }
+
+/* Le bouton « Courir », à droite, au-dessus du bouton d'action. */
+.courir {
+  position: fixed;
+  right: calc(28px + env(safe-area-inset-right));
+  bottom: calc(165px + env(safe-area-inset-bottom));
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.88);
+  color: var(--texte, #3a2f28);
+  box-shadow: 0 5px 0 rgba(0, 0, 0, 0.15), var(--ombre);
+  touch-action: manipulation;
+}
+.courir[hidden] {
+  display: none;
+}
+.courir[aria-pressed='true'] {
+  background: var(--jaune, #ffd27a);
+}
+.courir:active {
+  transform: translateY(3px);
+}
+.courir-icone {
+  width: 40px;
+  height: 40px;
+}
+.courir-mot {
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+/* Le prénom du personnage, en tête de la barre du haut. */
+.hud-prenom {
+  display: flex;
+  align-items: center;
+  height: 52px;
+  margin: 0;
+  padding: 0 18px;
+  border-radius: 999px;
+  background: var(--papier);
+  box-shadow: var(--ombre);
+  color: var(--encre);
+  font: 700 1.3rem var(--police);
+}
+.hud-prenom:empty {
+  display: none;
+}
+
+/* Le fondu au noir pour entrer dans la maison et en sortir. */
+.fondu {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  background: #1d1712;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.35s ease;
+}
+.fondu.noir {
+  opacity: 1;
+  pointer-events: auto;
+}

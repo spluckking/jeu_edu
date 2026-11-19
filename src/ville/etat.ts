@@ -1,6 +1,7 @@
 // L'état de la ville, gardé sur la tablette (IndexedDB), à part de la sauvegarde du jeu actuel
 // tant que la ville est en construction : rien de ce que l'enfant a gagné n'est touché.
 
+import { nettoyerPrenom } from '../histoire/lecture.ts';
 import { dicteeNeuve, type EtatDictee } from '../dictee/etat.ts';
 import type { PorteMonnaie } from './argent.ts';
 import { POMMES_PAR_ARBRE, type Panier, type Pommier, type Ventes } from './commerce.ts';
@@ -22,7 +23,9 @@ export const PREMIERE_ATTRACTION = attractions.attractions[0]?.id ?? null;
 export const PARCELLES = 4;
 
 export interface EtatVille {
-  version: 8;
+  version: 9;
+  /** Le prénom que l'enfant a donné à son personnage (vide : pas encore choisi). */
+  prenom: string;
   /** Où se trouve le personnage, et vers où il regarde. */
   position: { x: number; z: number; cap: number };
   /** Les dialogues déjà lus. */
@@ -56,7 +59,8 @@ export interface EtatVille {
 
 export function etatNeuf(): EtatVille {
   return {
-    version: 8,
+    version: 9,
+    prenom: '',
     position: { x: 0, z: 6, cap: Math.PI },
     lus: [],
     dictee: dicteeNeuve(),
@@ -81,7 +85,7 @@ function compteur(v: unknown): Record<string, number> {
   return Object.fromEntries(Object.entries(v).filter((e): e is [string, number] => Number.isInteger(e[1]) && e[1] > 0));
 }
 
-/** Relit un état brut (versions 1 à 8) ; un état illisible repart de zéro plutôt que de bloquer le jeu. */
+/** Relit un état brut (versions 1 à 9) ; un état illisible repart de zéro plutôt que de bloquer le jeu. */
 export function lireEtat(brut: unknown): EtatVille {
   const neuf = etatNeuf();
   if (typeof brut !== 'object' || brut === null) return neuf;
@@ -98,7 +102,9 @@ export function lireEtat(brut: unknown): EtatVille {
   const pj = o.projets;
   const entier = (x: unknown): number => (Number.isInteger(x) && (x as number) >= 0 ? (x as number) : 0);
   return {
-    version: 8,
+    version: 9,
+    // Avant la version 9, pas de prénom : il est demandé à l'arrivée.
+    prenom: typeof o.prenom === 'string' ? nettoyerPrenom(o.prenom) : '',
     position: p && nombre(p.x) && nombre(p.z) && nombre(p.cap) ? { x: p.x, z: p.z, cap: p.cap } : neuf.position,
     lus: Array.isArray(o.lus) ? o.lus.filter((x): x is string => typeof x === 'string') : [],
     // L'état de la dictée n'est écrit que par le jeu lui-même : on le reprend s'il a la bonne forme.

@@ -28,6 +28,9 @@ import attractions from '../../content/ville/attractions.json';
 import { jourDe } from '../memoire/jours.ts';
 import { surveillerModeApp } from '../app/modeApp.ts';
 import { surveillerMiseAJour } from '../app/miseAJour.ts';
+import { ecrirePrenom } from '../ui/prenom.ts';
+import { avecPrenom, retenirPrenomEcrit } from './prenom-ecrit.ts';
+import { construirePiece, dedans, ENTREE_INTERIEUR, SORTIE_INTERIEUR, INTERIEUR, PANNEAU_PRENOM, resterDansLaPiece, tapis } from './maison-interieur.ts';
 import { bruitage, demarrerSon } from '../son/bruitages.ts';
 import { musique, type Piste } from '../son/musique.ts';
 import type { IdStand } from '../scene/fete.ts';
@@ -815,6 +818,9 @@ const heros: Heros = glbEnfant
     });
 const etat = await chargerEtat();
 heros.racine.position.set(etat.position.x, 0.06, etat.position.z);
+retenirPrenomEcrit(etat.prenom);
+/** L'enfant est dans sa maison (il y était peut-être en quittant le jeu). */
+let dansLaMaison = dedans(etat.position.x, etat.position.z);
 heros.racine.rotation.y = etat.position.cap;
 
 let animerHerbe: (t: number) => void = () => {};
@@ -855,7 +861,7 @@ function ouvrirDialogue(h: Habitant): void {
   ui.interagir.hidden = true;
   ui.nom.textContent = h.nom;
   ui.texte.replaceChildren(
-    ...decouper(d.texte).map((m) => {
+    ...decouper(avecPrenom(d.texte)).map((m) => {
       if (!m.mot) return document.createTextNode(m.texte);
       const s = document.createElement('span');
       s.className = 'mot';
@@ -1045,7 +1051,27 @@ majSeance();
 
 // --- La promenade ------------------------------------------------------------------------------
 const VITESSE = 4.2;
+const VITESSE_COURSE = 7.5;
+// Le bouton « Courir » : un toucher pour courir, un autre pour marcher. Sur ordinateur, Maj
+// enfoncée fait courir aussi.
+const boutonCourir = el<HTMLButtonElement>('courir');
+let course = false;
+let majEnfoncee = false;
+boutonCourir.addEventListener('click', () => {
+  course = !course;
+  boutonCourir.setAttribute('aria-pressed', String(course));
+  boutonCourir.querySelector('.courir-mot')!.textContent = course ? 'Marcher' : 'Courir';
+});
+addEventListener('keydown', (e) => {
+  if (e.key === 'Shift') majEnfoncee = true;
+});
+addEventListener('keyup', (e) => {
+  if (e.key === 'Shift') majEnfoncee = false;
+});
+/** Avance l'enfant ; rend son allure pour l'animation (0 : arrêté, moins de 0,75 : marche, plus : course). */
 function promenade(dt: number): number {
+  const vite = course || majEnfoncee;
+  boutonCourir.hidden = occupe || enDialogue !== null || tourDeRoue !== null;
   const h = heros.racine;
   const avantX = h.position.x;
   const avantZ = h.position.z;
@@ -1055,8 +1081,9 @@ function promenade(dt: number): number {
     const n = Math.max(1, Math.hypot(commandes.x, commandes.y));
     const mx = (droite.x * commandes.x + avant.x * commandes.y) / n;
     const mz = (droite.z * commandes.x + avant.z * commandes.y) / n;
-    h.position.x += mx * VITESSE * dt;
-    h.position.z += mz * VITESSE * dt;
+    const v = vite ? VITESSE_COURSE : VITESSE;
+    h.position.x += mx * v * dt;
+    h.position.z += mz * v * dt;
     h.rotation.y = Math.atan2(mx, mz);
   }
   // On ne traverse ni la fontaine, ni la maison, ni les habitants ; et on reste en ville.
@@ -1070,13 +1097,17 @@ function promenade(dt: number): number {
       h.position.z = o.z + (dz / d) * min;
     }
   }
+  // Dans la maison : on reste entre les murs.
+  if (dansLaMaison) resterDansLaPiece(h.position);
   // Pas dans l'eau (sauf sur le pont), et pas au-delà des bords du monde.
-  if (dansLEau(h.position.x, h.position.z)) {
+  else if (dansLEau(h.position.x, h.position.z)) {
     h.position.x = avantX;
     h.position.z = avantZ;
   }
-  h.position.x = Math.max(BORDS.xMin, Math.min(BORDS.xMax, h.position.x));
-  h.position.z = Math.max(BORDS.zMin, Math.min(BORDS.zMax, h.position.z));
+  if (!dansLaMaison) {
+    h.position.x = Math.max(BORDS.xMin, Math.min(BORDS.xMax, h.position.x));
+    h.position.z = Math.max(BORDS.zMin, Math.min(BORDS.zMax, h.position.z));
+  }
   h.position.y = sol(h.position.x, h.position.z);
   // Quelque chose tout près (un habitant, le tableau…) : le bouton apparaît.
   let meilleur: PointInteret | null = null;
@@ -1085,7 +1116,7 @@ function promenade(dt: number): number {
     for (const p of points) {
       if (p.visible && !p.visible()) continue;
       const d = Math.hypot(p.x - h.position.x, p.z - h.position.z);
-      if (d < distance) {
+      if (d < distance && d < (p.rayon ?? 3.4)) {
         distance = d;
         meilleur = p;
       }
@@ -1097,7 +1128,8 @@ function promenade(dt: number): number {
     ui.interagirMot.textContent = proche.verbe;
     ui.interagirTexte.textContent = proche.nom;
   }
-  return force;
+  // En marchant, l'animation de marche même joystick à fond ; la course seulement avec le bouton.
+  return vite ? force : Math.min(force, 0.7);
 }
 
 // La musique suit l'endroit : la ville, ou la fête dès qu'on approche du portail. On ne la change
@@ -1190,6 +1222,88 @@ renderer.setAnimationLoop(() => {
 await peupler();
 document.body.dataset.pret = '1';
 
+// --- La maison : on y entre par la porte, en fondu ; on ressort par le paillasson ---------------
+/** La porte de la maison, côté ville. */
+const PORTE_MAISON = devantLeStand(LIEUX.maison, 4.6);
+function fondu(pendant: () => void): Promise<void> {
+  const voile = document.body.appendChild(Object.assign(document.createElement('div'), { className: 'fondu' }));
+  return new Promise((ok) => {
+    requestAnimationFrame(() => voile.classList.add('noir'));
+    setTimeout(() => {
+      pendant();
+      voile.classList.remove('noir');
+      setTimeout(() => {
+        voile.remove();
+        ok();
+      }, 380);
+    }, 380);
+  });
+}
+function allerA(x: number, z: number, cap: number, maison: boolean): void {
+  void fondu(() => {
+    dansLaMaison = maison;
+    heros.racine.position.set(x, 0.06, z);
+    heros.racine.rotation.y = cap;
+    // La caméra arrive d'un coup, sans glisser depuis l'ancien endroit.
+    const pose = suivi.pose(heros.racine, 0);
+    camera.position.copy(pose.position);
+    retenirPosition(performance.now(), true);
+  });
+}
+async function poserInterieur(): Promise<void> {
+  ville.add(construirePiece());
+  const meubles: Array<{ id: string; longueur: number; x: number; z: number; cap: number; r: number }> = [
+    { id: 'interieur-lit', longueur: 2.3, x: -2.9, z: -1.7, cap: 0, r: 1.1 },
+    { id: 'interieur-armoire', longueur: 1.6, x: 2.9, z: -2.75, cap: 0, r: 0.9 },
+    { id: 'interieur-table', longueur: 1.8, x: 2.4, z: 0.4, cap: 0, r: 1 },
+  ];
+  for (const m of meubles) {
+    const g = await modele(m.id);
+    const x = INTERIEUR.x + m.x;
+    const z = INTERIEUR.z + m.z;
+    if (g) {
+      poserCentre(g.scene, m.longueur, x, z, m.cap + (FACE_MEUBLES[m.id] ?? 0));
+      if (qualite === 'haute') ombrer(g.scene);
+      ville.add(g.scene);
+    }
+    obstacles.push({ x, z, r: m.r });
+  }
+  try {
+    const image = await new THREE.TextureLoader().loadAsync(`${import.meta.env.BASE_URL}modeles/interieur-tapis.webp`);
+    const t = tapis(image, 1.5, 1.1);
+    t.position.set(INTERIEUR.x - 0.4, 0.035, INTERIEUR.z - 0.2);
+    ville.add(t);
+  } catch {
+    // Pas de tapis : la pièce reste jolie sans.
+  }
+}
+/** Les modèles Tripo de meubles n'ont pas tous leur devant du même côté. */
+const FACE_MEUBLES: Record<string, number> = { 'interieur-armoire': Math.PI / 2 };
+points.push(
+  { verbe: 'Entrer', nom: 'Ta maison', x: PORTE_MAISON.x, z: PORTE_MAISON.z, visible: () => !dansLaMaison, action: () => allerA(ENTREE_INTERIEUR.x, ENTREE_INTERIEUR.z, Math.PI, true) },
+  { verbe: 'Sortir', nom: '', x: SORTIE_INTERIEUR.x, z: SORTIE_INTERIEUR.z, rayon: 1.4, visible: () => dansLaMaison, action: () => allerA(PORTE_MAISON.x, PORTE_MAISON.z + 1, 0, false) },
+  { verbe: 'Changer', nom: 'Ton prénom', x: PANNEAU_PRENOM.x, z: PANNEAU_PRENOM.z, rayon: 1.6, visible: () => dansLaMaison, action: () => void choisirPrenom() },
+);
+
+await poserInterieur();
+
+// Le prénom du personnage : demandé à la première arrivée, affiché en haut de l'écran ; il se
+// change dans la maison.
+const pastillePrenom = Object.assign(document.createElement('p'), { className: 'hud-prenom', textContent: etat.prenom });
+(document.querySelector('.hud-ville') ?? document.body).prepend(pastillePrenom);
+async function choisirPrenom(): Promise<void> {
+  const avant = commandes.actives;
+  commandes.actives = false;
+  const prenom = await ecrirePrenom('Comment s’appelle ton personnage ?', etat.prenom || undefined);
+  commandes.actives = avant;
+  if (!prenom) return;
+  etat.prenom = prenom;
+  retenirPrenomEcrit(prenom);
+  pastillePrenom.textContent = prenom;
+  void sauverEtat(etat);
+}
+if (!etat.prenom && !adresse.has('essai')) void choisirPrenom();
+
 // L'appli MiniVille s'ouvre ici : plein écran au premier toucher, et mise à jour proposée
 // seulement quand l'enfant se promène (jamais pendant un exercice ou un dialogue).
 surveillerModeApp();
@@ -1213,6 +1327,7 @@ if (adresse.has('essai')) {
       },
       grandDefi: essaiGrandDefi,
       tour: () => void faireUnTour(),
+      prenom: () => void choisirPrenom(),
     },
   });
 }

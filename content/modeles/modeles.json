@@ -430,6 +430,24 @@
       "genre": "objet",
       "studio": true,
       "image": "content/modeles/images/lampadaire.png"
+    },
+    {
+      "id": "interieur-lit",
+      "genre": "objet",
+      "studio": true,
+      "image": "content/modeles/images/interieur-lit.png"
+    },
+    {
+      "id": "interieur-table",
+      "genre": "objet",
+      "studio": true,
+      "image": "content/modeles/images/interieur-table.png"
+    },
+    {
+      "id": "interieur-armoire",
+      "genre": "objet",
+      "studio": true,
+      "image": "content/modeles/images/interieur-armoire.png"
     }
   ]
 }

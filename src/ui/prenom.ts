@@ -77,3 +77,56 @@ export function demanderUnPrenom(propositions: readonly string[], metier: string
     proposer();
   });
 }
+
+/** Écrire un prénom directement (le personnage de l'enfant). Avec « garder » : un bouton pour
+ *  laisser le prénom tel quel (rend null). */
+export function ecrirePrenom(titre: string, garder?: string): Promise<string | null> {
+  return new Promise((fini) => {
+    const fond = document.createElement('div');
+    fond.className = 'vitrine-fond';
+    const carte = document.createElement('div');
+    carte.className = 'vitrine';
+    fond.append(carte);
+    document.body.append(fond);
+    const finir = (prenom: string | null): void => {
+      bruitage.ouverture();
+      fond.remove();
+      fini(prenom);
+    };
+    const titreP = document.createElement('p');
+    titreP.className = 'lecture-titre';
+    titreP.textContent = titre;
+    const champ = document.createElement('input');
+    champ.className = 'champ-prenom';
+    champ.maxLength = 14;
+    champ.autocomplete = 'off';
+    champ.spellcheck = false;
+    champ.setAttribute('aria-label', 'Prénom');
+    const valider = document.createElement('button');
+    valider.type = 'button';
+    valider.className = 'bouton-principal';
+    valider.textContent = 'C’est son prénom';
+    valider.disabled = true;
+    valider.addEventListener('click', () => finir(nettoyerPrenom(champ.value)));
+    champ.addEventListener('input', () => {
+      champ.value = champ.value.replace(/[^\p{L}' -]/gu, '');
+      valider.disabled = nettoyerPrenom(champ.value).length < 2;
+    });
+    champ.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !valider.disabled) valider.click();
+    });
+    const boutons = document.createElement('div');
+    boutons.className = 'lecture-boutons';
+    if (garder) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'bouton-secondaire';
+      b.textContent = `Garder ${garder}`;
+      b.addEventListener('click', () => finir(null));
+      boutons.append(b);
+    }
+    boutons.append(valider);
+    carte.replaceChildren(titreP, champ, boutons);
+    champ.focus();
+  });
+}

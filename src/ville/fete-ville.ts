@@ -35,6 +35,7 @@ import { aAvanceCetteNuit, aDejaManque, chantierOuvert, compterJournee, epreuveO
 import type { PointInteret } from './dictee-ville.ts';
 import { carte, creer } from './interface.ts';
 import { fichierForain } from './voix-forains.ts';
+import { avecPrenom } from './prenom-ecrit.ts';
 
 export interface ContexteFete {
   points: PointInteret[];
@@ -178,7 +179,7 @@ function carteFini(merci: boolean): void {
   q('.manche-nom').textContent = '';
   q('.carte-titre').textContent = merci ? 'Bravo !' : `${jeu.titre} de ${nom(jeu.id)}`;
   const texte = merci ? fete.apresUneManche : fete.finiAujourdhui;
-  q('.carte-texte').textContent = texte;
+  q('.carte-texte').textContent = avecPrenom(texte);
   parlerForain(jeu.id, texte);
   q('.carte-bouton').textContent = 'Jouer';
   // Juste après le merci, le forain part aider : on rejouera une autre fois.
@@ -206,7 +207,7 @@ function montrerCarte(type: TypeManche, apresUneManche: boolean): void {
         : type === 'semaine'
           ? `Manche « Cette semaine » : ${jeu.unite(nombre)}.`
           : `Manche « Mémoire » : ${jeu.unite(nombre)} pour ne pas oublier.`;
-  q('.carte-texte').textContent = texte;
+  q('.carte-texte').textContent = avecPrenom(texte);
   q('.carte-bouton').textContent = type === 'libre' ? 'Jouer' : 'C’est parti !';
   (q('.carte-bouton') as HTMLButtonElement).disabled = elementsDuStand().length === 0;
   // Le forain propose sa manche : on peut revenir plus tard.

@@ -13,13 +13,19 @@ describe('état de la ville', () => {
     expect(e.lus).toEqual(['forain-accueil']);
   });
 
+  it('garde le prénom du personnage, nettoyé', () => {
+    expect(lireEtat({ prenom: '  Zoé ' }).prenom).toBe('Zoé');
+    expect(lireEtat({ prenom: 3 }).prenom).toBe('');
+  });
+
   it('une position abîmée reprend la position de départ', () => {
     expect(lireEtat({ position: { x: 'a', z: 1, cap: 0 } }).position).toEqual(etatNeuf().position);
   });
 
   it('reprend une sauvegarde de la version 1 sans argent ni panier', () => {
     const e = lireEtat({ version: 1, position: { x: 1, z: 2, cap: 0 }, lus: ['forain-accueil'] });
-    expect(e.version).toBe(8);
+    expect(e.version).toBe(9);
+    expect(e.prenom).toBe('');
     expect(e.attraction.enCours).toBe('grande-roue');
     expect(e.projets.enCours).toBe('boulangerie');
     expect(e.poste).toEqual({ tri: '', aLivrer: [], paye: '' });

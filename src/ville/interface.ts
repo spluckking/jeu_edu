@@ -1,6 +1,7 @@
 // Les petits outils d'interface de la ville : cartes, textes à lire (chaque mot se touche pour
 // l'entendre), pièces et billets, images de produits.
 
+import { avecPrenom } from './prenom-ecrit.ts';
 import { bruitage } from '../son/bruitages.ts';
 import { dire } from '../son/voix.ts';
 import { euros } from './argent.ts';
@@ -25,7 +26,7 @@ export const majuscule = (s: string): string => s.charAt(0).toUpperCase() + s.sl
 /** Un texte que l'enfant lit lui-même : chaque mot se touche pour l'entendre. */
 export function texteALire(texte: string, classe = 'exercice-texte texte-a-lire'): HTMLElement {
   const p = creer('p', classe);
-  for (const m of decouper(texte)) {
+  for (const m of decouper(avecPrenom(texte))) {
     if (!m.mot) {
       p.append(m.texte);
       continue;
