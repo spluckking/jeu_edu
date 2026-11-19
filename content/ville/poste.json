@@ -1,6 +1,6 @@
 {
-  "_lisez-moi": "La poste (tranche 1C). noms : les destinataires du courrier à trier (on trie par la première lettre du nom de famille). livraisons : les lettres à porter aux habitants après le tri, avec l'adresse écrite sur l'enveloppe. paye : ce que la postière donne pour le tri (centimes) ; merci : ce que donne l'habitant qui reçoit sa lettre. valide=false : textes à relire (A_VALIDER.md).",
-  "valide": false,
+  "_lisez-moi": "La poste (tranche 1C). noms : les destinataires du courrier à trier (on trie par la première lettre du nom de famille). livraisons : les lettres à porter aux habitants après le tri, avec l'adresse écrite sur l'enveloppe. paye : ce que la postière donne pour le tri (centimes) ; merci : ce que donne l'habitant qui reçoit sa lettre (rien, choix du parent) ; payeLivraison : ce que la postière donne quand tout le courrier est livré, avec le texte toutLivre (pas encore branché dans le programme). valide=false : textes à relire (A_VALIDER.md).",
+  "valide": true,
   "noms": [
     "M. Arnaud",
     "Mme Blanchard",
@@ -34,8 +34,9 @@
   "paye": [
     200
   ],
-  "merci": [
-    100
+  "merci": [],
+  "payeLivraison": [
+    200
   ],
   "textes": {
     "nom": "La postière",
@@ -48,7 +49,8 @@
     "fini": "Merci, le courrier est trié ! Voilà 2 € pour ton aide. Et peux-tu porter ces lettres ? Lis bien l’adresse sur chaque enveloppe.",
     "dejaTrie": "Le courrier est trié pour aujourd’hui. Merci ! Reviens demain.",
     "rappel": "Il te reste des lettres à livrer. Lis l’adresse sur chaque enveloppe.",
-    "recue": "Une lettre pour moi ? Merci beaucoup ! Tiens, voilà 1 € pour toi.",
+    "recue": "Une lettre pour moi ? Merci beaucoup !",
+    "toutLivre": "Tout le courrier est livré ! Merci, voilà 2 € pour ton aide.",
     "enveloppe": "Sur l’enveloppe :"
   }
 }

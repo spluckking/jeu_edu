@@ -20,7 +20,7 @@
     }
   ],
   "textes": {
-    "valide": false,
+    "valide": true,
     "nom": "Le potager",
     "planter": "Planter",
     "arroser": "Arroser",

@@ -4,7 +4,7 @@
     {
       "id": "forain-accueil",
       "habitant": "forain-chamboule",
-      "valide": false,
+      "valide": true,
       "texte": "Bonjour ! Bienvenue à la fête foraine ! Ici, il y a des stands pour jouer avec les mots et les nombres, et des manèges. La ville est de l’autre côté du pont : ta maison est tout au nord, avec le toit orange."
     }
   ]

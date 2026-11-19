@@ -1,0 +1,32 @@
+{
+  "_lisez-moi": "La fête foraine de la ville : pas d'euros. Finir tous les exercices du jour fait avancer la construction d'une nouvelle attraction ; son forain remercie et débloque le jeu libre (manèges et mode « pour le plaisir » des stands). salutations : propres à la ville (celles du jeu d'avant, src/son/salutations.ts, ne changent pas), une tirée au hasard, chaque forain garde sa voix. Pas encore branché dans le programme (A_VALIDER.md, point 19). valide=true : textes validés par le parent.",
+  "valide": true,
+  "apresUneManche": "Merci pour ton aide ! Grâce à toi, j’ai fini mon travail plus tôt. Je vais aller aider à construire la nouvelle attraction !",
+  "attraction": {
+    "avant": "Bonjour ! Je construis ma nouvelle attraction. Aide les forains à leurs stands : quand ils auront fini, ils viendront m’aider !",
+    "journeeFinie": "Bravo ! Grâce à toi, tous les forains sont venus m’aider. Mon attraction a bien avancé aujourd’hui ! Pour te remercier, tu peux jouer librement.",
+    "lendemain": "Regarde ! Mon attraction a avancé pendant la nuit."
+  },
+  "salutations": {
+    "chamboule": [
+      "Bonjour ! J’ai plein de boîtes à faire tomber, et pas le temps. Tu m’aides ?",
+      "Ah, te revoilà ! Aide-moi vite, on m’attend pour construire la nouvelle attraction !"
+    ],
+    "confiserie": [
+      "Coucou ! J’ai beaucoup de sucettes à préparer. Tu me donnes un coup de main ?",
+      "Bienvenue ! Si tu m’aides à écrire mes mots, j’irai vite aider à la construction."
+    ],
+    "chantier": [
+      "Salut, petit bricoleur ! J’ai trop de défis pour moi tout seul. Tu m’aides ?",
+      "Bonjour ! Aide-moi avec ces défis, et j’irai construire la nouvelle attraction."
+    ],
+    "horloge": [
+      "Bonjour ! Tic-tac… J’ai trop d’horloges à lire toute seule. Tu m’aides ?",
+      "Te voilà ! Aide-moi avec mes horloges, on m’attend pour la construction."
+    ],
+    "peche": [
+      "Ohé ! Mes canards nagent dans tous les sens. Tu m’aides à les pêcher ?",
+      "Bonjour ! Aide-moi à pêcher mes canards, et j’irai aider à la construction."
+    ]
+  }
+}

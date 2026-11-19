@@ -1,6 +1,6 @@
 {
   "_lisez-moi": "La rivière et le bois (tranche 1C) : pêcher une fois par jour en rangeant les poissons par seaux, cueillir les mûres de trois buissons. La taille des groupes change chaque jour (de 2 à 5). valide=false : textes à relire (A_VALIDER.md).",
-  "valide": false,
+  "valide": true,
   "ponton": "Le ponton",
   "buisson": "Le buisson de mûres",
   "pecher": "Pêcher",

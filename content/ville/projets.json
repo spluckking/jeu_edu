@@ -1,6 +1,6 @@
 {
   "_lisez-moi": "Les grands projets (tranche 1C) : un lieu à construire en réunissant des récoltes, des euros (centimes) et des coups de main (demandes faites pendant le projet). Prévu pour 7 à 10 jours de jeu. Le lieu se construit la nuit qui suit et ouvre le lendemain ; son habitant s'installe devant. valide=false : textes à relire (A_VALIDER.md).",
-  "valide": false,
+  "valide": true,
   "premier": "boulangerie",
   "projets": [
     {

@@ -1,6 +1,6 @@
 {
   "_lisez-moi": "Les meubles de jardin à gagner en fin de séance (lot choisi, jamais tiré au sort). hauteur : taille dans la ville, en mètres. Les modèles sont dans content/modeles/modeles.json (même identifiant). valide=false : noms à relire (A_VALIDER.md).",
-  "valide": false,
+  "valide": true,
   "meubles": [
     { "id": "meuble-banc", "nom": "le banc bleu", "hauteur": 1.1 },
     { "id": "meuble-table", "nom": "la table et ses chaises", "hauteur": 1.1 },

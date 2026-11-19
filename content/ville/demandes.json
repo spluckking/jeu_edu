@@ -18,7 +18,7 @@
   "demandes": [
     {
       "id": "repas-du-forain",
-      "valide": false,
+      "valide": true,
       "donneur": "forain-chamboule",
       "destinataire": "forain-chamboule",
       "fournit": [],
@@ -74,6 +74,9 @@
     "choisir": "Choisis dans ton panier ce que tu veux donner.",
     "manque": "Il me manque encore {liste}.",
     "trop": "Tu m’en donnes trop : je n’ai pas besoin de {liste}.",
+    "tropQuantite": "Tu m’en donnes trop : il me faut seulement {liste}.",
+    "pasBesoin": "Désolé, je n’ai pas besoin de {produit}.",
+    "pasBesoinF": "Désolée, je n’ai pas besoin de {produit}.",
     "finSeance": "Bravo ! Ta séance du jour est finie. Les habitants te remercient. Choisis un cadeau pour décorer devant ta maison :",
     "cadeauPose": "Ton cadeau est installé devant ta maison : {meuble} ! Va voir.",
     "toutGagne": "Bravo ! Ta séance du jour est finie. Tu as déjà tous les cadeaux : de nouveaux arriveront bientôt.",
