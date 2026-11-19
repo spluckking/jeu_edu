@@ -382,6 +382,54 @@
       "genre": "icone",
       "studio": true,
       "image": "content/modeles/images/icone-crepes.png"
+    },
+    {
+      "id": "chaises-volantes",
+      "genre": "objet",
+      "studio": true,
+      "image": "content/modeles/images/chaises-volantes.png"
+    },
+    {
+      "id": "chariot-popcorn",
+      "genre": "objet",
+      "studio": true,
+      "image": "content/modeles/images/chariot-popcorn.png"
+    },
+    {
+      "id": "camion-gaufres",
+      "genre": "objet",
+      "studio": true,
+      "image": "content/modeles/images/camion-gaufres.png"
+    },
+    {
+      "id": "force-metre",
+      "genre": "objet",
+      "studio": true,
+      "image": "content/modeles/images/force-metre.png"
+    },
+    {
+      "id": "guichet",
+      "genre": "objet",
+      "studio": true,
+      "image": "content/modeles/images/guichet.png"
+    },
+    {
+      "id": "chariot-ballons",
+      "genre": "objet",
+      "studio": true,
+      "image": "content/modeles/images/chariot-ballons.png"
+    },
+    {
+      "id": "table-parasol",
+      "genre": "objet",
+      "studio": true,
+      "image": "content/modeles/images/table-parasol.png"
+    },
+    {
+      "id": "lampadaire",
+      "genre": "objet",
+      "studio": true,
+      "image": "content/modeles/images/lampadaire.png"
     }
   ]
 }

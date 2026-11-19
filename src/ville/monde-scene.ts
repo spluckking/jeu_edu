@@ -113,11 +113,53 @@ export function dessinerMonde(): Monde {
   etang.position.set(ETANG.x, 0.07, ETANG.z);
   racine.add(plage, etang);
   // Le sol de la fête : une grande place de terre battue.
-  const place = new THREE.Mesh(new THREE.CircleGeometry(FETE.rayon, 64).rotateX(-Math.PI / 2), terre);
+  const place = new THREE.Mesh(new THREE.CircleGeometry(1, 64).rotateX(-Math.PI / 2), terre);
+  place.scale.set(FETE.rx, 1, FETE.rz);
   place.position.set(LIEUX.fete.x, 0.028, LIEUX.fete.z);
   racine.add(place);
   for (const o of racine.children) o.receiveShadow = true;
   return { racine, animer: (t) => (temps.value = t) };
+}
+
+/** Des guirlandes de fanions tendues d'un point à un autre (en mètres, hauteur comprise), qui
+ *  pendent un peu au milieu : un seul maillage en instances pour tous les fanions. */
+export function guirlandes(fils: ReadonlyArray<[THREE.Vector3, THREE.Vector3]>): THREE.Object3D {
+  const groupe = new THREE.Group();
+  const couleurs = [0xf6a5b8, 0xffd27a, 0x9fd8f0, 0xb8e6a8, 0xd5b8f2, 0xffb38a];
+  const triangle = new THREE.BufferGeometry();
+  triangle.setAttribute('position', new THREE.Float32BufferAttribute([-0.2, 0, 0, 0.2, 0, 0, 0, -0.42, 0], 3));
+  triangle.computeVertexNormals();
+  const points: THREE.Vector3[] = [];
+  const corde: number[] = [];
+  const poses: Array<{ p: THREE.Vector3; angle: number }> = [];
+  for (const [a, b] of fils) {
+    const n = Math.max(4, Math.round(a.distanceTo(b) / 0.55));
+    const fleche = a.distanceTo(b) * 0.06;
+    const angle = Math.atan2(b.x - a.x, b.z - a.z) + Math.PI / 2;
+    for (let i = 0; i <= n; i++) {
+      const t = i / n;
+      const p = a.clone().lerp(b, t);
+      p.y -= Math.sin(t * Math.PI) * fleche;
+      if (i > 0) corde.push(...points[points.length - 1]!.toArray(), ...p.toArray());
+      points.push(p);
+      if (i > 0 && i < n) poses.push({ p, angle });
+    }
+  }
+  const fil = new THREE.BufferGeometry();
+  fil.setAttribute('position', new THREE.Float32BufferAttribute(corde, 3));
+  groupe.add(new THREE.LineSegments(fil, new THREE.LineBasicMaterial({ color: 0x8a6a4a })));
+  const fanions = new THREE.InstancedMesh(triangle, new THREE.MeshStandardMaterial({ roughness: 0.8, side: THREE.DoubleSide }), poses.length);
+  const m = new THREE.Matrix4();
+  const q = new THREE.Quaternion();
+  const un = new THREE.Vector3(1, 1, 1);
+  const c = new THREE.Color();
+  poses.forEach(({ p, angle }, i) => {
+    q.setFromAxisAngle(new THREE.Vector3(0, 1, 0), angle);
+    fanions.setMatrixAt(i, m.compose(p, q, un));
+    fanions.setColorAt(i, c.setHex(couleurs[i % couleurs.length]!));
+  });
+  groupe.add(fanions);
+  return groupe;
 }
 
 /** Les zones boisées : un bois dense à l'ouest, des bosquets épars ailleurs. */
@@ -126,7 +168,10 @@ const ZONES = [
   { x: -55, z: 25, r: 18, densite: 0.5 },
   { x: 20, z: -55, r: 28, densite: 0.55 },
   { x: -25, z: -55, r: 22, densite: 0.6 },
-  { x: 70, z: -45, r: 22, densite: 0.55 },
+  // Autour de la fête, un bois clair ; et le pré à l'est de la route.
+  { x: 85, z: -32, r: 42, densite: 0.3 },
+  { x: 60, z: -75, r: 16, densite: 0.5 },
+  { x: 100, z: 18, r: 16, densite: 0.45 },
   { x: 70, z: 45, r: 22, densite: 0.5 },
   { x: 15, z: 45, r: 20, densite: 0.35 },
   { x: 0, z: 0, r: 70, densite: 0.08 },

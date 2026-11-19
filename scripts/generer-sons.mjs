@@ -22,6 +22,13 @@ const FORMAT = 'mp3_44100_96';
  *  chaque jeu d'adresse (plus rythmé), et la pause respiration. */
 export const MUSIQUES = [
   {
+    id: 'musique-ville',
+    ambiance: 'calme et souriante, promenade dans la petite ville',
+    tempo: 92,
+    prompt:
+      'Calm, warm and smiling music for walking around a cosy little village in a children’s life-sim game. Acoustic guitar fingerpicking, soft piano, light glockenspiel touches, gentle upright bass, brushed percussion, a few birdsong-like flute notes. Peaceful and sunny, never sleepy. 92 BPM, G major. Instrumental, no vocals. Seamless loop: the ending flows straight back into the beginning.',
+  },
+  {
     id: 'musique-promenade',
     ambiance: 'joyeuse et douillette, promenade dans la fête',
     tempo: 104,
@@ -116,6 +123,11 @@ export const BRUITAGES = [
   { id: 'bruitage-reussite-confiserie', duree: 1.2, prompt: 'Candy wrapper crinkle and a sweet sparkly chime, cute.' },
   { id: 'bruitage-reussite-horloge', duree: 1.3, prompt: 'Cute cuckoo clock chime ding, cheerful and short.' },
   { id: 'bruitage-reussite-chantier', duree: 1.3, prompt: 'Cartoon toy hammer hit followed by a bright success ding.' },
+  { id: 'ambiance-ville', duree: 20, prompt: 'Peaceful countryside village ambience: birds singing, a light breeze in the leaves, very distant church bell once, calm and loopable. No music, no voices.' },
+  { id: 'bruitage-fete-cloche', duree: 2.5, prompt: 'Fairground high striker: a wooden mallet thump, a puck sliding up and a bright bell ding, then a few people cheering softly far away.' },
+  { id: 'bruitage-fete-rires', duree: 3, prompt: 'Children laughing happily on a fairground ride, a little distant, joyful and short.' },
+  { id: 'bruitage-fete-popcorn', duree: 3, prompt: 'Popcorn popping in a fairground popcorn machine, light and crackly, a little distant.' },
+  { id: 'bruitage-fete-orgue', duree: 5, prompt: 'A short cheerful phrase of a fairground carousel band organ, a little distant, ends softly.' },
   { id: 'ambiance-fete', duree: 20, prompt: 'Distant cheerful fairground ambience: soft crowd murmur, children laughing far away, a very faint carousel organ, birds. Calm, even, loopable.' },
 ];
 

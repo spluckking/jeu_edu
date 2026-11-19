@@ -80,11 +80,12 @@ function arreterFabriquee(): void {
 
 // --- Les morceaux enregistrés ------------------------------------------------------------------
 /** Le lieu : la promenade, un stand de révision, un jeu d'adresse ou la pause. */
-export type Piste = 'promenade' | 'pause' | 'chamboule' | 'confiserie' | 'chantier' | 'horloge' | 'peche' | 'autos' | 'trampoline' | 'glaces';
+export type Piste = 'ville' | 'promenade' | 'pause' | 'chamboule' | 'confiserie' | 'chantier' | 'horloge' | 'peche' | 'autos' | 'trampoline' | 'glaces';
 const ADRESSE: readonly Piste[] = ['autos', 'trampoline', 'glaces'];
 /** Volume de chaque morceau : discret pendant les révisions, plus présent dans les jeux d'adresse. */
 function niveau(piste: Piste): number {
   if (piste === 'promenade') return 0.4;
+  if (piste === 'ville') return 0.3;
   if (piste === 'pause') return 0.35;
   return ADRESSE.includes(piste) ? 0.45 : 0.28;
 }
@@ -134,23 +135,24 @@ function couper(l: Lecture): void {
   }, 1400);
 }
 
-// --- L'ambiance de la fête : foule lointaine, orgue de manège, oiseaux, très bas, en promenade ---
-let fond: { source: AudioBufferSourceNode; gain: GainNode } | null = null;
-function ambiance(oui: boolean): void {
+// --- L'ambiance sous la musique, très bas : à la fête (foule lointaine, orgue de manège), en ville
+// (oiseaux, petit vent). Une seule à la fois, en fondu.
+let fond: { id: string; source: AudioBufferSourceNode; gain: GainNode } | null = null;
+const AMBIANCES: Partial<Record<Piste, string>> = { promenade: 'ambiance-fete', ville: 'ambiance-ville' };
+function ambiance(piste: Piste | null): void {
   const son = sortieSon();
   if (!son) return;
   const c = son.contexte;
-  if (!oui) {
-    if (!fond) return;
+  const id = piste ? AMBIANCES[piste] : undefined;
+  if (fond && fond.id !== id) {
     const f = fond;
     fond = null;
     f.gain.gain.setTargetAtTime(0.0001, c.currentTime, 0.4);
     window.setTimeout(() => f.source.stop(), 2000);
-    return;
   }
-  if (fond) return;
-  void charger('ambiance-fete').then((tampon) => {
-    if (!tampon || fond || voulue !== 'promenade') return;
+  if (!id || fond) return;
+  void charger(id).then((tampon) => {
+    if (!tampon || fond || !piste || voulue !== piste) return;
     const source = c.createBufferSource();
     source.buffer = tampon;
     source.loop = true;
@@ -159,7 +161,7 @@ function ambiance(oui: boolean): void {
     gain.gain.linearRampToValueAtTime(0.16 * volumes.musique, c.currentTime + 2);
     source.connect(gain).connect(son.volume);
     source.start();
-    fond = { source, gain };
+    fond = { id, source, gain };
   });
 }
 
@@ -169,15 +171,15 @@ export const musique = {
     voulue = piste;
     const son = sortieSon();
     if (!son || volumes.musique <= 0) return;
-    ambiance(piste === 'promenade');
+    ambiance(piste);
     if (lecture?.piste === piste) return;
     void charger(`musique-${piste}`).then((tampon) => {
-      if (voulue !== piste) return;
+      if (voulue !== piste || lecture?.piste === piste) return;
       if (!tampon) {
         // Pas de fichier : la musique fabriquée, seulement là où elle existait avant.
         if (lecture) couper(lecture);
         lecture = null;
-        if (piste !== 'promenade' && piste !== 'pause') demarrerFabriquee();
+        if (piste !== 'promenade' && piste !== 'pause' && piste !== 'ville') demarrerFabriquee();
         else arreterFabriquee();
         return;
       }
@@ -192,9 +194,13 @@ export const musique = {
       boucler(l, tampon, c.currentTime + 0.05);
     });
   },
+  /** Le morceau qui joue (ou qui se charge), s'il y en a un. */
+  actuelle(): Piste | null {
+    return sortieSon() ? voulue : null;
+  },
   arreter(): void {
     voulue = null;
-    ambiance(false);
+    ambiance(null);
     arreterFabriquee();
     if (lecture) couper(lecture);
     lecture = null;
