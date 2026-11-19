@@ -29,6 +29,7 @@ import { jourDe } from '../memoire/jours.ts';
 import { surveillerModeApp } from '../app/modeApp.ts';
 import { surveillerMiseAJour } from '../app/miseAJour.ts';
 import { ecrirePrenom } from '../ui/prenom.ts';
+import { construirePiece, dedans, ENTREE_INTERIEUR, SORTIE_INTERIEUR, INTERIEUR, PANNEAU_PRENOM, resterDansLaPiece, tapis } from './maison-interieur.ts';
 import { bruitage, demarrerSon } from '../son/bruitages.ts';
 import { musique, type Piste } from '../son/musique.ts';
 import type { IdStand } from '../scene/fete.ts';
@@ -816,6 +817,8 @@ const heros: Heros = glbEnfant
     });
 const etat = await chargerEtat();
 heros.racine.position.set(etat.position.x, 0.06, etat.position.z);
+/** L'enfant est dans sa maison (il y était peut-être en quittant le jeu). */
+let dansLaMaison = dedans(etat.position.x, etat.position.z);
 heros.racine.rotation.y = etat.position.cap;
 
 let animerHerbe: (t: number) => void = () => {};
@@ -1092,13 +1095,17 @@ function promenade(dt: number): number {
       h.position.z = o.z + (dz / d) * min;
     }
   }
+  // Dans la maison : on reste entre les murs.
+  if (dansLaMaison) resterDansLaPiece(h.position);
   // Pas dans l'eau (sauf sur le pont), et pas au-delà des bords du monde.
-  if (dansLEau(h.position.x, h.position.z)) {
+  else if (dansLEau(h.position.x, h.position.z)) {
     h.position.x = avantX;
     h.position.z = avantZ;
   }
-  h.position.x = Math.max(BORDS.xMin, Math.min(BORDS.xMax, h.position.x));
-  h.position.z = Math.max(BORDS.zMin, Math.min(BORDS.zMax, h.position.z));
+  if (!dansLaMaison) {
+    h.position.x = Math.max(BORDS.xMin, Math.min(BORDS.xMax, h.position.x));
+    h.position.z = Math.max(BORDS.zMin, Math.min(BORDS.zMax, h.position.z));
+  }
   h.position.y = sol(h.position.x, h.position.z);
   // Quelque chose tout près (un habitant, le tableau…) : le bouton apparaît.
   let meilleur: PointInteret | null = null;
@@ -1107,7 +1114,7 @@ function promenade(dt: number): number {
     for (const p of points) {
       if (p.visible && !p.visible()) continue;
       const d = Math.hypot(p.x - h.position.x, p.z - h.position.z);
-      if (d < distance) {
+      if (d < distance && d < (p.rayon ?? 3.4)) {
         distance = d;
         meilleur = p;
       }
@@ -1212,6 +1219,71 @@ renderer.setAnimationLoop(() => {
 
 await peupler();
 document.body.dataset.pret = '1';
+
+// --- La maison : on y entre par la porte, en fondu ; on ressort par le paillasson ---------------
+/** La porte de la maison, côté ville. */
+const PORTE_MAISON = devantLeStand(LIEUX.maison, 4.6);
+function fondu(pendant: () => void): Promise<void> {
+  const voile = document.body.appendChild(Object.assign(document.createElement('div'), { className: 'fondu' }));
+  return new Promise((ok) => {
+    requestAnimationFrame(() => voile.classList.add('noir'));
+    setTimeout(() => {
+      pendant();
+      voile.classList.remove('noir');
+      setTimeout(() => {
+        voile.remove();
+        ok();
+      }, 380);
+    }, 380);
+  });
+}
+function allerA(x: number, z: number, cap: number, maison: boolean): void {
+  void fondu(() => {
+    dansLaMaison = maison;
+    heros.racine.position.set(x, 0.06, z);
+    heros.racine.rotation.y = cap;
+    // La caméra arrive d'un coup, sans glisser depuis l'ancien endroit.
+    const pose = suivi.pose(heros.racine, 0);
+    camera.position.copy(pose.position);
+    retenirPosition(performance.now(), true);
+  });
+}
+async function poserInterieur(): Promise<void> {
+  ville.add(construirePiece());
+  const meubles: Array<{ id: string; longueur: number; x: number; z: number; cap: number; r: number }> = [
+    { id: 'interieur-lit', longueur: 2.3, x: -2.9, z: -1.7, cap: 0, r: 1.1 },
+    { id: 'interieur-armoire', longueur: 1.6, x: 2.9, z: -2.75, cap: 0, r: 0.9 },
+    { id: 'interieur-table', longueur: 1.8, x: 2.4, z: 0.4, cap: 0, r: 1 },
+  ];
+  for (const m of meubles) {
+    const g = await modele(m.id);
+    const x = INTERIEUR.x + m.x;
+    const z = INTERIEUR.z + m.z;
+    if (g) {
+      poserCentre(g.scene, m.longueur, x, z, m.cap + (FACE_MEUBLES[m.id] ?? 0));
+      if (qualite === 'haute') ombrer(g.scene);
+      ville.add(g.scene);
+    }
+    obstacles.push({ x, z, r: m.r });
+  }
+  try {
+    const image = await new THREE.TextureLoader().loadAsync(`${import.meta.env.BASE_URL}modeles/interieur-tapis.webp`);
+    const t = tapis(image, 1.5, 1.1);
+    t.position.set(INTERIEUR.x - 0.4, 0.035, INTERIEUR.z - 0.2);
+    ville.add(t);
+  } catch {
+    // Pas de tapis : la pièce reste jolie sans.
+  }
+}
+/** Les modèles Tripo de meubles n'ont pas tous leur devant du même côté. */
+const FACE_MEUBLES: Record<string, number> = { 'interieur-armoire': Math.PI / 2 };
+points.push(
+  { verbe: 'Entrer', nom: 'Ta maison', x: PORTE_MAISON.x, z: PORTE_MAISON.z, visible: () => !dansLaMaison, action: () => allerA(ENTREE_INTERIEUR.x, ENTREE_INTERIEUR.z, Math.PI, true) },
+  { verbe: 'Sortir', nom: '', x: SORTIE_INTERIEUR.x, z: SORTIE_INTERIEUR.z, rayon: 1.4, visible: () => dansLaMaison, action: () => allerA(PORTE_MAISON.x, PORTE_MAISON.z + 1, 0, false) },
+  { verbe: 'Changer', nom: 'Ton prénom', x: PANNEAU_PRENOM.x, z: PANNEAU_PRENOM.z, rayon: 1.6, visible: () => dansLaMaison, action: () => void choisirPrenom() },
+);
+
+await poserInterieur();
 
 // Le prénom du personnage : demandé à la première arrivée, affiché en haut de l'écran ; il se
 // change dans la maison.

@@ -830,3 +830,18 @@ button.produit {
 .hud-prenom:empty {
   display: none;
 }
+
+/* Le fondu au noir pour entrer dans la maison et en sortir. */
+.fondu {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  background: #1d1712;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.35s ease;
+}
+.fondu.noir {
+  opacity: 1;
+  pointer-events: auto;
+}

@@ -23,6 +23,8 @@ export interface PointInteret {
   action(): void;
   /** Le bouton n'apparaît que si c'est vrai (par défaut : toujours). */
   visible?(): boolean;
+  /** À quelle distance le bouton apparaît (par défaut : 3,4 m). */
+  rayon?: number;
 }
 
 export interface Contexte {
