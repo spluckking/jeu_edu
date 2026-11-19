@@ -1045,7 +1045,27 @@ majSeance();
 
 // --- La promenade ------------------------------------------------------------------------------
 const VITESSE = 4.2;
+const VITESSE_COURSE = 7.5;
+// Le bouton « Courir » : un toucher pour courir, un autre pour marcher. Sur ordinateur, Maj
+// enfoncée fait courir aussi.
+const boutonCourir = el<HTMLButtonElement>('courir');
+let course = false;
+let majEnfoncee = false;
+boutonCourir.addEventListener('click', () => {
+  course = !course;
+  boutonCourir.setAttribute('aria-pressed', String(course));
+  boutonCourir.querySelector('.courir-mot')!.textContent = course ? 'Marcher' : 'Courir';
+});
+addEventListener('keydown', (e) => {
+  if (e.key === 'Shift') majEnfoncee = true;
+});
+addEventListener('keyup', (e) => {
+  if (e.key === 'Shift') majEnfoncee = false;
+});
+/** Avance l'enfant ; rend son allure pour l'animation (0 : arrêté, moins de 0,75 : marche, plus : course). */
 function promenade(dt: number): number {
+  const vite = course || majEnfoncee;
+  boutonCourir.hidden = occupe || enDialogue !== null || tourDeRoue !== null;
   const h = heros.racine;
   const avantX = h.position.x;
   const avantZ = h.position.z;
@@ -1055,8 +1075,9 @@ function promenade(dt: number): number {
     const n = Math.max(1, Math.hypot(commandes.x, commandes.y));
     const mx = (droite.x * commandes.x + avant.x * commandes.y) / n;
     const mz = (droite.z * commandes.x + avant.z * commandes.y) / n;
-    h.position.x += mx * VITESSE * dt;
-    h.position.z += mz * VITESSE * dt;
+    const v = vite ? VITESSE_COURSE : VITESSE;
+    h.position.x += mx * v * dt;
+    h.position.z += mz * v * dt;
     h.rotation.y = Math.atan2(mx, mz);
   }
   // On ne traverse ni la fontaine, ni la maison, ni les habitants ; et on reste en ville.
@@ -1097,7 +1118,8 @@ function promenade(dt: number): number {
     ui.interagirMot.textContent = proche.verbe;
     ui.interagirTexte.textContent = proche.nom;
   }
-  return force;
+  // En marchant, l'animation de marche même joystick à fond ; la course seulement avec le bouton.
+  return vite ? force : Math.min(force, 0.7);
 }
 
 // La musique suit l'endroit : la ville, ou la fête dès qu'on approche du portail. On ne la change

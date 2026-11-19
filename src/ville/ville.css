@@ -777,3 +777,39 @@ button.produit {
   transform: translateX(-50%);
   z-index: 9;
 }
+
+/* Le bouton « Courir », à droite, au-dessus du bouton d'action. */
+.courir {
+  position: fixed;
+  right: calc(28px + env(safe-area-inset-right));
+  bottom: calc(165px + env(safe-area-inset-bottom));
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.88);
+  color: var(--texte, #3a2f28);
+  box-shadow: 0 5px 0 rgba(0, 0, 0, 0.15), var(--ombre);
+  touch-action: manipulation;
+}
+.courir[hidden] {
+  display: none;
+}
+.courir[aria-pressed='true'] {
+  background: var(--jaune, #ffd27a);
+}
+.courir:active {
+  transform: translateY(3px);
+}
+.courir-icone {
+  width: 40px;
+  height: 40px;
+}
+.courir-mot {
+  font-size: 1rem;
+  font-weight: 700;
+}
