@@ -794,7 +794,10 @@ button.produit {
   background: rgba(255, 255, 255, 0.88);
   color: var(--texte, #3a2f28);
   box-shadow: 0 5px 0 rgba(0, 0, 0, 0.15), var(--ombre);
-  touch-action: manipulation;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
 }
 .courir[hidden] {
   display: none;

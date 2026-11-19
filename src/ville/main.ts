@@ -1052,16 +1052,22 @@ majSeance();
 // --- La promenade ------------------------------------------------------------------------------
 const VITESSE = 4.2;
 const VITESSE_COURSE = 7.5;
-// Le bouton « Courir » : un toucher pour courir, un autre pour marcher. Sur ordinateur, Maj
-// enfoncée fait courir aussi.
+// Le bouton « Courir » : on court tant qu'on le garde appuyé (un doigt sur le joystick, l'autre
+// sur le bouton) ; on marche dès qu'on le lâche. Sur ordinateur, Maj enfoncée fait courir aussi.
 const boutonCourir = el<HTMLButtonElement>('courir');
 let course = false;
 let majEnfoncee = false;
-boutonCourir.addEventListener('click', () => {
-  course = !course;
-  boutonCourir.setAttribute('aria-pressed', String(course));
-  boutonCourir.querySelector('.courir-mot')!.textContent = course ? 'Marcher' : 'Courir';
+const appuyerCourir = (oui: boolean): void => {
+  course = oui;
+  boutonCourir.setAttribute('aria-pressed', String(oui));
+};
+boutonCourir.addEventListener('pointerdown', (e) => {
+  e.preventDefault();
+  boutonCourir.setPointerCapture(e.pointerId);
+  appuyerCourir(true);
 });
+for (const fin of ['pointerup', 'pointercancel', 'lostpointercapture'] as const) boutonCourir.addEventListener(fin, () => appuyerCourir(false));
+boutonCourir.addEventListener('contextmenu', (e) => e.preventDefault());
 addEventListener('keydown', (e) => {
   if (e.key === 'Shift') majEnfoncee = true;
 });
