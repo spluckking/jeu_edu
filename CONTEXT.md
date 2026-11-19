@@ -6,9 +6,17 @@ Jeu de révision pour un enfant de 8 ans (CE2), joué seul sur sa tablette. Il t
 
 ### Le lieu
 
+**Ville** :
+Le lieu unique où l'enfant se promène à la troisième personne, vit au fil des vraies journées et des saisons, et qui grandit avec ses efforts. Elle ne punit jamais une absence.
+_Avoid_ : hub, menu, carte, monde, village, île
+
+**Quartier** :
+Une partie de la ville avec son ambiance et ses lieux (la place, la fête foraine…).
+_Avoid_ : zone, niveau, district
+
 **Fête foraine** :
-Le lieu unique où l'enfant se promène à la troisième personne et d'où il accède à tous les jeux.
-_Avoid_ : hub, menu, carte, monde
+Le quartier des stands et des manèges.
+_Avoid_ : parc, foire
 
 **Stand** :
 Un jeu de la fête foraine. Il est soit un stand de révision, soit un stand de détente.
@@ -33,8 +41,12 @@ _Avoid_ : stand actif, stand du jour, quête
 ### Le temps de jeu
 
 **Séance du jour** :
-Le temps de révision récompensé d'une journée : l'enfant fait les stands allumés dans l'ordre qu'il veut. Elle a une fin nette.
+Le temps de révision récompensé d'une journée, court : la dictée d'abord, puis deux demandes du jour. Elle a une fin nette, fêtée en ville ; les autres demandes et les stands allumés restent proposés ensuite.
 _Avoid_ : session, partie, mission
+
+**Demandes du jour** :
+Les 3 à 5 demandes que les habitants font à l'enfant un jour donné, préparées à partir de ce qui revient en mémoire, de ce qui résiste et de ce que la classe étudie en ce moment.
+_Avoid_ : quêtes du jour, missions, tâches
 
 **Pause calme** :
 Un moment de respiration ou de pleine conscience, obligatoire au milieu de la séance du jour, jamais noté.
@@ -48,17 +60,13 @@ _Avoid_ : mode libre, bonus
 Une des deux parties d'un stand de révision. La manche « Cette semaine » porte le contenu prioritaire ; la manche « Mémoire » porte la liste globale et ne s'ouvre qu'une fois « Cette semaine » terminée. Un stand qui n'a rien de prioritaire ce jour-là ouvre directement « Mémoire ».
 _Avoid_ : niveau, mode, partie, étape
 
-**Ticket** :
-Ce que l'enfant gagne pendant la séance du jour en révisant ses contenus, pour son effort et sa régularité, jamais pour sa vitesse ni son score. Les tickets servent à ouvrir les chantiers et à décorer la fête foraine ; rien ne s'obtient par tirage au sort.
-_Avoid_ : pièce, point, étoile, score, XP
+**Euro** :
+La seule monnaie de la ville, en vrais euros et centimes. L'enfant en gagne en aidant les habitants et en vendant ses récoltes, pour son effort et sa régularité, jamais pour sa vitesse ni son score ; il paie lui-même et vérifie la monnaie rendue. Les prix suivent son niveau. Rien ne s'obtient par tirage au sort.
+_Avoid_ : ticket, jeton, pièce, point, étoile, score, XP, clochette
 
 **Lot** :
 Ce que l'enfant gagne pendant la séance du jour en faisant des exercices générés. Les lots servent à personnaliser le personnage ; l'enfant les choisit dans une vitrine, jamais par tirage au sort. Quelques lots ne se gagnent qu'aux paliers des stands de détente.
 _Avoid_ : cadeau, récompense, objet, tenue, skin
-
-**Jeton** :
-Ce que rapporte une manche de révision finie. Un jeton paie un tour à un stand de détente tant que la séance du jour n'est pas finie ; ensuite, les stands de détente sont gratuits. Les jetons ne se mélangent jamais aux tickets.
-_Avoid_ : crédit, pièce, ticket de manège
 
 **Palier** :
 Un total à atteindre à un stand de détente (étoiles attrapées, sauts réussis, palais traversés), compté d'un jour à l'autre sans jamais rien retirer. Chaque palier franchi apporte une décoration ou un lot de stand de détente, pris dans un catalogue (le rêve peut choisir lequel), jamais tiré au sort.
@@ -83,8 +91,24 @@ Un seul fait à retenir, tiré d'un contenu : un mot, un calcul. C'est l'éléme
 _Avoid_ : item, question, carte, fiche
 
 **Contenu prioritaire** :
-Un contenu depuis son arrivée jusqu'au jeudi soir suivant : tous ses éléments reviennent chaque jour et passent avant tout le reste dans la séance du jour.
+Un contenu depuis son arrivée jusqu'à son évaluation en classe (pour une liste de dictée, le jour de la dictée) : tous ses éléments reviennent chaque jour et passent avant tout le reste dans la séance du jour.
 _Avoid_ : nouveautés, leçon de la semaine, contenu actif
+
+**Liste de dictée** :
+Les mots que la classe donne à apprendre pour la dictée de la semaine, chacun avec sa phrase. Ses mots sont un contenu prioritaire jusqu'au jour de la dictée, fixé par le parent.
+_Avoid_ : liste de mots, vocabulaire, leçon
+
+**Concours d'écriture** :
+La veille de la dictée, tous les mots de la liste de dictée écrits sans aucune aide, comme une dictée blanche, sous forme d'une fête de la mairie. Les mots ratés sont repris tout de suite ; le parent voit le résultat.
+_Avoid_ : dictée blanche, évaluation, contrôle, test
+
+**Lieu de piège** :
+Un endroit de la ville associé à une difficulté d'orthographe (les mots en -tion, les lettres doubles, le m devant m, b, p…). Chaque mot de dictée « habite » au lieu de son piège principal, pour que l'enfant s'en souvienne en s'y promenant.
+_Avoid_ : palais mental, zone, catégorie
+
+**Mur des mots** :
+Le mur de la bibliothèque où sont gravés les mots sus pour toujours : réussis plusieurs fois de suite, à des semaines d'intervalle.
+_Avoid_ : trophées, mine, archives
 
 **Liste globale** :
 L'ensemble des éléments dont la semaine prioritaire est passée. Ils reviennent à intervalles de plus en plus longs, et plus tôt quand l'enfant s'est trompé.
@@ -98,11 +122,27 @@ _Avoid_ : exercice aléatoire, question automatique
 
 **Histoire** :
 Un court texte où les forains vivent quelque chose ensemble, suivi de questions de compréhension à trois choix. Le but est que l'enfant lise lui-même : le texte n'est pas lu à voix haute. Tout texte d'histoire est écrit par Claude et validé par le parent avant d'arriver sur la tablette.
-_Avoid_ : récit, dialogue, quête (une quête est une histoire comme une autre)
+_Avoid_ : récit, dialogue, quête, demande (une demande se prouve par ce que l'enfant fait, pas par des questions)
 
 **Introduction** :
 L'histoire du tout premier lancement, racontée en cinématique : elle présente les forains, l'enfant leur donne un prénom, puis il répond à deux questions tirées au hasard. Avec une erreur, il relit le texte entier et reçoit deux nouvelles questions, jusqu'à réussir.
 _Avoid_ : tutoriel, prologue, cinématique (la cinématique n'est que sa mise en scène)
+
+**Demande** :
+Un service qu'un habitant demande à l'enfant, présenté par une mini-histoire que l'enfant lit lui-même. La réussir demande de comprendre ce qu'il a lu et d'appliquer un savoir utile (calculer, mesurer, lire l'heure, trier…).
+_Avoid_ : mission, tâche, objectif
+
+**Grand projet** :
+Une construction ou un aménagement de la ville (un pont, une boulangerie, une bibliothèque) que l'enfant fait aboutir en réunissant ce qui est demandé, sur plusieurs jours. C'est ainsi que la ville grandit.
+_Avoid_ : chantier (le chantier en est la partie visible), niveau, déblocage
+
+**Musée** :
+Le lieu où l'enfant expose ce qu'il trouve (poissons, insectes, fossiles…). Chaque nouvelle trouvaille ouvre une fiche documentaire courte à lire.
+_Avoid_ : collection, encyclopédie, bestiaire
+
+**Salutation** :
+La courte phrase dite à voix haute par un habitant important quand l'enfant vient le voir. Les autres habitants ne font qu'une petite exclamation sans mots. En dehors des salutations, seuls les mots de dictée et certaines consignes d'exercice sont lus à voix haute : tout le reste, l'enfant le lit lui-même.
+_Avoid_ : doublage, dialogue
 
 **Feuilleton** :
 Les histoires de la semaine : un épisode par jour, étape de la séance du jour, récompensé en tickets. Le parent valide la semaine en une fois.
@@ -125,11 +165,15 @@ _Avoid_ : mise à jour, configuration, plan
 ### Les personnes
 
 **Personnage** :
-L'enfant en blocs que l'enfant crée au tout début et qu'il promène dans la fête foraine. Il se personnalise ensuite avec des lots.
+L'enfant en blocs que l'enfant crée au tout début et qu'il promène dans la ville. Il se personnalise ensuite avec des lots.
 _Avoid_ : avatar, héros, joueur
 
+**Habitant** :
+Une personne qui vit en ville, avec ses goûts, ses émotions et son histoire. L'enfant se lie d'amitié avec les habitants en les aidant.
+_Avoid_ : PNJ, villageois, voisin, personnage (le personnage est celui de l'enfant)
+
 **Forain** :
-La personne qui tient un stand ou un chantier. Chaque forain a un prénom, choisi par l'enfant pendant l'introduction parmi des propositions ou tapé par lui.
+Un habitant qui tient un stand ou un chantier de la fête foraine. Chaque forain a un prénom, choisi par l'enfant pendant l'introduction parmi des propositions ou tapé par lui.
 _Avoid_ : PNJ, vendeur, personnage (le personnage est celui de l'enfant)
 
 **Enfant** :

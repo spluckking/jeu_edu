@@ -1,0 +1,64 @@
+{
+  "maison-du-personnage": {
+    "modele": "01b8cc43-066a-4457-8823-7a513dfe9478"
+  },
+  "forain-chamboule": {
+    "modele": "5a0ebd11-7373-4624-84ef-83462622d202",
+    "squelette": "fcfebf89-7958-4d1d-92a9-e54541751a15",
+    "animations": "da173073-9943-4562-bc7b-a9368089627e"
+  },
+  "enfant": {
+    "modele": "6fb54d35-14d2-4d70-88cd-e0eb754d19e1",
+    "squelette": "bc795917-aa26-4266-afd1-6270c7997089",
+    "animations": "443852cc-b7a7-40c0-a293-673c9f4e1ab6"
+  },
+  "enfant-casquette": {
+    "modele": "79128576-4e2b-4b5b-85fe-6df9c017ac27",
+    "squelette": "94c2ad10-d8f9-498c-925c-753865da3428",
+    "animations": "d1271dfa-ad3f-4acb-ac91-2a8391aa694b"
+  },
+  "epicerie": {
+    "modele": "9bf13162-7c81-44f6-b2d8-199f8ea05ea7"
+  },
+  "epiciere": {
+    "modele": "db64fec9-f405-49e1-b1d5-f71208e21e10",
+    "squelette": "9007471f-da5a-4b3a-929b-a981120fe5d3",
+    "animations": "61fad936-a691-42f8-a708-4026a48965a8"
+  },
+  "pommier": {
+    "modele": "9d46e471-b477-4dd7-b8f2-397fb10d15c8"
+  },
+  "pomme": {
+    "modele": "010cefaf-bf52-47bd-bf8d-f4a541c87c09"
+  },
+  "meuble-banc": {
+    "modele": "602776f7-d30e-4df8-9abf-f96638145933"
+  },
+  "meuble-table": {
+    "modele": "2c8586b8-b11e-4686-9667-d1f4d9ca8621"
+  },
+  "meuble-lanterne": {
+    "modele": "7f6d3fee-f545-460e-86ff-da2b68c9ebfc"
+  },
+  "meuble-jardiniere": {
+    "modele": "6224f83d-4a29-463b-8526-6eab7625cf8e"
+  },
+  "meuble-nichoir": {
+    "modele": "052fcf22-2187-4040-b288-5f1723d14c27"
+  },
+  "meuble-brouette": {
+    "modele": "15be35f2-724c-4096-8923-56f8acc31f22"
+  },
+  "parcelle": {
+    "modele": "84e5e328-6454-43c2-bd39-ee5be0f0bca9"
+  },
+  "pousse": {
+    "modele": "134e5525-8940-44fb-add5-6eebae252752"
+  },
+  "carottes-mures": {
+    "modele": "938f5ab8-09fe-4c14-9c94-993bd3c1124a"
+  },
+  "tomates-mures": {
+    "modele": "c6886d7c-c28c-4cda-ba39-7dc18a723ade"
+  }
+}

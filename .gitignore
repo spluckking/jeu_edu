@@ -10,3 +10,5 @@ content/inbox/*
 .env
 .env.*
 !.env.example
+# Modèles d'essai du prototype (Kenney, Meshy et Tripo gratuits) : lourds, et parfois « non commercial »
+prototypes/ville/modeles/

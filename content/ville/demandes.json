@@ -1,0 +1,104 @@
+{
+  "_lisez-moi": "Les demandes des habitants (tranche 1B). donneur : qui demande ; destinataire : à qui on donne ; fournit : ce que le donneur met dans le panier en confiant la demande ; besoin : ce qu'il faut donner au destinataire (l'action prouve qu'on a compris) ; recompense : les pièces offertes, en centimes. retour : une demande en aller-retour (le destinataire confie à son tour quelque chose à rapporter : fournit ; celui qui le reçoit dit merci et paie : recompense). objets : ce qui n'est pas vendu à l'épicerie. valide=false : textes à relire (A_VALIDER.md).",
+  "parJour": 2,
+  "objets": [
+    {
+      "id": "colis",
+      "nom": "colis",
+      "pluriel": "colis",
+      "article": "le colis"
+    },
+    {
+      "id": "lettre",
+      "nom": "lettre",
+      "pluriel": "lettres",
+      "article": "la lettre"
+    },
+    {
+      "id": "crepes",
+      "nom": "crêpe",
+      "pluriel": "crêpes",
+      "article": "les crêpes"
+    }
+  ],
+  "demandes": [
+    {
+      "id": "repas-du-forain",
+      "valide": true,
+      "donneur": "forain-chamboule",
+      "destinataire": "forain-chamboule",
+      "fournit": [],
+      "besoin": [
+        {
+          "produit": "carotte",
+          "nombre": 2
+        },
+        {
+          "produit": "pain",
+          "nombre": 1
+        }
+      ],
+      "recompense": [
+        200,
+        200
+      ],
+      "texte": "Oh là là, j’ai travaillé toute la matinée et j’ai très faim ! Pour ma soupe, il me faut 2 carottes. Et je voudrais aussi 1 pain. Tu peux aller me les acheter à l’épicerie ?",
+      "rappel": "Tu te souviens ? Pour ma soupe, il me faut 2 carottes et 1 pain. Je suis à la fête foraine.",
+      "merci": "Merci, c’est exactement ça ! Ma soupe va être délicieuse. Tiens, voilà 4 € pour toi."
+    },
+    {
+      "id": "colis-du-forain",
+      "valide": true,
+      "donneur": "epiciere",
+      "destinataire": "forain-chamboule",
+      "fournit": [
+        {
+          "produit": "colis",
+          "nombre": 1
+        }
+      ],
+      "besoin": [
+        {
+          "produit": "colis",
+          "nombre": 1
+        }
+      ],
+      "recompense": [],
+      "texte": "Le forain m’a commandé une bouteille de lait, mais je ne peux pas quitter ma boutique. Peux-tu lui apporter ce colis ? Il est à la fête foraine : suis la grande route vers l’est et passe le pont.",
+      "rappel": "Le colis est pour le forain, à la fête foraine, après le pont.",
+      "merci": "Merci beaucoup mon garçon, l’épicière doit être débordée et moi aussi. Peux-tu la remercier et lui donner ces crêpes ? Ça lui fera grand plaisir.",
+      "retour": {
+        "destinataire": "epiciere",
+        "fournit": [
+          {
+            "produit": "crepes",
+            "nombre": 3
+          }
+        ],
+        "merci": "Merci pour la livraison ! Voici 2 € pour ton aide.",
+        "recompense": [
+          200
+        ]
+      }
+    }
+  ],
+  "textes": {
+    "valide": true,
+    "accepter": "D’accord !",
+    "plusTard": "Plus tard",
+    "avantLesMots": "Bonjour ! Tout à l’heure, j’aurai besoin d’un coup de main. Va d’abord voir le tableau des mots sur la place !",
+    "donner": "Donner",
+    "choisir": "Choisis dans ton panier ce que tu veux donner.",
+    "manque": "Il me manque encore {liste}.",
+    "tropQuantite": "Tu m’en donnes trop : il me faut seulement {liste}.",
+    "pasBesoin": "Désolé, je n’ai pas besoin de {produit}.",
+    "pasBesoinF": "Désolée, je n’ai pas besoin de {produit}.",
+    "finSeance": "Bravo ! Ta séance du jour est finie. Les habitants te remercient. Choisis un cadeau pour décorer devant ta maison :",
+    "cadeauPose": "Ton cadeau est installé devant ta maison : {meuble} ! Va voir.",
+    "toutGagne": "Bravo ! Ta séance du jour est finie. Tu as déjà tous les cadeaux : de nouveaux arriveront bientôt.",
+    "seance": "Séance du jour",
+    "seanceMots": "Les mots",
+    "seanceDemandes": "Les demandes",
+    "fourni": "{Liste} dans ton panier !"
+  }
+}

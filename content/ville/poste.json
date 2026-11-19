@@ -1,0 +1,56 @@
+{
+  "_lisez-moi": "La poste (tranche 1C). noms : les destinataires du courrier à trier (on trie par la première lettre du nom de famille). livraisons : les lettres à porter aux habitants après le tri, avec l'adresse écrite sur l'enveloppe. paye : ce que la postière donne pour le tri (centimes) ; merci : ce que donne l'habitant qui reçoit sa lettre (rien, choix du parent) ; payeLivraison : ce que la postière donne quand tout le courrier est livré, avec le texte toutLivre (quand l'enfant revient la voir). valide=false : textes à relire (A_VALIDER.md).",
+  "valide": true,
+  "noms": [
+    "M. Arnaud",
+    "Mme Blanchard",
+    "M. Colin",
+    "Mme Dupont",
+    "Mme Élie",
+    "M. Fabre",
+    "Mme Garnier",
+    "M. Huet",
+    "Mme Jourdain",
+    "M. Lambert",
+    "Mme Moreau",
+    "M. Noël",
+    "Mme Olivier",
+    "M. Perrin",
+    "Mme Roux",
+    "M. Simon",
+    "Mme Tessier",
+    "M. Vidal"
+  ],
+  "livraisons": [
+    {
+      "habitant": "forain-chamboule",
+      "adresse": "Le forain, la fête foraine, après le pont"
+    },
+    {
+      "habitant": "epiciere",
+      "adresse": "L’épicière, l’épicerie, à côté de la place"
+    }
+  ],
+  "paye": [
+    200
+  ],
+  "merci": [],
+  "payeLivraison": [
+    200
+  ],
+  "textes": {
+    "nom": "La postière",
+    "trier": "Parler",
+    "bonjour": "Bonjour ! Tout ce courrier est arrivé ce matin. Tu m’aides à le trier ? Chaque lettre va dans le casier de la première lettre du nom.",
+    "consigneTri": "Touche une lettre, puis le casier de la première lettre du nom.",
+    "casierFaux": "Regarde bien le nom de famille : « {famille} » commence par {initiale}.",
+    "consigneOrdre": "Maintenant, range ces lettres dans l’ordre de l’alphabet : touche d’abord celle qui vient en premier.",
+    "ordreFaux": "Pas encore : cherche le nom qui vient en premier dans l’alphabet.",
+    "fini": "Merci, le courrier est trié ! Voilà 2 € pour ton aide. Et peux-tu porter ces lettres ? Lis bien l’adresse sur chaque enveloppe.",
+    "dejaTrie": "Le courrier est trié pour aujourd’hui. Merci ! Reviens demain.",
+    "rappel": "Il te reste des lettres à livrer. Lis l’adresse sur chaque enveloppe.",
+    "recue": "Une lettre pour moi ? Merci beaucoup !",
+    "toutLivre": "Tout le courrier est livré ! Merci, voilà 2 € pour ton aide.",
+    "enveloppe": "Sur l’enveloppe :"
+  }
+}

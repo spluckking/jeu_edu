@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+    <title>Prototype : la ville</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        overflow: hidden;
+        background: #cfeeff;
+        font-family: system-ui, sans-serif;
+      }
+      canvas {
+        display: block;
+        width: 100%;
+        height: 100%;
+      }
+      .vues {
+        position: fixed;
+        top: 16px;
+        left: 50%;
+        translate: -50% 0;
+        display: flex;
+        gap: 10px;
+      }
+      .vues button {
+        padding: 10px 20px;
+        border: 0;
+        border-radius: 999px;
+        background: rgba(255, 248, 238, 0.95);
+        color: #4a3833;
+        font: 700 1.1rem system-ui, sans-serif;
+        box-shadow: 0 6px 18px rgba(58, 47, 74, 0.2);
+      }
+      .vues button.choisie {
+        background: #f27a8e;
+        color: white;
+      }
+      .note {
+        position: fixed;
+        bottom: 12px;
+        left: 16px;
+        margin: 0;
+        color: rgba(74, 56, 51, 0.75);
+        font-size: 0.85rem;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="scene"></canvas>
+    <div class="vues">
+      <button type="button" data-vue="place">La place</button>
+      <button type="button" data-vue="maison">Ma maison</button>
+      <button type="button" data-vue="fete">Le stand</button>
+      <button type="button" data-vue="comparer">Meshy / Tripo</button>
+      <button type="button" data-vue="interieur">L’intérieur</button>
+    </div>
+    <p class="note">Prototype · modèles Kenney (CC0) · éclairage du jeu</p>
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>

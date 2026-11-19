@@ -1,0 +1,131 @@
+{
+  "_lisez-moi": "L'épicerie de la ville (tranche 1B). Prix en centimes (bienvenue : les pièces offertes à la première visite), en euros ronds pour commencer. rachat : prix auquel l'épicière rachète un produit récolté (pommes, légumes du potager) (null : elle ne le rachète pas). achatsParJour : combien de récoltes elle rachète au plus chaque jour. valide=false : textes à relire (A_VALIDER.md). article : le nom avec son article, pour les phrases. enVente : false pour ce qui se récolte sans s'acheter (poissons, mûres).",
+  "achatsParJour": 5,
+  "bienvenue": [
+    500,
+    200,
+    200,
+    100
+  ],
+  "produits": [
+    {
+      "id": "pomme",
+      "nom": "pomme",
+      "pluriel": "pommes",
+      "article": "la pomme",
+      "prix": 100,
+      "rachat": 100,
+      "enVente": true
+    },
+    {
+      "id": "poire",
+      "nom": "poire",
+      "pluriel": "poires",
+      "article": "la poire",
+      "prix": 200,
+      "rachat": null,
+      "enVente": true
+    },
+    {
+      "id": "carotte",
+      "nom": "carotte",
+      "pluriel": "carottes",
+      "article": "la carotte",
+      "prix": 100,
+      "rachat": 100,
+      "enVente": true
+    },
+    {
+      "id": "tomate",
+      "nom": "tomate",
+      "pluriel": "tomates",
+      "article": "la tomate",
+      "prix": 200,
+      "rachat": 100,
+      "enVente": true
+    },
+    {
+      "id": "pain",
+      "nom": "pain",
+      "pluriel": "pains",
+      "article": "le pain",
+      "prix": 300,
+      "rachat": null,
+      "enVente": true
+    },
+    {
+      "id": "lait",
+      "nom": "bouteille de lait",
+      "pluriel": "bouteilles de lait",
+      "article": "la bouteille de lait",
+      "prix": 200,
+      "rachat": null,
+      "enVente": true
+    },
+    {
+      "id": "graines-carotte",
+      "nom": "sachet de graines de carottes",
+      "pluriel": "sachets de graines de carottes",
+      "article": "le sachet de graines de carottes",
+      "prix": 100,
+      "rachat": null,
+      "enVente": true
+    },
+    {
+      "id": "graines-tomate",
+      "nom": "sachet de graines de tomates",
+      "pluriel": "sachets de graines de tomates",
+      "article": "le sachet de graines de tomates",
+      "prix": 200,
+      "rachat": null,
+      "enVente": true
+    },
+    {
+      "id": "poisson",
+      "nom": "poisson",
+      "pluriel": "poissons",
+      "article": "le poisson",
+      "prix": 100,
+      "rachat": 100,
+      "enVente": false
+    },
+    {
+      "id": "mure",
+      "nom": "mûre",
+      "pluriel": "mûres",
+      "article": "la mûre",
+      "prix": 100,
+      "rachat": 100,
+      "enVente": false
+    }
+  ],
+  "textes": {
+    "valide": false,
+    "nom": "L’épicière",
+    "bienvenue": "Bonjour ! Tu es nouveau en ville ? Voici 10 euros pour faire tes premières courses. Range-les bien dans ton porte-monnaie !",
+    "accueil": "Bonjour ! Qu’est-ce qui te ferait plaisir aujourd’hui ?",
+    "acheter": "Acheter",
+    "vendre": "Vendre mes récoltes",
+    "auRevoir": "Au revoir",
+    "payer": "Pose tes pièces sur le comptoir.",
+    "pasAssez": "Il manque encore un peu d’argent.",
+    "pasAssezDuTout": "Tu n’as pas assez d’argent pour ça. Tu peux vendre des pommes, ou aider les habitants.",
+    "trop": "Tu me donnes trop : garde ta pièce de {piece}, je n’en ai pas besoin.",
+    "juste": "C’est le compte juste, merci !",
+    "rendre": "{Produit} coûte {prix}, tu me donnes {donne}. Combien dois-je te rendre ? Prends les pièces dans ma caisse.",
+    "rendreFaux": "Pas tout à fait. Compte à partir de {prix} jusqu’à {donne}.",
+    "rendreAide": "Regarde : de {prix} à {donne}, il y a {rendu}. Je te rends {rendu}.",
+    "rendreJuste": "Bravo, c’est bien ça ! Voilà ta monnaie.",
+    "merci": "Merci ! Bonne journée !",
+    "vendreRien": "Tu n’as rien à vendre. Il y a des pommes sur le pommier, et tu peux faire pousser des légumes dans ton potager !",
+    "vendreFini": "J’ai assez de récoltes pour aujourd’hui. Reviens demain !",
+    "vendreOk": "Je te prends {liste}, à {prix} pièce. Voilà {total} !",
+    "pommier": "Le pommier",
+    "cueillir": "Cueillir",
+    "cueilli": "Une pomme dans ton panier !",
+    "pommierVide": "Plus de pommes pour l’instant. Elles repoussent dans quelques jours.",
+    "porteMonnaie": "Mon porte-monnaie",
+    "panier": "Mon panier",
+    "panierVide": "Ton panier est vide."
+  }
+}

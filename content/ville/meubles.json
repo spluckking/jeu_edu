@@ -1,0 +1,12 @@
+{
+  "_lisez-moi": "Les meubles de jardin à gagner en fin de séance (lot choisi, jamais tiré au sort). hauteur : taille dans la ville, en mètres. Les modèles sont dans content/modeles/modeles.json (même identifiant). valide=false : noms à relire (A_VALIDER.md).",
+  "valide": true,
+  "meubles": [
+    { "id": "meuble-banc", "nom": "le banc bleu", "hauteur": 1.1 },
+    { "id": "meuble-table", "nom": "la table et ses chaises", "hauteur": 1.1 },
+    { "id": "meuble-lanterne", "nom": "le lampadaire", "hauteur": 2.4 },
+    { "id": "meuble-jardiniere", "nom": "la jardinière fleurie", "hauteur": 1 },
+    { "id": "meuble-nichoir", "nom": "le nichoir", "hauteur": 2.2 },
+    { "id": "meuble-brouette", "nom": "la brouette de pots", "hauteur": 1 }
+  ]
+}

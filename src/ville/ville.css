@@ -1,0 +1,779 @@
+/* La ville : ce qui s'ajoute aux styles du jeu (src/style.css). */
+
+body.ville #scene {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* Le dialogue : en bas de l'écran, au-dessus de la scène. L'enfant lit lui-même. */
+.dialogue {
+  position: fixed;
+  left: 50%;
+  bottom: calc(24px + env(safe-area-inset-bottom));
+  z-index: 5;
+  translate: -50% 0;
+  width: min(780px, calc(100% - 32px));
+  padding: 22px 28px 20px;
+  border-radius: 30px;
+  background: var(--papier);
+  box-shadow: var(--ombre);
+  animation: apparaitre 0.35s var(--rebond);
+}
+
+.dialogue-nom {
+  position: absolute;
+  top: -18px;
+  left: 26px;
+  margin: 0;
+  padding: 6px 18px;
+  border-radius: 999px;
+  background: var(--jaune);
+  font-weight: 700;
+  font-size: 1.15rem;
+}
+
+.dialogue-texte {
+  margin: 8px 0 10px;
+  font-size: 1.55rem;
+  line-height: 1.6;
+}
+
+.dialogue-texte .mot {
+  border-radius: 8px;
+  padding: 0 2px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.dialogue-texte .mot.entendu {
+  background: var(--orange-pale);
+  box-shadow: 0 0 0 2px var(--jaune);
+}
+
+.dialogue-aide {
+  margin: 0 0 12px;
+  color: var(--encre-douce);
+  font-size: 0.95rem;
+}
+
+.dialogue .bouton-principal {
+  float: right;
+}
+
+.compteur-fps {
+  position: fixed;
+  left: 12px;
+  bottom: 8px;
+  z-index: 6;
+  margin: 0;
+  padding: 4px 10px;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.55);
+  color: white;
+  font: 12px monospace;
+}
+
+/* --- La dictée : fiche d'étude, mot caché, tuiles, correction ------------------------------ */
+.exercice-fond {
+  position: fixed;
+  inset: 0;
+  z-index: 8;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgba(58, 47, 74, 0.35);
+}
+
+.exercice {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  width: min(860px, 100%);
+  max-height: calc(100% - 16px);
+  overflow: auto;
+  padding: 26px 30px;
+  border-radius: 32px;
+  background: var(--papier);
+  box-shadow: var(--ombre);
+  text-align: center;
+  animation: apparaitre 0.35s var(--rebond);
+}
+
+.exercice-rang {
+  position: absolute;
+  top: 14px;
+  right: 20px;
+  margin: 0;
+  color: var(--encre-douce);
+  font-weight: 700;
+}
+
+.exercice-titre {
+  margin: 0;
+  font-size: 1.7rem;
+  font-weight: 700;
+}
+
+.exercice-texte {
+  margin: 0;
+  font-size: 1.25rem;
+  line-height: 1.5;
+}
+
+.fiche-mot {
+  margin: 4px 0;
+  font-size: 3.4rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.fiche-mot .syllabe.nouvelle {
+  margin-left: 0.18em;
+  padding-left: 0.18em;
+  border-left: 3px dotted rgba(74, 56, 51, 0.25);
+}
+
+.fiche-lieu,
+.fiche-phrase {
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.fiche-pastille {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  vertical-align: middle;
+}
+
+.fiche-phrase {
+  color: var(--encre-douce);
+  font-style: italic;
+}
+
+.cases {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+  font-size: 2.2rem;
+  font-weight: 700;
+}
+
+.cases .determinant {
+  margin-right: 8px;
+}
+
+.case {
+  width: 1.4em;
+  height: 1.6em;
+  border: 0;
+  border-bottom: 4px solid #d8c6ae;
+  border-radius: 10px 10px 4px 4px;
+  background: #fff;
+  color: var(--encre);
+  font: inherit;
+}
+
+.case.pleine {
+  border-bottom-color: var(--jaune);
+}
+
+.case.espace {
+  width: 0.6em;
+  border: 0;
+  background: none;
+}
+
+.tuiles {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  max-width: 640px;
+}
+
+.tuile {
+  min-width: 64px;
+  height: 64px;
+  border: 0;
+  border-radius: 16px;
+  background: var(--jaune);
+  box-shadow: 0 5px 0 #e3a92e;
+  color: var(--encre);
+  font: 700 2rem var(--police);
+}
+
+.tuile:disabled {
+  opacity: 0.25;
+  box-shadow: none;
+}
+
+.exercice-outils,
+.exercice-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+}
+
+.correction-lettres {
+  margin: 0;
+  font-size: 3rem;
+  font-weight: 700;
+}
+
+.correction-lettres .juste {
+  color: #3f9d3a;
+}
+
+.correction-lettres .accent,
+.correction-lettres .fausse,
+.correction-lettres .manque,
+.correction-lettres .trop {
+  color: #e07a1f;
+  text-decoration: underline wavy;
+}
+
+.correction-lettres .trop {
+  text-decoration: line-through;
+}
+
+.indice-apercu {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 32px;
+  background: rgba(255, 248, 238, 0.97);
+}
+
+.mur-mots {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+}
+
+.mot-grave {
+  padding: 10px 16px;
+  border: 0;
+  border-radius: 12px;
+  background: #ffe7a1;
+  box-shadow: 0 4px 0 #e3c063;
+  color: var(--encre);
+  font: 700 1.3rem var(--police);
+}
+
+.parent-liste {
+  width: 100%;
+  font: 1rem monospace;
+}
+
+.parent-ligne {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  font-size: 1.1rem;
+}
+
+/* --- L'épicerie (tranche 1B) ------------------------------------------------------------------ */
+
+/* Le porte-monnaie et le panier, toujours visibles en haut à gauche. */
+.hud-ville {
+  position: fixed;
+  top: calc(14px + env(safe-area-inset-top));
+  left: 16px;
+  z-index: 4;
+  display: flex;
+  gap: 10px;
+}
+
+.hud-argent,
+.hud-panier {
+  min-width: 96px;
+  height: 52px;
+  padding: 0 16px 0 52px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--papier) no-repeat 12px center / 30px 30px;
+  box-shadow: var(--ombre);
+  color: var(--encre);
+  font: 700 1.3rem var(--police);
+}
+
+.hud-argent {
+  background-image: radial-gradient(circle at 50% 50%, #f6d36b 0 52%, #c9a33a 53% 64%, transparent 65%);
+}
+
+.hud-panier {
+  background-image: url('/icones/icone-pomme.webp');
+}
+
+.texte-a-lire .mot {
+  border-radius: 8px;
+  padding: 0 2px;
+  cursor: pointer;
+}
+
+.texte-a-lire .mot.entendu {
+  background: var(--orange-pale);
+  box-shadow: 0 0 0 2px var(--jaune);
+}
+
+.legende {
+  margin: 14px 0 4px;
+  color: var(--encre-douce);
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.remarque {
+  min-height: 1.6em;
+  color: var(--rouge-fonce);
+}
+
+/* Les pièces et les billets : assez gros pour le doigt, lisibles d'un coup d'œil. */
+.rangee-argent {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  min-height: 72px;
+  padding: 8px;
+  border-radius: 18px;
+}
+
+.comptoir {
+  background: #f3e2c6;
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.12);
+}
+
+.caisse {
+  background: #e7efe0;
+}
+
+.piece,
+.billet {
+  border: 0;
+  color: var(--encre);
+  font: 700 1.05rem var(--police);
+  box-shadow: 0 3px 0 rgba(0, 0, 0, 0.18);
+  cursor: pointer;
+  transition: translate 0.15s;
+}
+
+.piece:active,
+.billet:active {
+  translate: 0 2px;
+}
+
+.piece {
+  width: 62px;
+  height: 62px;
+  border-radius: 50%;
+}
+
+/* 1 € : centre doré, couronne argentée ; 2 € : l'inverse. */
+.argent-100 {
+  background: radial-gradient(circle, #f2cf63 0 58%, #cfd3d8 59%);
+}
+
+.argent-200 {
+  width: 68px;
+  height: 68px;
+  background: radial-gradient(circle, #d9dde2 0 58%, #eac65a 59%);
+}
+
+.billet {
+  width: 104px;
+  height: 58px;
+  border-radius: 8px;
+  outline: 2px dashed rgba(255, 255, 255, 0.55);
+  outline-offset: -7px;
+}
+
+.argent-500 {
+  background: #c9c2b8;
+}
+
+.argent-1000 {
+  background: #f0a08e;
+}
+
+.argent-2000 {
+  background: #92b7e6;
+}
+
+.grille-produits {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 12px;
+  margin: 12px 0;
+}
+
+.produit {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 8px;
+  border: 0;
+  border-radius: 20px;
+  background: #fff;
+  box-shadow: 0 3px 0 rgba(0, 0, 0, 0.08);
+  color: var(--encre);
+  font: 1.1rem var(--police);
+}
+
+button.produit {
+  cursor: pointer;
+}
+
+.produit-icone {
+  width: 84px;
+  height: 84px;
+  border-radius: 16px;
+}
+
+.produit-prix,
+.etiquette-prix {
+  padding: 2px 12px;
+  border-radius: 999px;
+  background: var(--jaune);
+  font-weight: 700;
+}
+
+.etiquette {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-size: 1.4rem;
+}
+
+.etiquette .produit-icone {
+  width: 72px;
+  height: 72px;
+}
+
+/* Une petite bulle qui annonce ce qui vient de se passer (pomme cueillie…). */
+.bulle-ville {
+  position: fixed;
+  top: 22%;
+  left: 50%;
+  z-index: 6;
+  translate: -50% 0;
+  margin: 0;
+  padding: 14px 24px;
+  border-radius: 999px;
+  background: var(--papier);
+  box-shadow: var(--ombre);
+  font-size: 1.3rem;
+  animation: apparaitre 0.3s var(--rebond);
+  pointer-events: none;
+}
+
+/* Dans une carte d'exercice : le texte se lit comme un dialogue, les rangées prennent la largeur. */
+.exercice .texte-a-lire {
+  font-size: 1.45rem;
+  line-height: 1.55;
+}
+
+.exercice .grille-produits,
+.exercice .rangee-argent {
+  align-self: stretch;
+  justify-content: center;
+}
+
+/* La séance du jour, à côté du porte-monnaie : les mots, puis les demandes. */
+.hud-seance {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 52px;
+  padding: 0 16px;
+  border-radius: 999px;
+  background: var(--papier);
+  box-shadow: var(--ombre);
+  font-size: 1rem;
+}
+
+.seance-titre {
+  font-weight: 700;
+}
+
+.seance-etape {
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: var(--orange-pale);
+}
+
+.seance-etape.faite {
+  background: var(--vert-pale);
+  color: #3f7a1f;
+  font-weight: 700;
+}
+
+/* Ce qu'on va donner à l'habitant. */
+.plateau {
+  min-height: 120px;
+  padding: 8px;
+  border-radius: 18px;
+  background: #f3e2c6;
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.12);
+}
+
+.produit.lot .produit-icone {
+  width: 140px;
+  height: 140px;
+}
+
+/* Une ou deux images seules (récolte, colis reçu) : centrées. */
+.rangee-icones {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+}
+
+/* --- La pêche (tranche 1C) ----------------------------------------------------------------- */
+
+.eau-peche {
+  position: relative;
+  align-self: stretch;
+  height: 230px;
+  overflow: hidden;
+  border-radius: 24px;
+  background: linear-gradient(#9fd7f0, #5fb0de);
+  box-shadow: inset 0 4px 10px rgba(0, 0, 0, 0.12);
+}
+
+/* Les poissons traversent l'eau ; on les touche pour les attraper. */
+.poisson-nage {
+  position: absolute;
+  left: -90px;
+  width: 84px;
+  height: 64px;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  animation: nager linear infinite;
+}
+
+.poisson-nage .produit-icone {
+  width: 84px;
+  height: 64px;
+  object-fit: contain;
+  border-radius: 0;
+
+}
+
+.poisson-nage.vers-la-gauche {
+  animation-name: nager-gauche;
+}
+
+.poisson-nage.vers-la-gauche .produit-icone {
+  transform: scaleX(-1);
+}
+
+@keyframes nager {
+  from {
+    left: -90px;
+  }
+  to {
+    left: 100%;
+  }
+}
+
+@keyframes nager-gauche {
+  from {
+    left: 100%;
+  }
+  to {
+    left: -90px;
+  }
+}
+
+.rangee-seaux {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 14px;
+}
+
+.seau {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 150px;
+  padding: 8px;
+  border-radius: 20px;
+  background: #fff;
+  box-shadow: 0 3px 0 rgba(0, 0, 0, 0.08);
+  transition: background 0.3s;
+}
+
+.seau.plein {
+  background: var(--vert-pale);
+}
+
+.seau > .produit-icone {
+  width: 64px;
+  height: 64px;
+}
+
+.seau-poissons {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 2px;
+  min-height: 34px;
+}
+
+.seau-poissons .produit-icone {
+  width: 32px;
+  height: 26px;
+  object-fit: contain;
+  border-radius: 0;
+
+}
+
+.seau-compte {
+  font-weight: 700;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .poisson-nage {
+    animation-duration: 40s !important;
+  }
+}
+
+/* --- La poste (tranche 1C) ------------------------------------------------------------------ */
+
+.rangee-enveloppes {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  min-height: 70px;
+}
+
+.rangee-enveloppes.file {
+  align-self: stretch;
+  padding: 8px;
+  border-radius: 18px;
+  background: #f3e2c6;
+}
+
+.enveloppe {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px 6px 6px;
+  border: 0;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 3px 0 rgba(0, 0, 0, 0.1);
+  color: var(--encre);
+  font: 1.25rem var(--police);
+  cursor: pointer;
+}
+
+.enveloppe:disabled {
+  cursor: default;
+}
+
+.enveloppe .produit-icone {
+  width: 48px;
+  height: 48px;
+}
+
+.enveloppe.choisie {
+  box-shadow: 0 0 0 4px var(--jaune);
+  translate: 0 -3px;
+}
+
+.rangee-casiers {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+}
+
+.casier {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 84px;
+  height: 84px;
+  border: 0;
+  border-radius: 14px;
+  background: #c99a6b;
+  box-shadow: inset 0 -6px 0 rgba(0, 0, 0, 0.15);
+  color: #fff;
+  cursor: pointer;
+}
+
+.casier.rempli {
+  background: #a9c97a;
+}
+
+.casier-lettre {
+  font: 700 2.2rem var(--police);
+}
+
+.casier-compte {
+  min-height: 1.2em;
+  font-size: 1.1rem;
+}
+
+/* --- Les grands projets (tranche 1C) -------------------------------------------------------- */
+
+.barre-projet {
+  align-self: stretch;
+  height: 22px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--orange-pale);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.barre-projet-plein {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--jaune), var(--vert));
+  transition: width 0.6s var(--rebond);
+}
+
+.besoins .produit .piece {
+  pointer-events: none;
+}
+
+.besoin-aide {
+  font-size: 3.2rem;
+  line-height: 84px;
+}
+
+/* --- La fête foraine (stands du jeu d'avant) --------------------------------------------------- */
+
+/* Le panneau du stand passe devant le porte-monnaie et la séance du jour. */
+.stand-ville {
+  z-index: 8;
+}
+
+/* Le tour de grande roue : un seul bouton, pour descendre avant la fin. */
+.descendre-roue {
+  position: fixed;
+  left: 50%;
+  bottom: calc(24px + env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  z-index: 9;
+}

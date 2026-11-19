@@ -1,0 +1,40 @@
+{
+  "_lisez-moi": "La fête foraine de la ville : pas d'euros. Un forain qui a fini son travail du jour propose le mode « pour le plaisir » ; quand les cinq ont fini, les manèges ouvrent et la construction de l'attraction avance d'une étape (pour le décor). Ce qui la termine, c'est le grand défi que propose son forain à partir du vendredi midi (voir src/ville/attraction.ts et content/ville/attractions.json). salutations : propres à la ville (celles du jeu d'avant, src/son/salutations.ts, ne changent pas), une tirée au hasard, chaque forain garde sa voix. valide=true : textes validés par le parent. L'épreuve du vendredi s'appelle « le grand défi ». finiAujourdhui, manegesFermes et attraction.nom/defi/reussite/rate/dejaEssaye/ouverte : validés (A_VALIDER.md, point 20) ; rate et dejaEssaye ont changé, voix à regénérer.",
+  "valide": true,
+  "apresUneManche": "Merci pour ton aide ! Grâce à toi, j’ai fini mon travail plus tôt. Je vais aller aider à construire la nouvelle attraction !",
+  "finiAujourdhui": "Merci, j’ai fini pour aujourd’hui ! Veux-tu encore m’aider ?",
+  "manegesFermes": "Les manèges ouvriront quand tu auras aidé tous les forains.",
+  "attraction": {
+    "avant": "Bonjour ! Je construis ma nouvelle attraction. Aide les forains à leurs stands : quand ils auront fini, ils viendront m’aider !",
+    "journeeFinie": "Bravo ! Grâce à toi, tous les forains sont venus m’aider. Mon attraction a bien avancé aujourd’hui ! Pour te remercier, tu peux jouer librement.",
+    "lendemain": "Regarde ! Mon attraction a avancé pendant la nuit.",
+    "nom": "Le forain de la grande roue",
+    "defi": "Mon attraction est presque finie ! Pour la terminer, relève mon grand défi : 3 problèmes à résoudre. Tu es prêt ?",
+    "reussite": "Bravo, tu as relevé le grand défi ! Regarde : mon attraction est terminée. Tu peux monter quand tu veux !",
+    "rate": "Ce défi était difficile ! Tu veux réessayer ? Cette fois, un seul problème suffit.",
+    "dejaEssaye": "Tu reviens pour mon grand défi ? Cette fois, un seul problème à résoudre. Tu es prêt ?",
+    "ouverte": "Mon attraction est ouverte ! Monte faire un tour."
+  },
+  "salutations": {
+    "chamboule": [
+      "Bonjour ! J’ai plein de boîtes à faire tomber, et pas le temps. Tu m’aides ?",
+      "Ah, te revoilà ! Aide-moi vite, on m’attend pour construire la nouvelle attraction !"
+    ],
+    "confiserie": [
+      "Coucou ! J’ai beaucoup de sucettes à préparer. Tu me donnes un coup de main ?",
+      "Bienvenue ! Si tu m’aides à écrire mes mots, j’irai vite aider à la construction."
+    ],
+    "chantier": [
+      "Salut, petit bricoleur ! J’ai trop de défis pour moi tout seul. Tu m’aides ?",
+      "Bonjour ! Aide-moi avec ces défis, et j’irai construire la nouvelle attraction."
+    ],
+    "horloge": [
+      "Bonjour ! Tic-tac… J’ai trop d’horloges à lire toute seule. Tu m’aides ?",
+      "Te voilà ! Aide-moi avec mes horloges, on m’attend pour la construction."
+    ],
+    "peche": [
+      "Ohé ! Mes canards nagent dans tous les sens. Tu m’aides à les pêcher ?",
+      "Bonjour ! Aide-moi à pêcher mes canards, et j’irai aider à la construction."
+    ]
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "_lisez-moi": "Les textes de la ville, hors du code : le rêve pourra en proposer, le parent les valide. valide=false : texte d'essai de la tranche 0, à relire (A_VALIDER.md).",
+  "dialogues": [
+    {
+      "id": "forain-accueil",
+      "habitant": "forain-chamboule",
+      "valide": true,
+      "texte": "Bonjour ! Bienvenue à la fête foraine ! Ici, il y a des stands pour jouer avec les mots et les nombres, et des manèges. La ville est de l’autre côté du pont : ta maison est tout au nord, avec le toit orange."
+    }
+  ]
+}

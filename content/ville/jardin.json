@@ -1,0 +1,40 @@
+{
+  "_lisez-moi": "Le potager de la ville (tranche 1C). graines : le sachet vendu à l'épicerie (même identifiant dans epicerie.json), le légume qu'il donne, combien de jours d'arrosage il lui faut et combien on en récolte. Une plante qui n'est pas arrosée un jour ne meurt pas : elle attend. fiche : le dos du sachet, que l'enfant lit en plantant. valide=false : textes à relire (A_VALIDER.md).",
+  "parcelles": 4,
+  "graines": [
+    {
+      "id": "graines-carotte",
+      "legume": "carotte",
+      "jours": 3,
+      "recolte": 3,
+      "modele": "carottes-mures",
+      "fiche": "Les carottes aiment la terre fraîche. Arrose-les une fois par jour, pendant 3 jours. Ensuite, tu pourras les récolter !"
+    },
+    {
+      "id": "graines-tomate",
+      "legume": "tomate",
+      "jours": 4,
+      "recolte": 3,
+      "modele": "tomates-mures",
+      "fiche": "Les tomates ont besoin de soleil et d’eau. Arrose-les une fois par jour, pendant 4 jours. Ensuite, tu pourras les récolter !"
+    }
+  ],
+  "textes": {
+    "valide": true,
+    "nom": "Le potager",
+    "planter": "Planter",
+    "arroser": "Arroser",
+    "recolter": "Récolter",
+    "regarder": "Regarder",
+    "choisirGraines": "Quelles graines veux-tu planter ?",
+    "pasDeGraines": "Tu n’as pas de graines. Tu peux en acheter à l’épicerie !",
+    "plante": "C’est planté ! N’oublie pas : il faut de l’eau chaque jour.",
+    "arrose": "Les plantes boivent l’eau. Elles ont été arrosées {fait} jour sur {total}.",
+    "arroseN": "Les plantes boivent l’eau. Elles ont été arrosées {fait} jours sur {total}.",
+    "dejaArrose": "Tu as déjà arrosé aujourd’hui. Reviens demain !",
+    "encore": "Encore {reste} jour d’arrosage avant la récolte.",
+    "encoreN": "Encore {reste} jours d’arrosage avant la récolte.",
+    "pret": "C’est prêt à récolter !",
+    "recolte": "Bravo ! Tu récoltes {liste}."
+  }
+}

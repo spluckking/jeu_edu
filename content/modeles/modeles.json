@@ -1,0 +1,387 @@
+{
+  "_lisez-moi": "Les modèles 3D de la ville, générés par scripts/generer-modeles.mjs (Tripo, image vers 3D). genre fixe le budget de triangles ; animations : préréglages Tripo pour les personnages. studio : modèle fait à la main dans Tripo Studio (image Nano Banana, puis HD Model), exporté en GLB puis repris avec --depuis ; la ligne garde la trace de son image et de ses réglages.",
+  "modeles": [
+    {
+      "id": "maison-du-personnage",
+      "genre": "batiment",
+      "image": "content/modeles/images/maison-du-personnage.png"
+    },
+    {
+      "id": "forain-chamboule",
+      "genre": "personnage",
+      "image": "content/modeles/images/forain-chamboule.png",
+      "animations": [
+        "preset:idle",
+        "preset:walk"
+      ]
+    },
+    {
+      "id": "enfant",
+      "genre": "personnage",
+      "animations": [
+        "preset:idle",
+        "preset:walk",
+        "preset:run"
+      ],
+      "prompt": "Full-body 3D game character concept for a cozy farming life-sim game, cute chibi anime style: big round head, large shiny friendly eyes, small nose, rosy cheeks, soft rounded shapes, warm pastel colours, gentle hand-painted texture. An 8-year-old boy with fluffy short brown hair, cheerful smile, short-sleeved coral t-shirt, beige knee-length shorts, white socks and brown ankle boots. No hat, nothing in his hands. Standing straight in A-pose, arms slightly away from the body, front view, whole body visible from head to feet, plain light grey background, no shadow on the floor. --no text, logo, watermark, background scenery"
+    },
+    {
+      "id": "enfant-casquette",
+      "genre": "personnage",
+      "tenue": {
+        "chapeau": "chapeau-casquette",
+        "objet": "objet-sac"
+      },
+      "animations": [
+        "preset:idle",
+        "preset:walk",
+        "preset:run"
+      ],
+      "prompt": "Full-body 3D game character concept for a cozy farming life-sim game, cute chibi anime style: big round head, large shiny friendly eyes, small nose, rosy cheeks, soft rounded shapes, warm pastel colours, gentle hand-painted texture. An 8-year-old boy with fluffy short brown hair, cheerful smile, wearing a real red baseball cap with a curved visor facing forward (brown hair showing on the sides and at the back), short-sleeved coral t-shirt, beige knee-length shorts, white socks and brown ankle boots, and a small rounded green backpack with two straps over his shoulders. Nothing in his hands. Standing straight in A-pose, arms slightly away from the body, front view, whole body visible from head to feet, plain light grey background, no shadow on the floor. --no text, logo, watermark, background scenery"
+    },
+    {
+      "id": "epicerie",
+      "genre": "batiment",
+      "prompt": "Full 3D game asset of a small village grocery shop, cute chibi anime style for a cozy farming life-sim game, soft rounded shapes, warm pastel colours, gentle hand-painted texture. A cosy one-storey shop with cream plaster walls, a striped green and white awning over a big front window, a wooden door, wooden crates of red apples, pears, carrots and tomatoes on a stall in front, a few loaves of bread in the window, a plain wooden sign board above the door with no letters on it. Whole building visible, three-quarter front view, isolated on a plain light grey background, no ground, no shadow. --no text, letters, logo, watermark, people"
+    },
+    {
+      "id": "epiciere",
+      "genre": "personnage",
+      "animations": [
+        "preset:idle"
+      ],
+      "prompt": "Full-body 3D game character concept for a cozy farming life-sim game, cute chibi anime style for a cozy farming life-sim game, soft rounded shapes, warm pastel colours, gentle hand-painted texture, big round head, large friendly eyes, rosy cheeks. A kind round-faced grocer lady in her fifties, grey-brown hair in a neat bun, small round glasses, smiling, light green blouse with rolled-up sleeves, long cream apron with a big front pocket, brown skirt to the knees, comfortable brown shoes. Nothing in her hands. Standing straight in A-pose, arms slightly away from the body, front view, whole body visible from head to feet, plain light grey background, no shadow on the floor. --no text, logo, watermark, background scenery"
+    },
+    {
+      "id": "pommier",
+      "genre": "objet",
+      "prompt": "Full 3D game asset of a small round apple tree with NO fruit on it, cute chibi anime style for a cozy farming life-sim game, soft rounded shapes, warm pastel colours, gentle hand-painted texture: a short sturdy brown trunk and a big fluffy rounded crown of bright green leaves, a few tiny white blossoms. Whole tree visible, front view, isolated on a plain light grey background, no ground, no shadow. --no apples, fruit, text, watermark"
+    },
+    {
+      "id": "pomme",
+      "genre": "objet",
+      "prompt": "A single shiny red apple with a short brown stem and one green leaf, 3D game asset, cute chibi anime style for a cozy farming life-sim game, soft rounded shapes, warm pastel colours, gentle hand-painted texture, front view, isolated on a plain light grey background, no shadow. --no text, watermark, other fruit"
+    },
+    {
+      "id": "icone-pomme",
+      "genre": "icone",
+      "prompt": "A single shiny red apple with a green leaf, game inventory icon, cute chibi anime style for a cozy farming life-sim game, soft rounded shapes, warm pastel colours, gentle hand-painted texture, centered, seen slightly from above, soft light, plain very light cream background, no shadow on the floor. --no text, logo, watermark, hands, table"
+    },
+    {
+      "id": "icone-poire",
+      "genre": "icone",
+      "prompt": "A single ripe yellow-green pear with a small leaf, game inventory icon, cute chibi anime style for a cozy farming life-sim game, soft rounded shapes, warm pastel colours, gentle hand-painted texture, centered, seen slightly from above, soft light, plain very light cream background, no shadow on the floor. --no text, logo, watermark, hands, table"
+    },
+    {
+      "id": "icone-carotte",
+      "genre": "icone",
+      "prompt": "A single orange carrot with green leafy top, game inventory icon, cute chibi anime style for a cozy farming life-sim game, soft rounded shapes, warm pastel colours, gentle hand-painted texture, centered, seen slightly from above, soft light, plain very light cream background, no shadow on the floor. --no text, logo, watermark, hands, table"
+    },
+    {
+      "id": "icone-tomate",
+      "genre": "icone",
+      "prompt": "A single round red tomato with a green star-shaped stem, game inventory icon, cute chibi anime style for a cozy farming life-sim game, soft rounded shapes, warm pastel colours, gentle hand-painted texture, centered, seen slightly from above, soft light, plain very light cream background, no shadow on the floor. --no text, logo, watermark, hands, table"
+    },
+    {
+      "id": "icone-pain",
+      "genre": "icone",
+      "prompt": "A single golden crusty french country bread loaf, game inventory icon, cute chibi anime style for a cozy farming life-sim game, soft rounded shapes, warm pastel colours, gentle hand-painted texture, centered, seen slightly from above, soft light, plain very light cream background, no shadow on the floor. --no text, logo, watermark, hands, table"
+    },
+    {
+      "id": "icone-lait",
+      "genre": "icone",
+      "prompt": "A single glass bottle of milk with a blue cap, game inventory icon, cute chibi anime style for a cozy farming life-sim game, soft rounded shapes, warm pastel colours, gentle hand-painted texture, centered, seen slightly from above, soft light, plain very light cream background, no shadow on the floor. --no text, logo, watermark, hands, table"
+    },
+    {
+      "id": "meuble-banc",
+      "genre": "objet",
+      "icone": true,
+      "prompt": "Full 3D game asset of a small wooden garden bench painted soft blue, with curved armrests, garden furniture for a cosy village house, cute chibi anime style for a cozy farming life-sim game, soft rounded shapes, warm pastel colours, gentle hand-painted texture. Whole object visible, three-quarter front view, isolated on a plain light grey background, no ground, no shadow. --no text, letters, logo, watermark, people, animals"
+    },
+    {
+      "id": "meuble-table",
+      "genre": "objet",
+      "icone": true,
+      "prompt": "Full 3D game asset of a small round wooden garden table with two little matching chairs, garden furniture for a cosy village house, cute chibi anime style for a cozy farming life-sim game, soft rounded shapes, warm pastel colours, gentle hand-painted texture. Whole object visible, three-quarter front view, isolated on a plain light grey background, no ground, no shadow. --no text, letters, logo, watermark, people, animals"
+    },
+    {
+      "id": "meuble-lanterne",
+      "genre": "objet",
+      "icone": true,
+      "prompt": "Full 3D game asset of a black iron garden lamp post with a warm glowing lantern on top, garden furniture for a cosy village house, cute chibi anime style for a cozy farming life-sim game, soft rounded shapes, warm pastel colours, gentle hand-painted texture. Whole object visible, three-quarter front view, isolated on a plain light grey background, no ground, no shadow. --no text, letters, logo, watermark, people, animals"
+    },
+    {
+      "id": "meuble-jardiniere",
+      "genre": "objet",
+      "icone": true,
+      "prompt": "Full 3D game asset of a long wooden planter box full of colourful flowers, garden furniture for a cosy village house, cute chibi anime style for a cozy farming life-sim game, soft rounded shapes, warm pastel colours, gentle hand-painted texture. Whole object visible, three-quarter front view, isolated on a plain light grey background, no ground, no shadow. --no text, letters, logo, watermark, people, animals"
+    },
+    {
+      "id": "meuble-nichoir",
+      "genre": "objet",
+      "icone": true,
+      "prompt": "Full 3D game asset of a cute wooden birdhouse with a red roof on a tall wooden pole, garden furniture for a cosy village house, cute chibi anime style for a cozy farming life-sim game, soft rounded shapes, warm pastel colours, gentle hand-painted texture. Whole object visible, three-quarter front view, isolated on a plain light grey background, no ground, no shadow. --no text, letters, logo, watermark, people, animals"
+    },
+    {
+      "id": "meuble-brouette",
+      "genre": "objet",
+      "icone": true,
+      "prompt": "Full 3D game asset of a small wooden wheelbarrow full of flower pots, garden furniture for a cosy village house, cute chibi anime style for a cozy farming life-sim game, soft rounded shapes, warm pastel colours, gentle hand-painted texture. Whole object visible, three-quarter front view, isolated on a plain light grey background, no ground, no shadow. --no text, letters, logo, watermark, people, animals"
+    },
+    {
+      "id": "icone-colis",
+      "genre": "icone",
+      "prompt": "A single small cardboard parcel tied with a red ribbon bow, game inventory icon, cute chibi anime style for a cozy farming life-sim game, soft rounded shapes, warm pastel colours, gentle hand-painted texture, centered, seen slightly from above, soft light, plain very light cream background, no shadow on the floor. --no text, letters, logo, watermark, hands, table"
+    },
+    {
+      "id": "parcelle",
+      "genre": "objet",
+      "prompt": "Full 3D game asset of a small square vegetable garden bed: a low wooden plank frame filled with dark brown freshly tilled soil, empty, nothing growing, cute chibi anime style for a cozy farming life-sim game, soft rounded shapes, warm pastel colours, gentle hand-painted texture. Whole object visible, three-quarter front view, isolated on a plain light grey background, no ground, no shadow. --no text, letters, logo, watermark, people, animals"
+    },
+    {
+      "id": "pousse",
+      "genre": "objet",
+      "prompt": "Full 3D game asset of a tiny cluster of three young green seedlings with two round leaves each, sprouting from a small mound of brown soil, cute chibi anime style for a cozy farming life-sim game, soft rounded shapes, warm pastel colours, gentle hand-painted texture. Whole object visible, three-quarter front view, isolated on a plain light grey background, no ground, no shadow. --no text, letters, logo, watermark, people, animals"
+    },
+    {
+      "id": "carottes-mures",
+      "genre": "objet",
+      "prompt": "Full 3D game asset of a small clump of three carrot plants ready to harvest: bushy feathery green tops with the orange tops of the carrots peeking out of a small mound of brown soil, cute chibi anime style for a cozy farming life-sim game, soft rounded shapes, warm pastel colours, gentle hand-painted texture. Whole object visible, three-quarter front view, isolated on a plain light grey background, no ground, no shadow. --no text, letters, logo, watermark, people, animals"
+    },
+    {
+      "id": "tomates-mures",
+      "genre": "objet",
+      "prompt": "Full 3D game asset of a small tomato plant ready to harvest on a short wooden stake, green leaves and several shiny ripe red tomatoes, growing from a small mound of brown soil, cute chibi anime style for a cozy farming life-sim game, soft rounded shapes, warm pastel colours, gentle hand-painted texture. Whole object visible, three-quarter front view, isolated on a plain light grey background, no ground, no shadow. --no text, letters, logo, watermark, people, animals"
+    },
+    {
+      "id": "icone-graines-carotte",
+      "genre": "icone",
+      "prompt": "A single small paper seed packet with a picture of an orange carrot on the front, game inventory icon, cute chibi anime style for a cozy farming life-sim game, soft rounded shapes, warm pastel colours, gentle hand-painted texture, centered, seen slightly from above, soft light, plain very light cream background, no shadow on the floor. --no text, letters, logo, watermark, hands, table"
+    },
+    {
+      "id": "icone-graines-tomate",
+      "genre": "icone",
+      "prompt": "A single small paper seed packet with a picture of a red tomato on the front, game inventory icon, cute chibi anime style for a cozy farming life-sim game, soft rounded shapes, warm pastel colours, gentle hand-painted texture, centered, seen slightly from above, soft light, plain very light cream background, no shadow on the floor. --no text, letters, logo, watermark, hands, table"
+    },
+    {
+      "id": "ponton",
+      "genre": "objet",
+      "studio": true,
+      "image": "content/modeles/images/ponton.png",
+      "triangles": 6747
+    },
+    {
+      "id": "buisson",
+      "genre": "objet",
+      "studio": true,
+      "image": "content/modeles/images/buisson.png",
+      "triangles": 3799
+    },
+    {
+      "id": "mures",
+      "genre": "objet",
+      "studio": true,
+      "image": "content/modeles/images/mures.png",
+      "triangles": 1856
+    },
+    {
+      "id": "icone-mure",
+      "genre": "icone",
+      "studio": true,
+      "image": "content/modeles/images/mures.png"
+    },
+    {
+      "id": "icone-poisson",
+      "genre": "icone",
+      "studio": true,
+      "image": "content/modeles/images/poisson.png"
+    },
+    {
+      "id": "icone-seau",
+      "genre": "icone",
+      "studio": true,
+      "image": "content/modeles/images/seau.png"
+    },
+    {
+      "id": "poste",
+      "genre": "batiment",
+      "studio": true,
+      "image": "content/modeles/images/poste.png",
+      "triangles": 11169
+    },
+    {
+      "id": "postiere",
+      "genre": "personnage",
+      "studio": true,
+      "image": "content/modeles/images/postiere.png",
+      "triangles": 9382,
+      "animations": [
+        "idle (Studio, squelette Mixamo)"
+      ]
+    },
+    {
+      "id": "icone-lettre",
+      "genre": "icone",
+      "studio": true,
+      "image": "content/modeles/images/lettre.png"
+    },
+    {
+      "id": "chantier",
+      "genre": "objet",
+      "studio": true,
+      "image": "content/modeles/images/chantier.png"
+    },
+    {
+      "id": "boulangerie",
+      "genre": "batiment",
+      "studio": true,
+      "image": "content/modeles/images/boulangerie.png",
+      "triangles": 10827
+    },
+    {
+      "id": "boulanger",
+      "genre": "personnage",
+      "studio": true,
+      "image": "content/modeles/images/boulanger.png",
+      "triangles": 9609,
+      "animations": [
+        "idle (Studio, squelette Mixamo)"
+      ]
+    },
+    {
+      "id": "arbre-chene",
+      "genre": "objet",
+      "studio": true,
+      "image": "content/modeles/images/arbre-chene.png"
+    },
+    {
+      "id": "arbre-sapin",
+      "genre": "objet",
+      "studio": true,
+      "image": "content/modeles/images/arbre-sapin.png"
+    },
+    {
+      "id": "arbre-cerisier",
+      "genre": "objet",
+      "studio": true,
+      "image": "content/modeles/images/arbre-cerisier.png"
+    },
+    {
+      "id": "pont",
+      "genre": "objet",
+      "studio": true,
+      "image": "content/modeles/images/pont.png"
+    },
+    {
+      "id": "portail-fete",
+      "genre": "objet",
+      "studio": true,
+      "image": "content/modeles/images/portail-fete.png"
+    },
+    {
+      "id": "stand-chamboule",
+      "genre": "objet",
+      "studio": true,
+      "image": "content/modeles/images/stand-chamboule.png"
+    },
+    {
+      "id": "stand-confiserie",
+      "genre": "objet",
+      "studio": true,
+      "image": "content/modeles/images/stand-confiserie.png"
+    },
+    {
+      "id": "stand-chantier",
+      "genre": "objet",
+      "studio": true,
+      "image": "content/modeles/images/stand-chantier.png"
+    },
+    {
+      "id": "stand-horloge",
+      "genre": "objet",
+      "studio": true,
+      "image": "content/modeles/images/stand-horloge.png"
+    },
+    {
+      "id": "stand-peche",
+      "genre": "objet",
+      "studio": true,
+      "image": "content/modeles/images/stand-peche.png"
+    },
+    {
+      "id": "autos-tamponneuses",
+      "genre": "objet",
+      "studio": true,
+      "image": "content/modeles/images/autos-tamponneuses.png"
+    },
+    {
+      "id": "trampoline",
+      "genre": "objet",
+      "studio": true,
+      "image": "content/modeles/images/trampoline.png"
+    },
+    {
+      "id": "palais-glaces",
+      "genre": "objet",
+      "studio": true,
+      "image": "content/modeles/images/palais-glaces.png"
+    },
+    {
+      "id": "grande-roue",
+      "genre": "objet",
+      "studio": true,
+      "image": "content/modeles/images/grande-roue.png"
+    },
+    {
+      "id": "forain-confiserie",
+      "genre": "personnage",
+      "studio": true,
+      "image": "content/modeles/images/forain-confiserie.png",
+      "animations": [
+        "idle (Studio, squelette Mixamo)"
+      ]
+    },
+    {
+      "id": "forain-chantier",
+      "genre": "personnage",
+      "studio": true,
+      "image": "content/modeles/images/forain-chantier.png",
+      "animations": [
+        "idle (Studio, squelette Mixamo)"
+      ]
+    },
+    {
+      "id": "forain-horloge",
+      "genre": "personnage",
+      "studio": true,
+      "image": "content/modeles/images/forain-horloge.png",
+      "animations": [
+        "idle (Studio, squelette Mixamo)"
+      ]
+    },
+    {
+      "id": "forain-peche",
+      "genre": "personnage",
+      "studio": true,
+      "image": "content/modeles/images/forain-peche.png",
+      "animations": [
+        "idle (Studio, squelette Mixamo)"
+      ]
+    },
+    {
+      "id": "forain-roue",
+      "genre": "personnage",
+      "studio": true,
+      "image": "content/modeles/images/forain-roue.png",
+      "animations": [
+        "idle (Studio, squelette Mixamo)"
+      ]
+    },
+    {
+      "id": "icone-crepes",
+      "genre": "icone",
+      "studio": true,
+      "image": "content/modeles/images/icone-crepes.png"
+    }
+  ]
+}

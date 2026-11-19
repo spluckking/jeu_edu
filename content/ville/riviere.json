@@ -1,0 +1,15 @@
+{
+  "_lisez-moi": "La rivière et le bois (tranche 1C) : pêcher une fois par jour en rangeant les poissons par seaux, cueillir les mûres de trois buissons. La taille des groupes change chaque jour (de 2 à 5). valide=false : textes à relire (A_VALIDER.md).",
+  "valide": true,
+  "ponton": "Le ponton",
+  "buisson": "Le buisson de mûres",
+  "pecher": "Pêcher",
+  "cueillir": "Cueillir",
+  "consignePeche": "Touche les poissons pour les attraper. Range-les dans les seaux : {parSeau} poissons par seau.",
+  "seauPlein": "Un seau plein !",
+  "bilanPeche": "Bravo ! Tu as rempli {seaux} seaux de {parSeau} poissons. {addition}. C’est {seaux} fois {parSeau} !",
+  "dejaPeche": "Les poissons se reposent. Reviens pêcher demain !",
+  "cueilli": "{nombre} mûres dans ton panier !",
+  "bilanCueillette": "Tu as cueilli {buissons} buissons de {parBuisson} mûres. {addition}. C’est {buissons} fois {parBuisson} !",
+  "buissonVide": "Ce buisson est déjà cueilli. Les mûres repoussent demain !"
+}

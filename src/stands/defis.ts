@@ -1,7 +1,7 @@
 // Les défis du chantier : les exercices générés de la séance (calculs et petits problèmes).
 // Ils rapportent le lot de la séance ; leur niveau s'adapte, ils ne sont pas des éléments à retenir.
 
-import { genererExercice, type Exercice, type Personne } from '../exercices/generateur.ts';
+import { genererExercice, genererProbleme, type Exercice, type Personne } from '../exercices/generateur.ts';
 import { dire } from '../son/voix.ts';
 import { chamboule } from './chamboule.ts';
 import { caseReponse, type JeuDeStand } from './stand.ts';
@@ -10,6 +10,8 @@ export interface SourceDefis {
   niveau(): number;
   /** Les forains, avec leurs prénoms, qui jouent dans les problèmes. */
   gens(): Personne[];
+  /** Que des problèmes, jamais un calcul seul (l'épreuve d'une attraction de la ville). */
+  problemes?: boolean;
 }
 
 export function creerDefis(source: SourceDefis): JeuDeStand & { exercice(): Exercice | null } {
@@ -29,7 +31,7 @@ export function creerDefis(source: SourceDefis): JeuDeStand & { exercice(): Exer
     touchePhysique: chamboule.touchePhysique,
     saisir: chamboule.saisir,
     preparer() {
-      courant = genererExercice(source.niveau(), Math.random, source.gens());
+      courant = (source.problemes ? genererProbleme : genererExercice)(source.niveau(), Math.random, source.gens());
     },
     afficher(_e, saisie, etat) {
       const x = exercice();
