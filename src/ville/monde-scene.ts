@@ -4,7 +4,7 @@
 
 import * as THREE from 'three';
 import type { GLTF } from 'three/addons/loaders/GLTFLoader.js';
-import { BORDS, ETANG, hasardStable, LARGEUR_CHEMIN, LARGEUR_RIVIERE, lignes, occupe, surUnChemin, type Point } from './monde.ts';
+import { BORDS, ETANG, FETE, hasardStable, LIEUX, LARGEUR_CHEMIN, LARGEUR_RIVIERE, lignes, occupe, surUnChemin, type Point } from './monde.ts';
 
 /** Un ruban posé au sol le long d'une ligne (chemin, rivière). */
 function ruban(ligne: readonly Point[], largeur: number, hauteur: number, bords = 0): THREE.BufferGeometry {
@@ -112,6 +112,10 @@ export function dessinerMonde(): Monde {
   etang.scale.set(ETANG.rx, 1, ETANG.rz);
   etang.position.set(ETANG.x, 0.07, ETANG.z);
   racine.add(plage, etang);
+  // Le sol de la fête : une grande place de terre battue.
+  const place = new THREE.Mesh(new THREE.CircleGeometry(FETE.rayon, 64).rotateX(-Math.PI / 2), terre);
+  place.position.set(LIEUX.fete.x, 0.028, LIEUX.fete.z);
+  racine.add(place);
   for (const o of racine.children) o.receiveShadow = true;
   return { racine, animer: (t) => (temps.value = t) };
 }

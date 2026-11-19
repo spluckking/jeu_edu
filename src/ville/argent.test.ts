@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ajouter, decomposer, euros, juger, pieces, retirer, total } from './argent.ts';
+import { ajouter, decomposer, euros, juger, payerSimplement, pieces, retirer, total } from './argent.ts';
 
 describe('argent', () => {
   it('décompose un montant avec le moins de pièces possible', () => {
@@ -31,5 +31,12 @@ describe('argent', () => {
     expect(euros(300)).toBe('3 €');
     expect(euros(250)).toBe('2,50 €');
     expect(euros(5)).toBe('0,05 €');
+  });
+
+  it('paie un tour de manège et rend la monnaie', () => {
+    expect(payerSimplement({ 500: 1 }, 100)).toEqual({ 200: 2 });
+    expect(payerSimplement({ 100: 2, 500: 1 }, 100)).toEqual({ 100: 1, 500: 1 });
+    expect(payerSimplement({ 0: 0 }, 100)).toBeNull();
+    expect(total(payerSimplement({ 100: 1, 200: 1 }, 300) ?? { 1: 1 })).toBe(0);
   });
 });

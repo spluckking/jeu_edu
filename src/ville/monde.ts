@@ -36,6 +36,30 @@ export const LIEUX = {
   fete: { x: 78, z: 0, cap: 0 },
 } satisfies Record<string, Lieu>;
 
+/** La fête foraine, après le portail : les stands en arc au nord de l'allée (face à la caméra),
+ *  les manèges au sud, la grande roue tout au fond. Chaque forain se tient devant son stand. */
+export const FETE = {
+  stands: {
+    chamboule: { x: 66.5, z: -8, cap: 0.35 },
+    confiserie: { x: 72.5, z: -10.5, cap: 0.15 },
+    chantier: { x: 78.5, z: -11.5, cap: 0 },
+    horloge: { x: 84.5, z: -10.5, cap: -0.15 },
+    peche: { x: 90, z: -8, cap: -0.35 },
+  },
+  maneges: {
+    autos: { x: 69.5, z: 9.5, cap: 0.3 },
+    trampoline: { x: 78, z: 11, cap: 0 },
+    glaces: { x: 86.5, z: 9.5, cap: -0.3 },
+  },
+  roue: { x: 94, z: 1, cap: -Math.PI / 2 },
+  rayon: 22,
+} as const;
+
+/** Où se tient un forain : un peu devant son stand. */
+export function devantLeStand(s: Lieu, d = 2.8): Lieu {
+  return { x: s.x + Math.sin(s.cap) * d, z: s.z + Math.cos(s.cap) * d, cap: s.cap };
+}
+
 /** Les buissons de mûres, dans une clairière du bois. */
 export const BUISSONS_MURES: Point[] = [
   { x: -44, z: -6 },

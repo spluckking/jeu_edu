@@ -22,6 +22,11 @@ import { installerDemandes, majSeance, parlerA } from './demandes-ville.ts';
 import { installerEpicerie, rafraichirHud } from './epicerie-ville.ts';
 import { installerJardin } from './jardin-ville.ts';
 import { installerPoste } from './poste-ville.ts';
+import { installerFete, ouvrirStand, ticketsDuJeuDAvant } from './fete-ville.ts';
+import { eurosDeReprise } from './reprise.ts';
+import { ajouter as ajouterPieces, decomposer, payerSimplement, total } from './argent.ts';
+import type { IdStand } from '../scene/fete.ts';
+import type { IdManege } from '../detente/objectifs.ts';
 import { installerProjets } from './projets-ville.ts';
 import projets from '../../content/ville/projets.json';
 import { installerRiviere } from './riviere-ville.ts';
@@ -30,11 +35,11 @@ import epicerie from '../../content/ville/epicerie.json';
 import meubles from '../../content/ville/meubles.json';
 import { chargerEtat, sauverEtat } from './etat.ts';
 import { creerSol, semerGazon } from './gazon.ts';
-import { BORDS, BUISSONS_MURES, dansLEau, LIEUX, occupe as occupeMonde, PONT, RAYON_PLACE, surLePont } from './monde.ts';
+import { BORDS, BUISSONS_MURES, dansLEau, devantLeStand, FETE, LIEUX, occupe as occupeMonde, PONT, RAYON_PLACE, surLePont } from './monde.ts';
 import { dessinerMonde, placesDesArbres, planterArbres } from './monde-scene.ts';
 
 /** Le forain du chamboule-tout, à la fête foraine, juste après le portail. */
-const FORAIN = { x: LIEUX.portailFete.x + 5.5, z: LIEUX.portailFete.z + 3.4, cap: -1.75 };
+const FORAIN = devantLeStand(FETE.stands.chamboule);
 import { aEntendre, decouper } from './mots.ts';
 
 const adresse = new URLSearchParams(location.search);
@@ -216,7 +221,12 @@ async function peupler(): Promise<void> {
       x: o.position.x,
       z: o.position.z,
       // Sa demande du jour d'abord ; sinon, son dialogue d'accueil.
-      action: () => void parlerA(h.id).then((fait) => fait || ouvrirDialogue(h)),
+      action: () =>
+        void parlerA(h.id).then((fait) => {
+          if (fait) return;
+          if (!etat.lus.includes(h.dialogue)) ouvrirDialogue(h);
+          else ouvrirStand('chamboule');
+        }),
     });
   }
   // L'épicerie, son épicière devant l'étal, et le pommier (tranche 1B).
@@ -257,6 +267,7 @@ async function peupler(): Promise<void> {
   }
   for (const id of etat.meubles) await poserMeuble(id);
   await poserPaysage();
+  await poserFete();
   await poserPotager();
   await poserRiviere();
   await poserPoste();
@@ -435,6 +446,49 @@ async function poserPaysage(): Promise<void> {
     poserCentre(portail.scene, 7.5, LIEUX.portailFete.x, LIEUX.portailFete.z, LIEUX.portailFete.cap);
     ville.add(portail.scene);
   }
+}
+
+// La fête foraine : les stands et leurs forains, les manèges, la grande roue.
+async function poserFete(): Promise<void> {
+  for (const [id, s] of Object.entries(FETE.stands)) {
+    const stand = await modele(`stand-${id}`);
+    if (stand) {
+      poserCentre(stand.scene, 5, s.x, s.z, s.cap);
+      ville.add(stand.scene);
+    }
+    obstacles.push({ x: s.x, z: s.z, r: 2.3 });
+    if (id === 'chamboule') continue;
+    const f = await modele(`forain-${id}`);
+    if (!f) continue;
+    const o = f.animations.length ? clonerAnime(f.scene) : f.scene;
+    const p = devantLeStand(s);
+    poser(o, 'y', 2.1, p.x, p.z, p.cap);
+    ville.add(o);
+    obstacles.push({ x: p.x, z: p.z, r: 0.6 });
+    const attente = f.animations.find((a) => /idle/i.test(a.name)) ?? f.animations[0];
+    if (attente) {
+      const m = new THREE.AnimationMixer(o);
+      m.clipAction(attente).play();
+      melangeurs.push(m);
+    }
+  }
+  const tailles: Record<string, [string, number]> = { autos: ['autos-tamponneuses', 9], trampoline: ['trampoline', 6.5], glaces: ['palais-glaces', 7] };
+  for (const [id, m] of Object.entries(FETE.maneges)) {
+    const [fichier, longueur] = tailles[id] ?? ['', 0];
+    const g = await modele(fichier);
+    if (g) {
+      poserCentre(g.scene, longueur, m.x, m.z, m.cap);
+      ville.add(g.scene);
+    }
+    obstacles.push({ x: m.x, z: m.z, r: longueur / 2.4 });
+  }
+  const roue = await modele('grande-roue');
+  if (roue) {
+    poserCentre(roue.scene, 12, FETE.roue.x, FETE.roue.z, FETE.roue.cap);
+    ville.add(roue.scene);
+  }
+  obstacles.push({ x: FETE.roue.x, z: FETE.roue.z, r: 4 });
+  if (qualite === 'haute') ombrer(ville);
 }
 
 // Les meubles gagnés, devant la maison, de part et d'autre de l'allée.
@@ -709,6 +763,44 @@ installerProjets({
   montrerLieu: (id) => void montrerLieu(id),
   annoncer: annoncerEnVille,
 });
+
+// La reprise du jeu d'avant, une seule fois : ses tickets deviennent des euros (la mémoire des
+// révisions et les prénoms des forains sont déjà partagés par la fête).
+async function reprendreLeJeuDAvant(): Promise<void> {
+  if (etat.lus.includes('reprise-jeu-avant')) return;
+  const tickets = ticketsDuJeuDAvant();
+  const centimes = eurosDeReprise(tickets);
+  etat.lus.push('reprise-jeu-avant');
+  if (centimes) etat.porteMonnaie = ajouterPieces(etat.porteMonnaie, decomposer(centimes));
+  await sauverEtat(etat);
+  rafraichirHud();
+  if (centimes) setTimeout(() => annoncerEnVille(`Bienvenue en ville ! Tes ${tickets} tickets de la fête deviennent ${centimes / 100} €.`), 2500);
+}
+
+void installerFete({
+  points,
+  occupe: (oui) => {
+    occupe = oui;
+    commandes.actives = !oui;
+    ui.interagir.hidden = true;
+  },
+  argent: () => total(etat.porteMonnaie),
+  gagner: (c) => {
+    etat.porteMonnaie = ajouterPieces(etat.porteMonnaie, decomposer(c));
+    void sauverEtat(etat);
+    rafraichirHud();
+  },
+  payer: (c) => {
+    const reste = payerSimplement(etat.porteMonnaie, c);
+    if (!reste) return false;
+    etat.porteMonnaie = reste;
+    void sauverEtat(etat);
+    rafraichirHud();
+    return true;
+  },
+  stands: Object.fromEntries(Object.entries(FETE.stands).map(([id, s]) => [id, devantLeStand(s)])) as unknown as Record<IdStand, { x: number; z: number }>,
+  maneges: Object.fromEntries(Object.entries(FETE.maneges).map(([id, m]) => [id, { x: m.x, z: m.z - 4.2 }])) as unknown as Record<IdManege, { x: number; z: number }>,
+}).then(reprendreLeJeuDAvant);
 
 installerEpicerie({
   points,

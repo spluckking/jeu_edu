@@ -761,3 +761,10 @@ button.produit {
   font-size: 3.2rem;
   line-height: 84px;
 }
+
+/* --- La fête foraine (stands du jeu d'avant) --------------------------------------------------- */
+
+/* Le panneau du stand passe devant le porte-monnaie et la séance du jour. */
+.stand-ville {
+  z-index: 8;
+}

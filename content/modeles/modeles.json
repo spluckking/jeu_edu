@@ -277,6 +277,96 @@
       "genre": "objet",
       "studio": true,
       "image": "content/modeles/images/portail-fete.png"
+    },
+    {
+      "id": "stand-chamboule",
+      "genre": "objet",
+      "studio": true,
+      "image": "content/modeles/images/stand-chamboule.png"
+    },
+    {
+      "id": "stand-confiserie",
+      "genre": "objet",
+      "studio": true,
+      "image": "content/modeles/images/stand-confiserie.png"
+    },
+    {
+      "id": "stand-chantier",
+      "genre": "objet",
+      "studio": true,
+      "image": "content/modeles/images/stand-chantier.png"
+    },
+    {
+      "id": "stand-horloge",
+      "genre": "objet",
+      "studio": true,
+      "image": "content/modeles/images/stand-horloge.png"
+    },
+    {
+      "id": "stand-peche",
+      "genre": "objet",
+      "studio": true,
+      "image": "content/modeles/images/stand-peche.png"
+    },
+    {
+      "id": "autos-tamponneuses",
+      "genre": "objet",
+      "studio": true,
+      "image": "content/modeles/images/autos-tamponneuses.png"
+    },
+    {
+      "id": "trampoline",
+      "genre": "objet",
+      "studio": true,
+      "image": "content/modeles/images/trampoline.png"
+    },
+    {
+      "id": "palais-glaces",
+      "genre": "objet",
+      "studio": true,
+      "image": "content/modeles/images/palais-glaces.png"
+    },
+    {
+      "id": "grande-roue",
+      "genre": "objet",
+      "studio": true,
+      "image": "content/modeles/images/grande-roue.png"
+    },
+    {
+      "id": "forain-confiserie",
+      "genre": "personnage",
+      "studio": true,
+      "image": "content/modeles/images/forain-confiserie.png",
+      "animations": [
+        "idle (Studio, squelette Mixamo)"
+      ]
+    },
+    {
+      "id": "forain-chantier",
+      "genre": "personnage",
+      "studio": true,
+      "image": "content/modeles/images/forain-chantier.png",
+      "animations": [
+        "idle (Studio, squelette Mixamo)"
+      ]
+    },
+    {
+      "id": "forain-horloge",
+      "genre": "personnage",
+      "studio": true,
+      "image": "content/modeles/images/forain-horloge.png",
+      "animations": [
+        "idle (Studio, squelette Mixamo)"
+      ]
+    },
+    {
+      "id": "forain-peche",
+      "genre": "personnage",
+      "studio": true,
+      "image": "content/modeles/images/forain-peche.png",
+      "animations": [
+        "idle (Studio, squelette Mixamo)"
+      ]
     }
   ]
 }
