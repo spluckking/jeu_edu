@@ -22,13 +22,14 @@ export default defineConfig(({ command, isPreview }) => {
         injectRegister: false,
         includeAssets: ['icone.svg', 'icone-192.png', 'icone-512.png'],
         manifest: {
-          name: 'La fête foraine',
-          short_name: 'Fête foraine',
+          name: 'MiniVille',
+          short_name: 'MiniVille',
           lang: 'fr',
           // Identité explicite et adresses absolues : Android ouvre alors l'icône comme une vraie
           // application (même correctif que Golémanciens).
           id: 'jeu-edu',
-          start_url: base,
+          // L'appli s'ouvre sur la ville ; l'ancien jeu reste à son adresse (index.html).
+          start_url: `${base}ville.html`,
           scope: base,
           // Plein écran et paysage sont demandés par le jeu au premier toucher (src/app/modeApp.ts) :
           // avec « fullscreen » et « landscape » dans le manifeste, l'icône ne s'ouvrait pas sur Android.

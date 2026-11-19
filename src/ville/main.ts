@@ -26,6 +26,8 @@ import { essaiGrandDefi, installerFete, ouvrirStand, standFini } from './fete-vi
 import { chantierOuvert, ETAPES, etapesVisibles } from './attraction.ts';
 import attractions from '../../content/ville/attractions.json';
 import { jourDe } from '../memoire/jours.ts';
+import { surveillerModeApp } from '../app/modeApp.ts';
+import { surveillerMiseAJour } from '../app/miseAJour.ts';
 import type { IdStand } from '../scene/fete.ts';
 import type { IdManege } from '../detente/objectifs.ts';
 import { installerProjets } from './projets-ville.ts';
@@ -1050,6 +1052,11 @@ renderer.setAnimationLoop(() => {
 
 await peupler();
 document.body.dataset.pret = '1';
+
+// L'appli MiniVille s'ouvre ici : plein écran au premier toucher, et mise à jour proposée
+// seulement quand l'enfant se promène (jamais pendant un exercice ou un dialogue).
+surveillerModeApp();
+if (import.meta.env.PROD) surveillerMiseAJour(() => !occupe && !enDialogue);
 
 // « ?essai » : placer le personnage d'un coup (essais et captures).
 if (adresse.has('essai')) {
