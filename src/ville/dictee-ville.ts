@@ -11,6 +11,7 @@ import { detecter, LIEUX as PIEGES, type IdLieu } from '../dictee/pieges.ts';
 import { LIEUX } from './monde.ts';
 import type { Atelier, Peinture, Vec3 } from '../scene/atelier.ts';
 import { bruitage } from '../son/bruitages.ts';
+import { musique } from '../son/musique.ts';
 import { dire } from '../son/voix.ts';
 import { confettis } from '../ui/confettis.ts';
 import { exercer } from './exercice.ts';
@@ -100,6 +101,7 @@ function construireDecor(c: Contexte): void {
 let fond: HTMLElement | null = null;
 function ouvrirFond(c: Contexte): HTMLElement {
   c.occupe(true);
+  musique.arreter();
   fond = creer('div', 'exercice-fond');
   document.body.append(fond);
   return fond;
@@ -124,6 +126,9 @@ function message(f: HTMLElement, titre: string, texte: string, libelle: string):
   });
 }
 
+/** L'enfant a touché « Sortir » : la séance s'arrête, ce qui est fait est gardé. */
+let sorti = false;
+
 /** Une série de mots : chaque mot raté revient plus loin (au plus deux fois). */
 async function serie(c: Contexte, f: HTMLElement, mots: string[], quitter: () => boolean): Promise<void> {
   const file = [...mots];
@@ -134,6 +139,10 @@ async function serie(c: Contexte, f: HTMLElement, mots: string[], quitter: () =>
     rang++;
     const e = c.dictee();
     const r = await exercer(f, { mot: w, phrase: phraseDe(e, w), fiche: jamaisVu(e, w), aide: true, rang: `${rang} / ${rang + file.length}` });
+    if (!r) {
+      sorti = true;
+      return;
+    }
     const jour = aujourdhui();
     const res = noter(c.dictee(), w, r, jour);
     c.changer(res.etat);
@@ -168,7 +177,12 @@ async function revisionOuConcours(c: Contexte): Promise<void> {
     let rang = 0;
     for (const m of e.mots) {
       rang++;
-      ecrits.push({ w: m.w, r: await exercer(f, { mot: m.w, phrase: m.phrase, fiche: false, aide: false, rang: `${rang} / ${e.mots.length}` }) });
+      const r = await exercer(f, { mot: m.w, phrase: m.phrase, fiche: false, aide: false, rang: `${rang} / ${e.mots.length}` });
+      if (!r) {
+        fermerFond(c);
+        return;
+      }
+      ecrits.push({ w: m.w, r });
     }
     // À la fin du concours, il compare chaque écriture au mot juste.
     const jugements = await comparerTout(f, ecrits.map((x) => ({ w: x.w, ecriture: x.r.ecriture ?? '' })));
@@ -187,9 +201,10 @@ async function revisionOuConcours(c: Contexte): Promise<void> {
     c.changer({ ...c.dictee(), aRevoir: [] });
     e = c.dictee();
   }
-  await serie(c, f, motsRestants(e), () => false);
+  sorti = false;
+  await serie(c, f, motsRestants(e), () => sorti);
   e = c.dictee();
-  if (e.quotidien.fini) {
+  if (e.quotidien.fini && !sorti) {
     bruitage.finDeManche();
     confettis(70);
     await message(f, 'Les mots du jour sont faits !', 'Tous les mots sont justes aujourd’hui. Ils reviendront au bon moment pour bien rester en mémoire.', 'Super !');
@@ -271,7 +286,8 @@ async function lieuDePiege(c: Contexte, lieu: IdLieu): Promise<void> {
   if (!ici.length) await message(f, PIEGES[lieu].nom, `Aucun mot n’habite ici cette semaine. ${PIEGES[lieu].regle}`, 'D’accord');
   else {
     await message(f, PIEGES[lieu].nom, `${PIEGES[lieu].regle} ${ici.length} mot${ici.length > 1 ? 's habitent' : ' habite'} ici.`, 'Je m’entraîne');
-    await serie(c, f, ici.slice(0, 8), () => false);
+    sorti = false;
+    await serie(c, f, ici.slice(0, 8), () => sorti);
   }
   fermerFond(c);
 }

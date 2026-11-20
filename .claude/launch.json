@@ -4,14 +4,35 @@
     {
       "name": "jeu",
       "runtimeExecutable": "npx",
-      "runtimeArgs": ["vite", "--host", "--port", "5175", "--strictPort"],
+      "runtimeArgs": [
+        "vite",
+        "--host",
+        "--port",
+        "5175",
+        "--strictPort"
+      ],
       "port": 5175
     },
     {
       "name": "styles",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev"],
+      "runtimeArgs": [
+        "run",
+        "dev"
+      ],
       "port": 5173
+    },
+    {
+      "name": "jeu-final",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": [
+        "vite",
+        "preview",
+        "--port",
+        "4175",
+        "--strictPort"
+      ],
+      "port": 4175
     }
   ]
 }
