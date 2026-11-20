@@ -232,8 +232,26 @@ async function finDeSeance(c: ContexteDemandes, f: HTMLElement): Promise<void> {
  */
 /** Ce qui se passe d'abord quand on parle à un habitant (recevoir une lettre…). */
 const avantDeParler: Array<(habitant: string, nom: string) => Promise<void>> = [];
-export function quandOnParle(f: (habitant: string, nom: string) => Promise<void>): void {
+export function quandOnParle(f: (habitant: string, nom: string) => Promise<void>, enAttente?: (habitant: string) => boolean): void {
   avantDeParler.push(f);
+  if (enAttente) attentes.push(enAttente);
+}
+/** Ce que d'autres lieux attendent de l'habitant (une lettre à recevoir…). */
+const attentes: Array<(habitant: string) => boolean> = [];
+
+/** L'habitant a une quête pour l'enfant aujourd'hui : une demande à donner, à recevoir ou en
+ *  cours, ou une lettre à recevoir. Le bouton « Quête » apparaît alors à côté de « Parler ». */
+export function aUneQuete(habitant: string): boolean {
+  const c = ctx;
+  if (!c) return false;
+  if (attentes.some((f) => f(habitant))) return true;
+  const e = c.etat();
+  const dj = demandesDuJour(e.demandes, demandes.demandes.map((x) => x.id), aujourdhui(), demandes.parJour);
+  return demandes.demandes.some((d) => {
+    if (!dj.ids.includes(d.id) || dj.faites.includes(d.id)) return false;
+    if (d.donneur === habitant && !dj.acceptees.includes(d.id)) return motsFaits(e, aujourdhui());
+    return dj.acceptees.includes(d.id) && (etapeDe(d, dj).destinataire === habitant || d.donneur === habitant);
+  });
 }
 
 export async function parlerA(habitant: string, boutique = false): Promise<boolean> {

@@ -198,3 +198,15 @@ export function questionnaire(e: Edition, hasard: () => number, nombre = 3): Que
   if (e.type === 'quetes') return tirer(e.quetes.flatMap((q) => q.questions), nombre);
   return tirer(e.quetes.flatMap((q) => q.bilan), nombre);
 }
+
+/** Les autres questions de l'édition (pas déjà posées), dans le désordre : à la deuxième erreur,
+ *  la question est remplacée par l'une d'elles. */
+export function reserve(e: Edition, posees: readonly Question[], hasard: () => number): Question[] {
+  const toutes = e.type === 'histoire' ? [...e.histoire.questions, ...e.quetes.flatMap((q) => q.questions)] : e.type === 'quetes' ? e.quetes.flatMap((q) => q.questions) : e.quetes.flatMap((q) => q.bilan);
+  const reste = toutes.filter((q) => !posees.includes(q));
+  for (let i = reste.length - 1; i > 0; i--) {
+    const j = Math.floor(hasard() * (i + 1));
+    [reste[i], reste[j]] = [reste[j]!, reste[i]!];
+  }
+  return reste;
+}

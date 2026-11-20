@@ -1371,3 +1371,64 @@ button.produit {
   color: var(--encre);
   font: 700 1.4rem var(--police);
 }
+
+/* Le bouton « Quête », à gauche du bouton d'action, quand l'habitant a une demande. */
+.interagir-quete {
+  position: fixed;
+  right: calc(232px + env(safe-area-inset-right));
+  bottom: calc(40px + env(safe-area-inset-bottom));
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 84px;
+  padding: 12px 24px 12px 14px;
+  border: 0;
+  border-radius: 32px;
+  background: #f0703c;
+  color: white;
+  box-shadow: 0 7px 0 #b84d22, var(--ombre);
+  animation: apparaitre 0.35s var(--rebond);
+}
+.interagir-quete[hidden] {
+  display: none;
+}
+.interagir-quete:active {
+  transform: translateY(4px);
+}
+.interagir-quete-signe {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: white;
+  color: #f0703c;
+  font: 800 1.6rem var(--police);
+}
+
+/* Deux sortes de quêtes sur la carte : longues (orange, plus grandes) et du jour (bleues). */
+.carte-quete.du-jour {
+  width: 32px;
+  height: 32px;
+  margin: -38px 0 0 -16px;
+  background: #3b8fd9;
+  font-size: 1.2rem;
+}
+.carte-quete.du-jour.choisie {
+  background: #7cc0f5;
+}
+.carte-fiche-sorte {
+  margin: 0 0 2px;
+  font: 700 0.85rem var(--police);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #3b8fd9;
+}
+.carte-fiche.longue .carte-fiche-sorte {
+  color: #f0703c;
+}
+.carte-legende {
+  font-size: 0.9rem;
+  opacity: 0.85;
+}

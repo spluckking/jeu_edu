@@ -14,6 +14,7 @@
     "question": "Question {n} sur {total}",
     "juste": "Bravo, c’est juste !",
     "faux": "Ce n’est pas ça. Relis la phrase qui brille, puis réessaie.",
+    "autre": "Pas grave ! Voici une autre question.",
     "fini": "Bravo ! Tu as tout compris. Ta journée peut commencer !",
     "rien": "Pas de nouvelles aujourd’hui. Bonne journée à MiniVille !",
     "jaiLu": "J’ai lu",

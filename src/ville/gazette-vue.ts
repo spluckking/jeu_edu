@@ -11,6 +11,8 @@ import { remplir, texteALire } from './interface.ts';
 export interface VueGazette {
   edition: Edition;
   questions: Question[];
+  /** D'autres questions de la même édition : à la deuxième erreur, la question change. */
+  reserve: Question[];
   /** La date en toutes lettres (« vendredi 20 novembre »). */
   date: string;
   /** Le numéro de la semaine de jeu. */
@@ -81,7 +83,8 @@ export function lireLaGazette(v: VueGazette): Promise<boolean> {
       });
       cote.append(b);
     };
-    const poser = (i: number): void => {
+    const reste = [...v.reserve];
+    const poser = (i: number, autre = false): void => {
       const q = v.questions[i];
       if (!q) return terminer();
       for (const s of phrases.values()) s.classList.remove('brille');
@@ -90,7 +93,8 @@ export function lireLaGazette(v: VueGazette): Promise<boolean> {
         const j = Math.floor(Math.random() * (k + 1));
         [choix[k], choix[j]] = [choix[j]!, choix[k]!];
       }
-      const retour = creer('p', 'gazette-retour');
+      const retour = creer('p', 'gazette-retour', autre ? T.textes.autre : '');
+      let erreurs = 0;
       const boutons = choix.map(({ c, juste }) => {
         const b = creer('button', 'choix gazette-choix', c);
         b.type = 'button';
@@ -104,6 +108,15 @@ export function lireLaGazette(v: VueGazette): Promise<boolean> {
             return;
           }
           bruitage.erreur();
+          erreurs++;
+          // Deuxième erreur : une autre question à la place (s'il en reste).
+          const nouvelle = erreurs >= 2 ? reste.shift() : undefined;
+          if (nouvelle) {
+            v.questions[i] = nouvelle;
+            setTimeout(() => poser(i, true), 700);
+            for (const x of boutons) x.disabled = true;
+            return;
+          }
           b.classList.add('faux');
           b.disabled = true;
           retour.textContent = T.textes.faux;

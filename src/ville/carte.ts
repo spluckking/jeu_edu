@@ -209,6 +209,15 @@ const FLECHES = [
 ] as const;
 
 /** ici.portrait : le personnage en miniature (image), posé à sa place sur la carte. */
+/** Une quête sur la carte : longue (la semaine, le chantier) ou du jour. */
+export interface QueteCarte {
+  x: number;
+  z: number;
+  titre: string;
+  texte: string;
+  longue: boolean;
+}
+
 /** quetes : les quêtes en cours, chacune marquée d'un repère ; un toucher sur le repère ouvre sa
  *  fiche, qui reste affichée (dans un coin de la carte) jusqu'à ce qu'on la ferme.
  *  deLoin : ouvrir sur toute la ville (depuis la Gazette). */
@@ -216,7 +225,7 @@ export function ouvrirCarte(
   plan: Plan,
   lieux: readonly LieuCarte[],
   ici: { x: number; z: number; portrait: string | null },
-  quetes: ReadonlyArray<{ x: number; z: number; titre: string; texte: string }> = [],
+  quetes: ReadonlyArray<QueteCarte> = [],
   options: { deLoin?: boolean } = {},
 ): Promise<void> {
   return new Promise((fini) => {
@@ -258,13 +267,16 @@ export function ouvrirCarte(
     const ficheTitre = Object.assign(document.createElement('p'), { className: 'carte-fiche-titre' });
     const ficheTexte = Object.assign(document.createElement('p'), { className: 'carte-fiche-texte' });
     const ficheFermer = Object.assign(document.createElement('button'), { type: 'button', className: 'carte-fiche-fermer', textContent: '×', ariaLabel: 'Fermer' });
-    fiche.append(ficheFermer, ficheTitre, ficheTexte);
+    const ficheSorte = Object.assign(document.createElement('p'), { className: 'carte-fiche-sorte' });
+    fiche.append(ficheFermer, ficheSorte, ficheTitre, ficheTexte);
     const marques = quetes.map((q) => {
-      const m = Object.assign(document.createElement('button'), { type: 'button', className: 'carte-quete', textContent: '!' });
+      const m = Object.assign(document.createElement('button'), { type: 'button', className: `carte-quete ${q.longue ? 'longue' : 'du-jour'}`, textContent: '!' });
       m.addEventListener('pointerdown', (e) => {
         e.stopPropagation();
         bruitage.touche();
         for (const x of marques) x.classList.toggle('choisie', x === m);
+        ficheSorte.textContent = q.longue ? T.longue : T.duJour;
+        fiche.classList.toggle('longue', q.longue);
         ficheTitre.textContent = q.titre;
         ficheTexte.textContent = q.texte;
         fiche.hidden = false;
@@ -345,7 +357,8 @@ export function ouvrirCarte(
     const loin = Object.assign(document.createElement('button'), { type: 'button', className: 'bouton-secondaire', textContent: T.deLoin });
     const actions = Object.assign(document.createElement('div'), { className: 'carte-actions' });
     actions.append(loin, fermer);
-    boite.append(titre, aide, vue, actions);
+    const legende = Object.assign(document.createElement('p'), { className: 'carte-aide carte-legende', textContent: T.legende });
+    boite.append(titre, aide, ...(quetes.length ? [legende] : []), vue, actions);
     fond.append(boite);
     document.body.append(fond);
     /** Change d'échelle, puis met l'enfant au milieu de la fenêtre. */

@@ -10,7 +10,7 @@ import { confettis } from '../ui/confettis.ts';
 import { ajouter, decomposer, euros, juger, pieces, PIECES_RONDES, retirer, somme, total } from './argent.ts';
 import { acheter, cueillir, pommierDuJour, vendre } from './commerce.ts';
 import type { PointInteret } from './dictee-ville.ts';
-import { nomDe, parlerA } from './demandes-ville.ts';
+import { aUneQuete, nomDe, parlerA } from './demandes-ville.ts';
 import { enMots, type Ligne } from './demandes.ts';
 import type { EtatVille } from './etat.ts';
 import { bouton, carte, creer, icone, majuscule, piece, remplir, texteALire } from './interface.ts';
@@ -350,8 +350,9 @@ export function installerEpicerie(c: ContexteEpicerie): void {
       nom: T.nom,
       x: c.epiciere.x,
       z: c.epiciere.z,
-      // D'abord sa demande du jour, s'il y en a une ; puis la boutique.
-      action: () => void parlerA('epiciere', true).then(() => entrer(c)),
+      // Parler : la boutique ; sa demande du jour (ou une livraison) a son propre bouton.
+      action: () => entrer(c),
+      quete: { visible: () => aUneQuete('epiciere'), action: () => void parlerA('epiciere', true) },
     },
     { verbe: T.cueillir, nom: T.pommier, x: c.pommier.x, z: c.pommier.z, action: () => cueillirUnePomme(c) },
   );

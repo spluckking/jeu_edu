@@ -18,11 +18,11 @@ import { choisirQualite, eclairer, ombrer } from '../scene/qualite.ts';
 import { CameraHaute } from '../scene/suivi.ts';
 import { dire } from '../son/voix.ts';
 import { installerDictee, type PointInteret } from './dictee-ville.ts';
-import { installerDemandes, majSeance, parlerA } from './demandes-ville.ts';
+import { aUneQuete, installerDemandes, majSeance, parlerA } from './demandes-ville.ts';
 import { installerEpicerie, rafraichirHud } from './epicerie-ville.ts';
 import { installerJardin } from './jardin-ville.ts';
 import { installerPoste } from './poste-ville.ts';
-import { appliquerReglagesDuJeu, essaiGrandDefi, installerFete, PRENOMS_ATTRACTION, ouvrirStand, standFini } from './fete-ville.ts';
+import { appliquerReglagesDuJeu, essaiGrandDefi, installerFete, PRENOMS_ATTRACTION, toutFini, ouvrirStand, standFini } from './fete-ville.ts';
 import { chantierOuvert, ETAPES, etapesVisibles } from './attraction.ts';
 import attractions from '../../content/ville/attractions.json';
 import { jourDe } from '../memoire/jours.ts';
@@ -34,9 +34,12 @@ import { lirePhoto, type IdPhoto } from './photos.ts';
 import { voirPhoto } from './photo-vue.ts';
 import { echanger, installerParent } from './parent-ville.ts';
 import gazetteT from '../../content/ville/gazette.json';
-import { editionDuJour, lundiDe, questionnaire, quetesDeLaSemaine, type Quete } from './gazette.ts';
+import { editionDuJour, lundiDe, questionnaire, quetesDeLaSemaine, reserve, type Quete } from './gazette.ts';
 import { lireLaGazette } from './gazette-vue.ts';
-import { lieuxDeLaCarte, ouvrirCarte, photographierLaVille, type Plan } from './carte.ts';
+import { lieuxDeLaCarte, ouvrirCarte, photographierLaVille, type Plan, type QueteCarte } from './carte.ts';
+import carteT from '../../content/ville/carte.json';
+import { peutTrier } from './poste.ts';
+import { buissonsCharges, peutPecher } from './riviere.ts';
 import { CADRE_FAMILLE, construirePiece, dedans, ENTREE_INTERIEUR, SORTIE_INTERIEUR, INTERIEUR, PANNEAU_PRENOM, resterDansLaPiece, tapis } from './maison-interieur.ts';
 import { bruitage, demarrerSon } from '../son/bruitages.ts';
 import { musique, type Piste } from '../son/musique.ts';
@@ -314,13 +317,12 @@ async function peupler(): Promise<void> {
       nom: h.nom,
       x: o.position.x,
       z: o.position.z,
-      // Sa demande du jour d'abord ; sinon, son dialogue d'accueil.
-      action: () =>
-        void parlerA(h.id).then((fait) => {
-          if (fait) return;
-          if (!etat.lus.includes(h.dialogue)) ouvrirDialogue(h);
-          else ouvrirStand('chamboule');
-        }),
+      // Parler : son accueil, puis son stand ; sa demande du jour a son propre bouton.
+      action: () => {
+        if (!etat.lus.includes(h.dialogue)) ouvrirDialogue(h);
+        else ouvrirStand('chamboule');
+      },
+      quete: { visible: () => aUneQuete(h.id), action: () => void parlerA(h.id) },
     });
   }
   // L'épicerie, son épicière devant l'étal, et le pommier (tranche 1B).
@@ -894,6 +896,13 @@ ui.fermer.addEventListener('click', () => {
 ui.interagir.addEventListener('click', () => {
   proche?.action();
 });
+// Le bouton « Quête », à côté : quand celui à qui on parle a une demande (ou une lettre) pour l'enfant.
+const boutonQuete = document.body.appendChild(Object.assign(document.createElement('button'), { type: 'button', className: 'interagir-quete', hidden: true }));
+boutonQuete.innerHTML = '<span class="interagir-quete-signe" aria-hidden="true">!</span><span class="interagir-mot">Quête</span>';
+boutonQuete.addEventListener('click', () => {
+  bruitage.touche();
+  proche?.quete?.action();
+});
 
 installerDictee({
   atelier,
@@ -1148,6 +1157,7 @@ function promenade(dt: number): number {
     ui.interagirMot.textContent = proche.verbe;
     ui.interagirTexte.textContent = proche.nom;
   }
+  boutonQuete.hidden = !proche?.quete || ui.interagir.hidden || !proche.quete.visible();
   // En marchant, l'animation de marche même joystick à fond ; la course seulement avec le bouton.
   return vite ? force : Math.min(force, 0.7);
 }
@@ -1426,12 +1436,14 @@ async function ouvrirLaGazette(): Promise<void> {
   const lundi = lundiDe(jour);
   const premiere = etat.gazette.premiere || lundi;
   const semaine = Math.round((Date.parse(lundi) - Date.parse(premiere)) / (7 * 86400000)) + 1;
+  const questions = questionnaire(edition, Math.random);
   const avant = commandes.actives;
   commandes.actives = false;
   occupe = true;
   const ok = await lireLaGazette({
     edition,
-    questions: questionnaire(edition, Math.random),
+    questions,
+    reserve: reserve(edition, questions, Math.random),
     date: new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }),
     semaine,
     visiter: () => ouvrirLaCarte(true),
@@ -1513,6 +1525,38 @@ boutonCarte.addEventListener('click', () => {
   bruitage.touche();
   void ouvrirLaCarte();
 });
+/** Toutes les quêtes à montrer sur la carte : les longues (celles de la semaine, le chantier) et
+ *  celles du jour (demandes des habitants, courrier, pêche, mûres, potager, révision, stands). */
+function quetesPourLaCarte(): QueteCarte[] {
+  const Q = carteT.quetes;
+  const jour = aujourdhuiVille();
+  const liste: QueteCarte[] = quetesDuJour()
+    .filter((q) => !q.faite)
+    .map((q) => ({ ...(q.lieu === 'fete' ? FORAIN_ROUE : LIEUX.tableau), titre: q.titre, texte: q.phrases.join(' '), longue: true }));
+  const lieuChantier = etat.projets.enCours ? LIEUX_PROJETS[etat.projets.enCours] : undefined;
+  if (lieuChantier && !etat.projets.termine) liste.push({ ...lieuChantier, ...Q.chantier, longue: true });
+  const duJour = (lieu: { x: number; z: number }, q: { titre: string; texte: string }): void => {
+    liste.push({ x: lieu.x, z: lieu.z, titre: q.titre, texte: q.texte, longue: false });
+  };
+  const habitants: Array<{ id: string; nom: string; lieu: { x: number; z: number }; elle: boolean }> = [
+    { id: 'epiciere', nom: 'L’épicière', lieu: EPICIERE, elle: true },
+    { id: 'forain-chamboule', nom: 'Le forain', lieu: FORAIN, elle: false },
+  ];
+  for (const h of habitants) {
+    if (!aUneQuete(h.id)) continue;
+    const q = h.elle ? Q.demandeF : Q.demande;
+    duJour(h.lieu, { titre: q.titre, texte: q.texte.replace('{nom}', h.nom) });
+  }
+  if (peutTrier(etat.poste, jour)) duJour(POSTIERE, Q.courrier);
+  if (peutPecher(etat.riviere, jour)) duJour(LIEUX.ponton, Q.peche);
+  if (buissonsCharges(etat.riviere, jour).length) duJour(BUISSONS_MURES[0] ?? LIEUX.ponton, Q.mures);
+  if (etat.parcelles.some((p) => p.graine && !p.arrosages.includes(jour))) duJour(LIEUX.potager, Q.potager);
+  const q = etat.dictee.quotidien;
+  if (etat.dictee.mots.length && !(q.jour === jour && q.fini)) duJour(LIEUX.tableau, Q.revision);
+  if (!toutFini()) duJour(LIEUX.fete, Q.stands);
+  return liste;
+}
+
 /** Ouvre la carte, avec un repère sur chaque quête de la semaine pas encore finie ; deLoin : sur
  *  toute la ville (depuis la Gazette). */
 function ouvrirLaCarte(deLoin = false): Promise<void> {
@@ -1534,10 +1578,7 @@ function ouvrirLaCarte(deLoin = false): Promise<void> {
     heros.racine.visible = true;
   }
   const plan = planDeLaVille;
-  const quetes = quetesDuJour()
-    .filter((q) => !q.faite)
-    .map((q) => ({ ...(q.lieu === 'fete' ? FORAIN_ROUE : LIEUX.tableau), titre: q.titre, texte: q.phrases.join(' ') }));
-  return ouvrirCarte(plan, lieux, { x: p.x, z: p.z, portrait }, quetes, { deLoin }).then(() => {
+  return ouvrirCarte(plan, lieux, { x: p.x, z: p.z, portrait }, quetesPourLaCarte(), { deLoin }).then(() => {
     commandes.actives = avant;
   });
 }

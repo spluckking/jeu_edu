@@ -25,6 +25,8 @@ export interface PointInteret {
   visible?(): boolean;
   /** À quelle distance le bouton apparaît (par défaut : 3,4 m). */
   rayon?: number;
+  /** Une quête à part (demande, lettre) : un second bouton « Quête » apparaît à côté. */
+  quete?: { visible(): boolean; action(): void };
 }
 
 export interface Contexte {

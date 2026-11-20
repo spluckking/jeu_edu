@@ -4,6 +4,20 @@
   "titre": "La carte",
   "aide": "Glisse ton doigt sur la carte pour lire le nom des lieux.",
   "ici": "Tu es ici",
+  "legende": "! orange : quête longue. ! bleu : quête du jour. Touche un ! pour lire la quête.",
+  "longue": "Quête longue",
+  "duJour": "Quête du jour",
+  "quetes": {
+    "chantier": { "titre": "Le chantier", "texte": "Le chantier attend des récoltes, des euros et des coups de main. Va voir ce qu’il manque !" },
+    "demande": { "titre": "Une demande", "texte": "{nom} a besoin de toi. Va le voir et touche « Quête »." },
+    "demandeF": { "titre": "Une demande", "texte": "{nom} a besoin de toi. Va la voir et touche « Quête »." },
+    "courrier": { "titre": "Le courrier", "texte": "La postière a du courrier à trier aujourd’hui." },
+    "peche": { "titre": "La pêche du jour", "texte": "Les poissons t’attendent au ponton." },
+    "mures": { "titre": "Les mûres", "texte": "Il reste des mûres à cueillir dans le bois." },
+    "potager": { "titre": "Ton potager", "texte": "Tes plantes t’attendent : arrose-les, ou récolte-les quand elles sont prêtes." },
+    "revision": { "titre": "La révision des mots", "texte": "Révise les mots de la semaine au tableau des mots." },
+    "stands": { "titre": "Les stands de la fête", "texte": "Les forains des stands attendent ton aide aujourd’hui." }
+  },
   "deLoin": "Toute la ville",
   "dePres": "Autour de moi",
   "lieux": {
