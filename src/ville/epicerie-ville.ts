@@ -14,6 +14,9 @@ import { aUneQuete, nomDe, parlerA } from './demandes-ville.ts';
 import { enMots, type Ligne } from './demandes.ts';
 import type { EtatVille } from './etat.ts';
 import { bouton, carte, creer, icone, majuscule, piece, remplir, texteALire } from './interface.ts';
+import { brouillonDisponible } from './brouillon.ts';
+import { CASES, casesPrises } from './sac.ts';
+import { voirSac } from './sac-vue.ts';
 
 export interface ContexteEpicerie {
   points: PointInteret[];
@@ -25,6 +28,8 @@ export interface ContexteEpicerie {
   pommier: { x: number; z: number };
   /** Montre ce nombre de pommes sur l'arbre. */
   pommesSurLArbre(n: number): void;
+  /** Jette des objets du sac : ils sont posés par terre, aux pieds de l'enfant. */
+  jeter(produit: string, n: number): void;
 }
 
 type Produit = (typeof epicerie.produits)[number];
@@ -44,8 +49,8 @@ function majHud(c: ContexteEpicerie): void {
   if (!hud) return;
   const e = c.etat();
   hud.argent.textContent = euros(total(e.porteMonnaie));
-  const n = Object.values(e.panier).reduce((a, b) => a + b, 0);
-  hud.panier.textContent = String(n);
+  // Les cases prises dans le sac (sur 8).
+  hud.panier.textContent = `${casesPrises(e.panier)}/${CASES}`;
 }
 
 function installerHud(c: ContexteEpicerie): void {
@@ -64,11 +69,14 @@ function installerHud(c: ContexteEpicerie): void {
 
 function ouvrir(c: ContexteEpicerie): HTMLElement {
   c.occupe(true);
+  // Des calculs (payer, rendre, compter) : le brouillon est là.
+  brouillonDisponible(true);
   const f = creer('div', 'exercice-fond');
   document.body.append(f);
   return f;
 }
 function fermer(c: ContexteEpicerie, f: HTMLElement): void {
+  brouillonDisponible(false);
   f.remove();
   c.occupe(false);
   majHud(c);
@@ -83,16 +91,17 @@ async function voirPorteMonnaie(c: ContexteEpicerie): Promise<void> {
   fermer(c, f);
 }
 
+/** Le sac à dos (sac-vue.ts) : 8 cases ; on peut y jeter des objets. */
 async function voirPanier(c: ContexteEpicerie): Promise<void> {
   const f = ouvrir(c);
-  const e = c.etat();
-  const liste = creer('div', 'grille-produits');
-  for (const [id, n] of Object.entries(e.panier)) {
-    const case_ = creer('div', 'produit');
-    case_.append(icone(id), creer('span', 'produit-nom', `${n} ${n > 1 ? nomDe(id).pluriel : nomDe(id).nom}`));
-    liste.append(case_);
-  }
-  await carte(f, T.panier, liste.childElementCount ? '' : T.panierVide, ['D’accord !'], [liste]);
+  await voirSac(
+    f,
+    () => c.etat().panier,
+    (produit, n) => {
+      c.jeter(produit, n);
+      majHud(c);
+    },
+  );
   fermer(c, f);
 }
 

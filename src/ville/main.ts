@@ -20,8 +20,12 @@ import { choisirQualite, eclairer, ombrer } from '../scene/qualite.ts';
 import { CameraHaute } from '../scene/suivi.ts';
 import { dire } from '../son/voix.ts';
 import { installerDictee, type PointInteret } from './dictee-ville.ts';
-import { aUneQuete, installerDemandes, majSeance, parlerA } from './demandes-ville.ts';
+import { aUneQuete, installerDemandes, majSeance, nomDe, parlerA } from './demandes-ville.ts';
 import { saluerHabitant } from './salut-habitants.ts';
+import sacT from '../../content/ville/sac.json';
+import type { Panier } from './commerce.ts';
+import { remplir } from './interface.ts';
+import { CASES, casesPrises, nouveauJour, ranger } from './sac.ts';
 import { installerEpicerie, rafraichirHud } from './epicerie-ville.ts';
 import { installerJardin } from './jardin-ville.ts';
 import { installerPoste } from './poste-ville.ts';
@@ -1148,8 +1152,128 @@ installerEpicerie({
   epiciere: EPICIERE,
   pommier: POMMIER,
   pommesSurLArbre: montrerPommes,
+  jeter: (produit, n) => poserParTerre(produit, n, true),
 });
 majSeance();
+
+// --- Le sac à dos et le sol (sac.ts) ------------------------------------------------------------
+// Chaque jour, au premier lancement : les objets de quête d'hier quittent le sac (et les lettres
+// pas livrées sont oubliées), et ce qui était par terre a disparu.
+{
+  const jour = jourDe(new Date());
+  if (etat.sacJour !== jour) {
+    const r = nouveauJour(etat.panier, etat.sol, jour);
+    etat.panier = r.sac;
+    etat.sol = r.sol;
+    if (etat.poste.tri !== jour) etat.poste = { ...etat.poste, aLivrer: [] };
+    etat.sacJour = jour;
+    void sauverEtat(etat);
+  }
+}
+/** Les objets par terre, dans la ville : une image de l'objet qui flotte, et « Ramasser ». */
+const objetsAuSol = new Map<string, { sprite: THREE.Sprite; point: PointInteret }>();
+const imagesAuSol = new Map<string, THREE.SpriteMaterial>();
+function imageAuSol(produit: string): THREE.SpriteMaterial {
+  let m = imagesAuSol.get(produit);
+  if (!m) {
+    m = new THREE.SpriteMaterial({ map: new THREE.TextureLoader().load(`${import.meta.env.BASE_URL}icones/icone-${produit}.webp`), transparent: true });
+    imagesAuSol.set(produit, m);
+  }
+  return m;
+}
+function dessinerLeSol(): void {
+  const presents = new Set(etat.sol.map((o) => o.id));
+  for (const [id, x] of objetsAuSol) {
+    if (presents.has(id)) continue;
+    x.sprite.removeFromParent();
+    const i = points.indexOf(x.point);
+    if (i >= 0) points.splice(i, 1);
+    objetsAuSol.delete(id);
+  }
+  for (const o of etat.sol) {
+    if (objetsAuSol.has(o.id)) continue;
+    const sprite = new THREE.Sprite(imageAuSol(o.produit));
+    sprite.scale.setScalar(0.7);
+    sprite.position.set(o.x, 0.45, o.z);
+    ville.add(sprite);
+    const nom = o.nombre > 1 ? nomDe(o.produit).pluriel : nomDe(o.produit).nom;
+    const point: PointInteret = { verbe: sacT.ramasser, nom: `${o.nombre} ${nom}`, x: o.x, z: o.z, rayon: 1.6, action: () => ramasser(o.id) };
+    points.push(point);
+    objetsAuSol.set(o.id, { sprite, point });
+  }
+}
+/** Pose des objets par terre, aux pieds de l'enfant (jetés : on les retire du sac d'abord). */
+function poserParTerre(produit: string, n: number, duSac: boolean): void {
+  if (n <= 0) return;
+  if (duSac) {
+    const reste = (etat.panier[produit] ?? 0) - n;
+    const panier = { ...etat.panier };
+    if (reste > 0) panier[produit] = reste;
+    else delete panier[produit];
+    etat.panier = panier;
+    dernierSac = panier;
+  }
+  const p = dansLaMaison ? PORTE_MAISON : heros.racine.position;
+  const a = Math.random() * Math.PI * 2;
+  etat.sol = [...etat.sol, { id: `${Date.now().toString(36)}-${Math.floor(Math.random() * 1e4)}`, produit, nombre: n, x: p.x + Math.cos(a) * 0.9, z: p.z + Math.sin(a) * 0.9, jour: jourDe(new Date()) }];
+  void sauverEtat(etat);
+  dessinerLeSol();
+  rafraichirHud();
+}
+/** Ramasser : ce qui rentre dans le sac ; le reste reste par terre. */
+function ramasser(id: string): void {
+  const o = etat.sol.find((x) => x.id === id);
+  if (!o) return;
+  const r = ranger(etat.panier, o.produit, o.nombre);
+  if (r.reste === o.nombre) {
+    annoncerEnVille(sacT.toujoursPlein);
+    return;
+  }
+  bruitage.touche();
+  etat.panier = r.sac;
+  dernierSac = r.sac;
+  etat.sol = r.reste ? etat.sol.map((x) => (x.id === id ? { ...x, nombre: r.reste } : x)) : etat.sol.filter((x) => x.id !== id);
+  void sauverEtat(etat);
+  rafraichirHud();
+  // Le point « Ramasser » change de nom (ou disparaît) : on le refait.
+  const vieux = objetsAuSol.get(id);
+  if (vieux) {
+    vieux.sprite.removeFromParent();
+    const i = points.indexOf(vieux.point);
+    if (i >= 0) points.splice(i, 1);
+    objetsAuSol.delete(id);
+  }
+  dessinerLeSol();
+}
+/** Le sac qui débordait : ce qui vient d'y être ajouté en trop est posé par terre, avec un message.
+ *  (Vérifié souvent dans la boucle : aucun lieu qui donne des objets n'a besoin d'y penser.) */
+let dernierSac: Panier = { ...etat.panier };
+function verifierLeSac(): void {
+  if (casesPrises(etat.panier) <= CASES) {
+    dernierSac = etat.panier;
+    return;
+  }
+  const ajoutes = Object.entries(etat.panier).filter(([p, n]) => n > (dernierSac[p] ?? 0));
+  const tombes: Array<[string, number]> = [];
+  let sac: Panier = { ...dernierSac };
+  // On remet d'abord ce qui rentre, sorte par sorte ; le reste tombe.
+  for (const [p, n] of ajoutes) {
+    const r = ranger(sac, p, n - (dernierSac[p] ?? 0));
+    sac = r.sac;
+    if (r.reste) tombes.push([p, r.reste]);
+  }
+  // Ce qui a été retiré pendant ce temps (donné, vendu) reste retiré.
+  for (const [p, n] of Object.entries(etat.panier)) if (n < (sac[p] ?? 0)) sac[p] = n;
+  etat.panier = sac;
+  dernierSac = sac;
+  for (const [p, n] of tombes) poserParTerre(p, n, false);
+  if (tombes.length) {
+    const objets = tombes.map(([p, n]) => `${n} ${n > 1 ? nomDe(p).pluriel : nomDe(p).nom}`).join(', ');
+    const pluriel = tombes.length > 1 || (tombes[0]?.[1] ?? 0) > 1;
+    annoncerEnVille(remplir(pluriel ? sacT.pleinPluriel : sacT.plein, { objets: objets.charAt(0).toUpperCase() + objets.slice(1) }));
+  }
+}
+dessinerLeSol();
 
 // --- La promenade ------------------------------------------------------------------------------
 const VITESSE = 4.2;
@@ -1322,6 +1446,7 @@ renderer.setAnimationLoop(() => {
   renderer.render(scene, camera);
   if (pas > 0) retenirPosition(performance.now());
   sonDeLEndroit(performance.now());
+  if (Math.floor(t * 3) !== Math.floor((t - dt) * 3)) verifierLeSac();
   animerLesMarques?.(t, performance.now());
   if (boiteFps) {
     images++;
@@ -1767,6 +1892,10 @@ if (adresse.has('essai')) {
       prenom: () => void choisirPrenom(),
       gazette: () => void ouvrirLaGazette(),
       liste: () => dictee.ouvrirLaListe(),
+      stand: (id: IdStand) => ouvrirStand(id),
+      donner: (produit: string, n: number) => {
+        etat.panier = { ...etat.panier, [produit]: (etat.panier[produit] ?? 0) + n };
+      },
     },
   });
 }

@@ -24,7 +24,8 @@ describe('état de la ville', () => {
 
   it('reprend une sauvegarde de la version 1 sans argent ni panier', () => {
     const e = lireEtat({ version: 1, position: { x: 1, z: 2, cap: 0 }, lus: ['forain-accueil'] });
-    expect(e.version).toBe(10);
+    expect(e.version).toBe(11);
+    expect(e.sol).toEqual([]);
     expect(e.gazette).toEqual({ valideLe: '', premiere: '', histoiresLues: [], chronique: [] });
     expect(e.prenom).toBe('');
     expect(e.attraction.enCours).toBe('grande-roue');

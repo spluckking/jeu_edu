@@ -36,6 +36,7 @@ import type { PointInteret } from './dictee-ville.ts';
 import { carte, creer } from './interface.ts';
 import { fichierForain } from './voix-forains.ts';
 import { avecPrenom } from './prenom-ecrit.ts';
+import { brouillonDisponible } from './brouillon.ts';
 
 export interface ContexteFete {
   points: PointInteret[];
@@ -490,6 +491,8 @@ function ouvrirEpreuve(): void {
   bruitage.ouverture();
   ui.stand.classList.remove('large');
   ui.stand.hidden = false;
+  // Le grand défi : des problèmes, avec le brouillon.
+  brouillonDisponible(true);
   jeu.construireClavier(q('.clavier'), toucher);
   typeManche = 'epreuve';
   lancerManche();
@@ -502,6 +505,8 @@ export function ouvrirStand(id: IdStand): void {
   bruitage.ouverture();
   ui.stand.classList.toggle('large', jeu.large);
   ui.stand.hidden = false;
+  // Les stands de calcul (tables, défis, horloge) : le brouillon est là.
+  brouillonDisponible(['calcul', 'defi', 'heure'].includes(jeu.type));
   jeu.construireClavier(q('.clavier'), toucher);
   const prochaine = prochaineManche();
   if (prochaine === 'libre') return carteFini(false);
@@ -510,6 +515,7 @@ export function ouvrirStand(id: IdStand): void {
 }
 
 function fermerStand(): void {
+  brouillonDisponible(false);
   musique.arreter();
   ouvert = false;
   manche = null;

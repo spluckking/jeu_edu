@@ -93,3 +93,7 @@ Questions qui peuvent attendre. Elles ne bloquent pas le jeu.
    - l’épicière : « Bonjour ! Bienvenue à l’épicerie. », « Ah, te revoilà ! Ça me fait plaisir. », « Bonjour ! Tout est frais aujourd’hui. » ;
    - la postière : « Bonjour ! Le courrier n’attend pas. », « Ah, te voilà ! J’ai des lettres pour toi. », « Bonjour ! Encore une belle journée pour le courrier. » ;
    - le boulanger : « Bonjour ! Ça sent bon le pain chaud, hein ? », « Ah, te voilà ! Mon four est déjà chaud. », « Bonjour ! Une petite faim ? ».
+27. **Ville : le brouillon et le sac à dos** (`content/ville/sac.json`, `src/ville/brouillon.ts`) : demandés par le parent, **faits dans le programme**. **À valider**, les textes :
+   - le brouillon : l’onglet « Brouillon » (bord gauche, pendant les exercices de calcul), « Gomme » / « Crayon », « Tout effacer », « Fermer » ;
+   - le sac : « Mon sac », « Ton sac est vide. », « Touche un objet pour le jeter. Il restera par terre jusqu’à demain. », « 3 cases sur 8 », « Jeter 1 », « Jeter tout », « Garder », « Plus de place dans ton sac ! 4 tomates restent par terre. Fais de la place, puis reviens ici. » (« reste » au singulier), « Ramasser » et « Ton sac est encore plein : jette quelque chose d’abord. ».
+   Pour mémoire : 8 cases, 10 objets d’une sorte par case (une lettre ou un colis par case) ; ce qui ne rentre pas, et ce qu’on jette, reste par terre jusqu’au lendemain ; les objets d’une quête du jour (colis, lettres, crêpes) quittent le sac le lendemain ; le compteur en haut montre les cases prises (« 3/8 »).

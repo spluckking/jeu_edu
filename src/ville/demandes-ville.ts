@@ -16,6 +16,7 @@ import { accepter, demandesDuJour, enMots, etapeSuivante, lotsProposes, seanceFi
 import { aider } from './projets.ts';
 import { bouton, carte, creer, icone, majuscule, piece, remplir, texteALire } from './interface.ts';
 import type { EtatVille } from './etat.ts';
+import { brouillonDisponible } from './brouillon.ts';
 
 export interface ContexteDemandes {
   etat(): EtatVille;
@@ -96,11 +97,14 @@ export function majSeance(): void {
 
 function ouvrir(c: ContexteDemandes): HTMLElement {
   c.occupe(true);
+  // Des calculs (payer, rendre, compter) : le brouillon est là.
+  brouillonDisponible(true);
   const f = creer('div', 'exercice-fond');
   document.body.append(f);
   return f;
 }
 function fermer(c: ContexteDemandes, f: HTMLElement): void {
+  brouillonDisponible(false);
   f.remove();
   c.occupe(false);
   c.apresUnChangement();
