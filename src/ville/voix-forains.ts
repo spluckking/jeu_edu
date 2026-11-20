@@ -29,6 +29,10 @@ export const VOIX_FORAINS: Record<string, Reglage> = {
   horloge: depuis('horloge'),
   peche: depuis('peche'),
   roue: { voix: 'fr-FR-YvesNeural', hauteur: '+3%', debit: '-3%' },
+  // Les habitants de la ville (content/ville/salutations-habitants.json), des voix que les forains n'ont pas.
+  epiciere: { voix: 'fr-FR-JosephineNeural', hauteur: '+0%', debit: '-4%' },
+  postiere: { voix: 'fr-FR-YvetteNeural', hauteur: '+2%', debit: '-2%' },
+  boulanger: { voix: 'fr-FR-ClaudeNeural', hauteur: '-2%', debit: '-5%' },
 };
 
 /** Le fichier d'une phrase dite par ce forain (relatif au dossier des voix). */
@@ -50,4 +54,9 @@ export function phrasesDesForains(t: TextesFete): Array<[string, string]> {
   for (const [stand, phrases] of Object.entries(t.salutations)) for (const p of [...phrases, t.apresUneManche, t.finiAujourdhui]) r.push([stand, p]);
   for (const [cle, p] of Object.entries(t.attraction)) if (cle !== 'nom') r.push(['roue', p]);
   return r;
+}
+
+/** Les salutations des habitants, à enregistrer : [habitant, phrase]. */
+export function phrasesDesHabitants(t: { habitants: Record<string, { phrases: string[] }> }): Array<[string, string]> {
+  return Object.entries(t.habitants).flatMap(([id, h]) => h.phrases.map((p): [string, string] => [id, p]));
 }
