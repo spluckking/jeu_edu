@@ -5,7 +5,7 @@
 
 import T from '../../content/ville/gazette.json';
 import { bruitage } from '../son/bruitages.ts';
-import type { Edition, Question, Quete } from './gazette.ts';
+import type { Edition, Question } from './gazette.ts';
 import { remplir, texteALire } from './interface.ts';
 
 export interface VueGazette {
@@ -15,8 +15,8 @@ export interface VueGazette {
   date: string;
   /** Le numéro de la semaine de jeu. */
   semaine: number;
-  /** Montre ces quêtes sur la carte, l'une après l'autre. */
-  visiter(quetes: Quete[]): Promise<void>;
+  /** Montre les quêtes sur la carte (toute la ville, un repère par quête). */
+  visiter(): Promise<void>;
 }
 
 const creer = <K extends keyof HTMLElementTagNameMap>(tag: K, classe: string, texte?: string): HTMLElementTagNameMap[K] => {
@@ -55,7 +55,7 @@ export function lireLaGazette(v: VueGazette): Promise<boolean> {
       carte.addEventListener('click', () => {
         bruitage.touche();
         fond.hidden = true;
-        void v.visiter(e.quetes).then(() => (fond.hidden = false));
+        void v.visiter().then(() => (fond.hidden = false));
       });
       article.append(carte);
     }

@@ -209,19 +209,21 @@ const FLECHES = [
 ] as const;
 
 /** ici.portrait : le personnage en miniature (image), posé à sa place sur la carte. */
-/** visite : des étapes à montrer l'une après l'autre (les quêtes de la Gazette), avec « Suivant ». */
+/** quetes : les quêtes en cours, chacune marquée d'un repère ; un toucher sur le repère ouvre sa
+ *  fiche, qui reste affichée (dans un coin de la carte) jusqu'à ce qu'on la ferme.
+ *  deLoin : ouvrir sur toute la ville (depuis la Gazette). */
 export function ouvrirCarte(
   plan: Plan,
   lieux: readonly LieuCarte[],
   ici: { x: number; z: number; portrait: string | null },
-  visite: ReadonlyArray<{ x: number; z: number; texte: string }> = [],
-  suivant = 'Suivant',
+  quetes: ReadonlyArray<{ x: number; z: number; titre: string; texte: string }> = [],
+  options: { deLoin?: boolean } = {},
 ): Promise<void> {
   return new Promise((fini) => {
     // pr : pixels de l'image par pixel d'écran. De près (7 pixels d'écran par mètre), on voit le
     // quartier autour de l'enfant ; de loin, toute la ville tient dans la fenêtre.
     let pr = plan.ppm / ZOOM;
-    let deLoin = false;
+    let deLoin = options.deLoin ?? false;
     const fond = Object.assign(document.createElement('div'), { className: 'carte-fond' });
     const boite = Object.assign(document.createElement('div'), { className: 'carte-boite' });
     const titre = Object.assign(document.createElement('p'), { className: 'carte-titre-ville', textContent: T.titre });
@@ -249,6 +251,34 @@ export function ouvrirCarte(
     bulle.hidden = true;
     calque.append(moi, bulle);
     vue.append(calque);
+
+    // Les quêtes : un repère « ! » à leur place ; sa fiche s'ouvre dans un coin et y reste.
+    const fiche = Object.assign(document.createElement('div'), { className: 'carte-fiche' });
+    fiche.hidden = true;
+    const ficheTitre = Object.assign(document.createElement('p'), { className: 'carte-fiche-titre' });
+    const ficheTexte = Object.assign(document.createElement('p'), { className: 'carte-fiche-texte' });
+    const ficheFermer = Object.assign(document.createElement('button'), { type: 'button', className: 'carte-fiche-fermer', textContent: '×', ariaLabel: 'Fermer' });
+    fiche.append(ficheFermer, ficheTitre, ficheTexte);
+    const marques = quetes.map((q) => {
+      const m = Object.assign(document.createElement('button'), { type: 'button', className: 'carte-quete', textContent: '!' });
+      m.addEventListener('pointerdown', (e) => {
+        e.stopPropagation();
+        bruitage.touche();
+        for (const x of marques) x.classList.toggle('choisie', x === m);
+        ficheTitre.textContent = q.titre;
+        ficheTexte.textContent = q.texte;
+        fiche.hidden = false;
+      });
+      reperes.push({ e: m, x: q.x, z: q.z });
+      calque.append(m);
+      return m;
+    });
+    ficheFermer.addEventListener('click', () => {
+      bruitage.touche();
+      fiche.hidden = true;
+      for (const x of marques) x.classList.remove('choisie');
+    });
+    vue.append(fiche);
 
     // Le décalage de l'image dans la fenêtre ; une flèche sans rien au-delà est grisée.
     let ox = 0;
@@ -315,29 +345,6 @@ export function ouvrirCarte(
     const loin = Object.assign(document.createElement('button'), { type: 'button', className: 'bouton-secondaire', textContent: T.deLoin });
     const actions = Object.assign(document.createElement('div'), { className: 'carte-actions' });
     actions.append(loin, fermer);
-    // La visite : chaque étape au milieu de la fenêtre, sa phrase dans une bulle.
-    let etape = 0;
-    const montrerEtape = (): void => {
-      const v = visite[etape];
-      if (!v) return;
-      const c = plan.versCarte(v.x, v.z);
-      placer(c.x / pr - vue.offsetWidth / 2, c.y / pr - vue.offsetHeight / 2);
-      bulle.classList.add('quete');
-      bulle.textContent = v.texte;
-      Object.assign(bulle.style, ou(v.x, v.z));
-      bulle.hidden = false;
-      bouton.hidden = etape >= visite.length - 1;
-    };
-    const bouton = Object.assign(document.createElement('button'), { type: 'button', className: 'bouton-principal', textContent: suivant });
-    bouton.addEventListener('click', () => {
-      bruitage.touche();
-      etape++;
-      montrerEtape();
-    });
-    if (visite.length) {
-      loin.hidden = true;
-      actions.prepend(bouton);
-    }
     boite.append(titre, aide, vue, actions);
     fond.append(boite);
     document.body.append(fond);
@@ -363,6 +370,7 @@ export function ouvrirCarte(
       echelle();
     });
     echelle();
-    if (visite.length) requestAnimationFrame(montrerEtape);
+    // Depuis la Gazette, la première quête est déjà ouverte.
+    if (options.deLoin && marques[0]) marques[0].dispatchEvent(new PointerEvent('pointerdown'));
   });
 }

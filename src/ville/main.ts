@@ -34,7 +34,7 @@ import { lirePhoto, type IdPhoto } from './photos.ts';
 import { voirPhoto } from './photo-vue.ts';
 import { echanger, installerParent } from './parent-ville.ts';
 import gazetteT from '../../content/ville/gazette.json';
-import { editionDuJour, lundiDe, questionnaire, quetesDeLaSemaine } from './gazette.ts';
+import { editionDuJour, lundiDe, questionnaire, quetesDeLaSemaine, type Quete } from './gazette.ts';
 import { lireLaGazette } from './gazette-vue.ts';
 import { lieuxDeLaCarte, ouvrirCarte, photographierLaVille, type Plan } from './carte.ts';
 import { CADRE_FAMILLE, construirePiece, dedans, ENTREE_INTERIEUR, SORTIE_INTERIEUR, INTERIEUR, PANNEAU_PRENOM, resterDansLaPiece, tapis } from './maison-interieur.ts';
@@ -1408,16 +1408,20 @@ await poserInterieur();
 
 // --- La Gazette de MiniVille : chaque jour, on la lit dans la maison avant de sortir ----------
 const gazetteLue = (): boolean => etat.gazette.valideLe === aujourdhuiVille();
-async function ouvrirLaGazette(): Promise<void> {
-  const jour = aujourdhuiVille();
-  const quetes = quetesDeLaSemaine({
-    jour,
+/** Les quêtes de la semaine d'aujourd'hui. */
+function quetesDuJour(): Quete[] {
+  return quetesDeLaSemaine({
+    jour: aujourdhuiVille(),
     attraction: etat.attraction,
     nomsAttractions: Object.fromEntries(attractions.attractions.map((a) => [a.id, a.nom])),
     prenomsProposes: PRENOMS_ATTRACTION,
     dictee: etat.dictee,
     hasard: Math.random,
   });
+}
+async function ouvrirLaGazette(): Promise<void> {
+  const jour = aujourdhuiVille();
+  const quetes = quetesDuJour();
   const edition = editionDuJour(etat.gazette, quetes, jour, etat.prenom);
   const lundi = lundiDe(jour);
   const premiere = etat.gazette.premiere || lundi;
@@ -1430,7 +1434,7 @@ async function ouvrirLaGazette(): Promise<void> {
     questions: questionnaire(edition, Math.random),
     date: new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }),
     semaine,
-    visiter: (qs) => ouvrirLaCarte(qs.map((q) => ({ ...(q.lieu === 'fete' ? FORAIN_ROUE : LIEUX.tableau), texte: `${q.titre} : ${q.phrases.join(' ')}` }))),
+    visiter: () => ouvrirLaCarte(true),
   });
   occupe = false;
   commandes.actives = avant;
@@ -1509,8 +1513,9 @@ boutonCarte.addEventListener('click', () => {
   bruitage.touche();
   void ouvrirLaCarte();
 });
-/** Ouvre la carte ; visite : des étapes à montrer l'une après l'autre (les quêtes de la Gazette). */
-function ouvrirLaCarte(visite: Array<{ x: number; z: number; texte: string }> = []): Promise<void> {
+/** Ouvre la carte, avec un repère sur chaque quête de la semaine pas encore finie ; deLoin : sur
+ *  toute la ville (depuis la Gazette). */
+function ouvrirLaCarte(deLoin = false): Promise<void> {
   const avant = commandes.actives;
   commandes.actives = false;
   const p = dansLaMaison ? LIEUX.maison : heros.racine.position;
@@ -1529,7 +1534,10 @@ function ouvrirLaCarte(visite: Array<{ x: number; z: number; texte: string }> = 
     heros.racine.visible = true;
   }
   const plan = planDeLaVille;
-  return ouvrirCarte(plan, lieux, { x: p.x, z: p.z, portrait }, visite, gazetteT.textes.suivant).then(() => {
+  const quetes = quetesDuJour()
+    .filter((q) => !q.faite)
+    .map((q) => ({ ...(q.lieu === 'fete' ? FORAIN_ROUE : LIEUX.tableau), titre: q.titre, texte: q.phrases.join(' ') }));
+  return ouvrirCarte(plan, lieux, { x: p.x, z: p.z, portrait }, quetes, { deLoin }).then(() => {
     commandes.actives = avant;
   });
 }
