@@ -70,7 +70,7 @@ Dictée-Blocs est intégré à la ville (une seule application) ; ses données s
 - **Saisie** : fiche d'étude, puis le mot est caché, puis il le reconstitue avec des **tuiles** (pas de stylet). **Jamais de fausse orthographe montrée** (pas de choix entre plusieurs graphies), pour ne pas risquer de faire retenir une erreur.
 - **Le lieu de chaque mot** est calculé automatiquement (méthode de Dictée-Blocs) : un ordre de priorité entre les pièges, et un lieu par défaut pour les mots sans piège.
 - **Les tuiles** : les lettres du mot (sans son déterminant), plus deux lettres au hasard, mélangées. Reconstituer le mot compte comme l'écrire (il peut monter jusqu'à la boîte 3), puisque c'est la seule saisie.
-- Les mots et leurs phrases sont lus par la voix enregistrée s'il y en a une, sinon par la voix de la tablette (à générer avec `npm run voix` quand la liste change).
+- **Quand des mots de dictée sont ajoutés, génère aussi leurs voix avec Speechy (Azure Speech), toujours en voix Denise** (`fr-FR-DeniseNeural`) : la liste va dans `content/ville/mots-dictee.txt`, puis `npm run voix` (chaque mot et sa phrase). Sans voix enregistrée, c'est la voix de la tablette qui lit.
 - **Où** : dans les demandes (étiquettes de l'épicier, pancarte du jardin, adresse d'une lettre), dans les lieux de piège, et au stand de révision de la confiserie pour s'entraîner librement.
 - **La veille de la dictée** : le **concours d'écriture** de la mairie (tous les mots, sans aide) ; les mots ratés sont repris aussitôt ; le parent voit le résultat.
 - **Après la semaine** : chaque mot garde sa propre mémoire et revient dans les demandes et les stands ; un mot su pour toujours est gravé sur le **mur des mots** de la bibliothèque.
