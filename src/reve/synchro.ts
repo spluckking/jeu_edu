@@ -43,6 +43,8 @@ export function ecrireAcces(acces: Acces | null): void {
 export interface Envoi {
   chemin: string;
   contenu: unknown;
+  /** Un fichier binaire (une image) : envoyé tel quel, à la place du contenu JSON. */
+  octets?: Uint8Array;
 }
 
 /**
@@ -84,6 +86,12 @@ function enBase64(texte: string): string {
   return btoa(binaire);
 }
 
+function octetsEnBase64(octets: Uint8Array): string {
+  let binaire = '';
+  for (const o of octets) binaire += String.fromCharCode(o);
+  return btoa(binaire);
+}
+
 function depuisBase64(b64: string): string {
   const binaire = atob(b64.replace(/\s/g, ''));
   return new TextDecoder().decode(Uint8Array.from(binaire, (c) => c.charCodeAt(0)));
@@ -100,10 +108,15 @@ function dejaEnvoyes(): Record<string, string> {
 export interface Resultat {
   envoyes: number;
   preparation: Preparation | null;
+  /** La préparation telle que le rêve l'a écrite (pour les parties lues ailleurs : la dictée). */
+  brut: unknown;
+  /** Les chemins envoyés pendant cet échange. */
+  chemins: string[];
 }
 
 /** Un échange complet. Lève une erreur lisible pour le parent si quelque chose échoue. */
-export async function synchroniser(s: Sauvegarde, acces: Acces, aujourdhui: Jour, recuperer: Recuperer = fetch): Promise<Resultat> {
+/** extras : d'autres fichiers à déposer (la dictée de la ville, ses écritures). */
+export async function synchroniser(s: Sauvegarde, acces: Acces, aujourdhui: Jour, recuperer: Recuperer = fetch, extras: Envoi[] = []): Promise<Resultat> {
   const base = `https://api.github.com/repos/${acces.depot}/contents/`;
   const entetes = {
     Authorization: `Bearer ${acces.cle}`,
@@ -118,8 +131,10 @@ export async function synchroniser(s: Sauvegarde, acces: Acces, aujourdhui: Jour
 
   const envoyes = dejaEnvoyes();
   let nombre = 0;
-  for (const envoi of envoisAPreparer(s, aujourdhui)) {
-    const texte = `${JSON.stringify(envoi.contenu, null, 2)}\n`;
+  const chemins: string[] = [];
+  for (const envoi of [...envoisAPreparer(s, aujourdhui), ...extras]) {
+    // Une image : on retient seulement qu'elle est partie (son nom est unique).
+    const texte = envoi.octets ? `image:${envoi.octets.length}` : `${JSON.stringify(envoi.contenu, null, 2)}\n`;
     if (envoyes[envoi.chemin] === texte) continue;
     const existant = await recuperer(base + envoi.chemin, { headers: entetes });
     verifier(existant, 'lire');
@@ -127,10 +142,11 @@ export async function synchroniser(s: Sauvegarde, acces: Acces, aujourdhui: Jour
     const r = await recuperer(base + envoi.chemin, {
       method: 'PUT',
       headers: { ...entetes, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message: `Tablette : ${envoi.chemin}`, content: enBase64(texte), ...(sha ? { sha } : {}) }),
+      body: JSON.stringify({ message: `Tablette : ${envoi.chemin}`, content: envoi.octets ? octetsEnBase64(envoi.octets) : enBase64(texte), ...(sha ? { sha } : {}) }),
     });
     verifier(r, 'écrire');
     envoyes[envoi.chemin] = texte;
+    chemins.push(envoi.chemin);
     nombre++;
   }
   try {
@@ -141,7 +157,7 @@ export async function synchroniser(s: Sauvegarde, acces: Acces, aujourdhui: Jour
 
   const r = await recuperer(`${base}preparation.json`, { headers: entetes });
   verifier(r, 'lire');
-  if (!r.ok) return { envoyes: nombre, preparation: null };
+  if (!r.ok) return { envoyes: nombre, preparation: null, brut: null, chemins };
   const fichier = (await r.json()) as { content?: string };
   let brut: unknown = null;
   try {
@@ -149,5 +165,5 @@ export async function synchroniser(s: Sauvegarde, acces: Acces, aujourdhui: Jour
   } catch {
     brut = null;
   }
-  return { envoyes: nombre, preparation: lirePreparation(brut) };
+  return { envoyes: nombre, preparation: lirePreparation(brut), brut, chemins };
 }

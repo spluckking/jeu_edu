@@ -12,7 +12,7 @@ export default defineConfig(({ command, isPreview }) => {
       // Three.js pèse à lui seul environ 500 ko : c'est attendu.
       chunkSizeWarningLimit: 800,
       // ville.html : la ville en construction (docs/VILLE.md), à part du jeu actuel.
-      rollupOptions: { input: { main: 'index.html', ville: 'ville.html' } },
+      rollupOptions: { input: { accueil: 'index.html', ville: 'ville.html', ancienne: 'ancienne-fete.html' } },
     },
     plugins: [
       VitePWA({
@@ -28,7 +28,8 @@ export default defineConfig(({ command, isPreview }) => {
           // Identité explicite et adresses absolues : Android ouvre alors l'icône comme une vraie
           // application (même correctif que Golémanciens).
           id: 'jeu-edu',
-          // L'appli s'ouvre sur la ville ; l'ancien jeu reste à son adresse (index.html).
+          // L'appli s'ouvre sur la ville ; index.html y renvoie aussi. L'ancien jeu est archivé
+          // (ancienne-fete.html), à une adresse que rien n'affiche.
           start_url: `${base}ville.html`,
           scope: base,
           // Plein écran et paysage sont demandés par le jeu au premier toucher (src/app/modeApp.ts) :
@@ -46,7 +47,7 @@ export default defineConfig(({ command, isPreview }) => {
         workbox: {
           // Tout est mis en cache dès la première ouverture : le jeu marche ensuite sans réseau.
           globPatterns: ['**/*.{js,css,html,svg,png,woff2,json,mp3,ogg,webmanifest}'],
-          navigateFallback: `${base}index.html`,
+          navigateFallback: `${base}ville.html`,
           cleanupOutdatedCaches: true,
         },
       }),

@@ -2,7 +2,8 @@
 // longue des mots, les mots sus pour toujours (le mur des mots) et le concours d'écriture.
 // Pur, sans navigateur. Reprend les règles de Dictée-Blocs (voir docs/VILLE.md).
 
-import { appliquer, joursAvantDictee, reviser, souvenirDe, souvenirsDus, type EtatMot, type Jour, type Souvenir } from './leitner.ts';
+import { appliquer, joursAvantDictee, reviser, souvenirDe, type EtatMot, type Jour, type Souvenir } from './leitner.ts';
+import { ficheNeuve, motsDuJour, noterEssai, reviser as reviserFiche, rythme, suPourToujours, type FicheMot } from './memoire.ts';
 
 export interface MotDeListe {
   w: string;
@@ -21,10 +22,18 @@ export interface EtatDictee {
   memoire: Record<string, Souvenir>;
   retires: Array<{ w: string; semaine: string; date: Jour }>;
   concours: Array<{ date: Jour; justes: number; total: number; rates: string[] }>;
+  /** La mémoire de chaque mot (modèle FSRS : difficulté, stabilité ; voir memoire.ts). */
+  fiches: Record<string, FicheMot>;
+  /** Les mots que le rêve demande de revoir en priorité (dernière préparation). */
+  prioritaires: string[];
+  /** Ce que le rêve a trouvé faux alors que l'enfant l'avait jugé juste : on le lui montre. */
+  aRevoir: Array<{ w: string; ecriture: string; jour: Jour }>;
+  /** Le jour de la dernière préparation du rêve déjà appliquée. */
+  retourLu?: string;
 }
 
 export function dicteeNeuve(): EtatDictee {
-  return { version: 1, titre: '', mots: [], jourDictee: 5, progres: {}, quotidien: { jour: null, mots: [], justes: [], fini: false }, memoire: {}, retires: [], concours: [] };
+  return { version: 1, titre: '', mots: [], jourDictee: 5, progres: {}, quotidien: { jour: null, mots: [], justes: [], fini: false }, memoire: {}, retires: [], concours: [], fiches: {}, prioritaires: [], aRevoir: [] };
 }
 
 const propre = (s: string): string => s.normalize('NFC').replace(/[’‘]/g, "'").replace(/\s+/g, ' ').trim();
@@ -73,10 +82,18 @@ export const estJourDeConcours = (e: EtatDictee, jour: Jour): boolean => e.mots.
 /** Les mots jamais vus : ils passent d'abord par la fiche d'étude. */
 export const jamaisVu = (e: EtatDictee, w: string): boolean => !e.memoire[w] && !e.progres[w]?.vu;
 
-/** La révision du jour (créée le premier jour où l'on en parle). Les mots de la semaine d'abord. */
+/** La révision du jour (créée le premier jour où l'on en parle) : le premier jour d'une liste,
+ *  tous ses mots ; ensuite, ceux dont la mémoire faiblit (voir memoire.ts). */
 export function revisionDuJour(e: EtatDictee, jour: Jour): EtatDictee {
   if (e.quotidien.jour === jour) return e;
-  const mots = [...e.mots.map((m) => m.w), ...souvenirsDus(e.memoire, jour, 10)];
+  const mots = motsDuJour({
+    semaine: e.mots.map((m) => m.w),
+    anciens: Object.keys(e.memoire),
+    fiches: e.fiches ?? {},
+    jour,
+    joursAvantDictee: joursRestants(e, jour),
+    prioritaires: e.prioritaires ?? [],
+  });
   return { ...e, quotidien: { jour, mots, justes: [], fini: mots.length === 0 } };
 }
 
@@ -92,18 +109,41 @@ export interface Reponse {
   indice: boolean;
   hesite: boolean;
   reponse: string;
+  /** Temps d'écriture (ms) et lettres à écrire : pour la vitesse, jamais montrée à l'enfant. */
+  ms?: number;
+  lettres?: number;
+  /** L'image de l'écriture, gardée sur la tablette. */
+  ecriture?: string;
+  /** Qui a jugé la réponse (l'enfant, en se corrigeant lui-même ; le parent ; le rêve). */
+  juge?: 'enfant' | 'parent' | 'reve';
 }
 
 /** Note une réponse : boîtes pour un mot de la semaine, mémoire longue pour un ancien mot. */
 export function noter(e: EtatDictee, w: string, r: Reponse, jour: Jour): { etat: EtatDictee; retire: boolean } {
   let etat = { ...e };
   let retire = false;
+  // La mémoire du mot (FSRS) : la note de l'essai, puis sa difficulté et sa stabilité.
+  const fiches = e.fiches ?? {};
+  const note = noterEssai({ juste: r.juste, indice: r.indice, hesite: r.hesite, ms: r.ms ?? 0, lettres: r.lettres ?? 0 }, rythme(fiches));
+  const fiche = reviserFiche(fiches[w] ?? ficheNeuve(w), {
+    jour,
+    note,
+    juste: r.juste,
+    ms: r.ms ?? 0,
+    lettres: r.lettres ?? 0,
+    indice: r.indice,
+    hesite: r.hesite,
+    juge: r.juge ?? 'enfant',
+    ...(r.ecriture ? { ecriture: r.ecriture } : {}),
+    ...(r.reponse ? { ecrit: r.reponse } : {}),
+  });
+  etat.fiches = { ...fiches, [w]: fiche };
   if (e.mots.some((m) => m.w === w)) {
     etat.progres = { ...e.progres, [w]: appliquer(e.progres[w], { ...r, jour, joursRestants: joursRestants(e, jour) }).etat };
   } else if (e.memoire[w]) {
     const res = reviser(e.memoire[w], r, jour);
     const memoire = { ...e.memoire };
-    if (res.retire) {
+    if (res.retire || suPourToujours(fiche)) {
       retire = true;
       delete memoire[w];
       etat.retires = [...e.retires, { w, semaine: e.memoire[w].semaine, date: jour }];
@@ -180,4 +220,18 @@ export function importerDicteeBlocs(brut: unknown, jour: Jour): EtatDictee | nul
     if (date) e.concours.push({ date, justes: nombre(b.score, 0), total: nombre(b.total, 0), rates: [] });
   }
   return e;
+}
+
+/** Corrige un essai après coup (le parent le soir, ou le rêve la nuit, qui relisent l'écriture) :
+ *  sa justesse change, puis la mémoire du mot est recalculée en rejouant tous ses essais. */
+export function corrigerEssai(e: EtatDictee, w: string, ecriture: string, juste: boolean, juge: 'parent' | 'reve', lu?: string): EtatDictee {
+  const f = e.fiches?.[w];
+  if (!f || !f.essais.some((x) => x.ecriture === ecriture)) return e;
+  const essais = f.essais.map((x) => (x.ecriture === ecriture ? { ...x, juste, juge, ...(lu ? { ecrit: lu } : {}) } : x));
+  let refaite = ficheNeuve(w);
+  for (const x of essais) {
+    const note = noterEssai({ juste: x.juste, indice: x.indice, hesite: x.hesite, ms: x.ms, lettres: x.lettres }, rythme(e.fiches));
+    refaite = reviserFiche(refaite, { ...x, note });
+  }
+  return { ...e, fiches: { ...e.fiches, [w]: refaite } };
 }

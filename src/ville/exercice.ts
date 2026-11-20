@@ -1,15 +1,18 @@
 // L'exercice d'un mot de dictée, à l'écran : la fiche d'étude (le premier jour), puis le mot
-// caché, dit à voix haute avec sa phrase, à reconstituer avec des tuiles. On ne montre jamais
-// de fausse orthographe. Après une erreur, l'enfant regarde le mot juste, puis le reconstitue
-// encore de mémoire (cette deuxième fois ne compte pas pour sa mémoire du mot).
+// caché, dit à voix haute avec sa phrase, à écrire au stylet (ecriture.ts). L'enfant compare
+// ensuite son écriture au mot juste et dit lui-même si c'est pareil (le rêve et le parent
+// relisent l'image plus tard). Après une erreur, il regarde le mot juste, puis l'écrit encore de
+// mémoire (cette deuxième fois ne compte pas pour sa mémoire du mot).
 
-import { corriger, separerDeterminant, type Verdict } from '../dictee/correction.ts';
+import { separerDeterminant } from '../dictee/correction.ts';
 import type { Reponse } from '../dictee/etat.ts';
 import { detecter, LIEUX, morceaux } from '../dictee/pieges.ts';
 import { syllabes } from '../dictee/syllabes.ts';
-import { aReconstituer, tuiles } from '../dictee/tuiles.ts';
+import { aujourdhui } from '../dictee/leitner.ts';
 import { bruitage } from '../son/bruitages.ts';
 import { dire } from '../son/voix.ts';
+import { zoneEcriture } from './ecriture.ts';
+import { changerEcriture, garderEcriture } from './ecritures.ts';
 
 export interface OptionsExercice {
   mot: string;
@@ -81,57 +84,39 @@ export function exercer(fond: HTMLElement, o: OptionsExercice): Promise<Reponse>
     };
 
     let premiere: Reponse | null = null;
-    const reconstituer = (essai: number): void => {
-      const { det } = separerDeterminant(o.mot);
-      const cible = Array.from(aReconstituer(o.mot));
-      const titre = creer('p', 'exercice-titre', essai === 0 ? 'Écoute, puis reconstitue le mot' : 'À toi, de mémoire !');
-      const ligne = creer('div', 'cases');
+    // Écrire le mot au stylet. essai 0 : celui qui compte ; essai 1 : de mémoire, après avoir
+    // regardé le mot juste (ne compte pas pour sa mémoire du mot).
+    const ecrire = (essai: number): void => {
+      const { det, coeur } = separerDeterminant(o.mot);
+      const lettres = Array.from(coeur.replace(/[\s'’-]/g, '')).length;
+      const titre = creer('p', 'exercice-titre', essai === 0 ? 'Écoute, puis écris le mot' : 'À toi, de mémoire !');
+      const ligne = creer('div', 'ecriture-ligne');
       if (det) ligne.append(creer('span', 'determinant', det.endsWith("'") ? det : `${det} `));
-      const cases: Array<{ el: HTMLButtonElement; tuile: HTMLButtonElement | null; espace: boolean }> = cible.map((c) => {
-        const el = bouton(c.trim() ? 'case' : 'case espace', c.trim() ? '' : ' ');
-        ligne.append(el);
-        return { el, tuile: null, espace: !c.trim() };
-      });
-      const sac = creer('div', 'tuiles');
+      const zone = zoneEcriture();
+      ligne.append(zone.element);
       const reecouter = bouton('bouton-secondaire', 'Réécouter');
       const indice = bouton('bouton-secondaire', 'Indice');
       indice.hidden = !o.aide || essai > 0;
+      const gomme = bouton('bouton-secondaire bouton-gomme', 'Gomme');
+      const effacer = bouton('bouton-secondaire', 'Tout effacer');
       const actions = creer('div', 'exercice-actions');
       const sur = bouton('bouton-principal', 'Sûr de moi');
       const hesite = bouton('bouton-secondaire', 'J’hésite');
       actions.append(hesite, sur);
       actions.hidden = true;
       let aideUtilisee = false;
-
-      const reponse = (): string => cases.map((c) => (c.espace ? ' ' : (c.tuile?.textContent ?? ''))).join('');
-      const majActions = (): void => {
-        actions.hidden = cases.some((c) => !c.espace && !c.tuile);
-      };
-      const poser = (t: HTMLButtonElement): void => {
-        const libre = cases.find((c) => !c.espace && !c.tuile);
-        if (!libre) return;
+      let enGomme = false;
+      zone.quandChange(() => (actions.hidden = zone.vide()));
+      gomme.addEventListener('click', () => {
+        enGomme = !enGomme;
+        zone.gomme(enGomme);
+        gomme.classList.toggle('active', enGomme);
+        gomme.textContent = enGomme ? 'Crayon' : 'Gomme';
+      });
+      effacer.addEventListener('click', () => {
         bruitage.touche();
-        libre.tuile = t;
-        libre.el.textContent = t.textContent;
-        libre.el.classList.add('pleine');
-        t.disabled = true;
-        majActions();
-      };
-      for (const c of cases) {
-        c.el.addEventListener('click', () => {
-          if (!c.tuile) return;
-          c.tuile.disabled = false;
-          c.tuile = null;
-          c.el.textContent = '';
-          c.el.classList.remove('pleine');
-          majActions();
-        });
-      }
-      for (const l of tuiles(o.mot)) {
-        const t = bouton('tuile', l);
-        t.addEventListener('click', () => poser(t));
-        sac.append(t);
-      }
+        zone.effacer();
+      });
       reecouter.addEventListener('click', () => ecouter(o.mot, o.phrase));
       indice.addEventListener('click', () => {
         aideUtilisee = true;
@@ -142,44 +127,75 @@ export function exercer(fond: HTMLElement, o: OptionsExercice): Promise<Reponse>
         carte.append(apercu);
         window.setTimeout(() => apercu.remove(), 3000);
       });
-      const valider = (h: boolean): void => {
-        const v = corriger(reponse(), o.mot);
-        if (!premiere) premiere = { juste: v.juste, indice: aideUtilisee, hesite: h, reponse: v.reponse };
+      const valider = async (h: boolean): Promise<void> => {
+        sur.disabled = hesite.disabled = true;
+        const fin = performance.now();
+        const ms = Math.round(fin - (zone.debut() ?? fin));
+        const image = await zone.image();
+        const id = image ? await garderEcriture({ jour: aujourdhui(), mot: o.mot, sorte: essai === 0 ? (o.aide ? 'revision' : 'concours') : 'reprise', ms, enfant: null, image }) : '';
+        if (essai === 0) premiere = { juste: false, indice: aideUtilisee, hesite: h, reponse: '', ms, lettres, juge: 'enfant', ...(id ? { ecriture: id } : {}) };
+        // Le concours : pas de correction tout de suite (on compare tout à la fin).
         if (!o.aide) {
-          fini(premiere);
+          fini(premiere as Reponse);
           return;
         }
-        montrerCorrection(v, essai);
+        comparer(image, id, essai);
       };
-      sur.addEventListener('click', () => valider(false));
-      hesite.addEventListener('click', () => valider(true));
+      sur.addEventListener('click', () => void valider(false));
+      hesite.addEventListener('click', () => void valider(true));
       const outils = creer('div', 'exercice-outils');
-      outils.append(reecouter, indice);
-      carte.replaceChildren(tete, titre, ligne, sac, outils, actions);
+      outils.append(reecouter, indice, gomme, effacer);
+      carte.replaceChildren(tete, titre, ligne, outils, actions);
       ecouter(o.mot, o.phrase);
     };
 
-    const montrerCorrection = (v: Verdict, essai: number): void => {
-      const correction = creer('p', 'correction-lettres');
-      for (const op of v.ops) {
-        const s = creer('span', `lettre ${op.op}`, op.op === 'trop' ? op.donne : op.attendu);
-        correction.append(s);
+    // L'enfant compare son écriture au mot juste et dit lui-même si c'est pareil. Le rêve (la
+    // nuit) et le parent (le soir) relisent ensuite l'image.
+    const comparer = (image: Blob | null, id: string, essai: number): void => {
+      const titre = creer('p', 'exercice-titre', 'Compare avec le mot juste');
+      const tienne = creer('div', 'ecriture-comparee');
+      if (image) {
+        const url = URL.createObjectURL(image);
+        const img = creer('img');
+        img.src = url;
+        img.alt = '';
+        img.addEventListener('load', () => URL.revokeObjectURL(url));
+        tienne.append(creer('span', 'ecriture-etiquette', 'Toi'), img);
       }
-      const titre = creer('p', 'exercice-titre', v.juste ? 'Bravo !' : v.accentSeulement ? 'Presque ! Regarde l’accent.' : 'On réessaie !');
-      const suite = bouton('bouton-principal', v.juste ? 'Mot suivant' : 'Je regarde le mot');
-      carte.replaceChildren(tete, titre, v.juste ? motColore(o.mot) : correction, suite);
-      if (v.juste) bruitage.reussite();
-      else bruitage.erreur();
-      suite.addEventListener('click', () => {
-        bruitage.touche();
-        if (v.juste) fini(premiere as Reponse);
-        // Après une erreur : le mot juste, puis le reconstituer de mémoire (une fois).
-        else if (essai === 0) montrerFiche(() => reconstituer(1), true);
+      const juste = creer('div', 'ecriture-comparee');
+      juste.append(creer('span', 'ecriture-etiquette', 'Le mot'), motColore(o.mot));
+      const question = creer('p', 'exercice-texte', 'Est-ce que tu as écrit exactement pareil, lettre par lettre ?');
+      const pareil = bouton('bouton-principal', 'C’est pareil');
+      const trompe = bouton('bouton-secondaire', 'Je me suis trompé');
+      const actions = creer('div', 'exercice-actions');
+      actions.append(trompe, pareil);
+      carte.replaceChildren(tete, titre, tienne, juste, question, actions);
+      const repondre = (oui: boolean): void => {
+        if (id) void changerEcriture(id, { enfant: oui });
+        if (essai === 0 && premiere) premiere = { ...premiere, juste: oui };
+        if (oui) {
+          bruitage.reussite();
+          if (essai === 0) {
+            const t = creer('p', 'exercice-titre', 'Bravo !');
+            const suite = bouton('bouton-principal', 'Mot suivant');
+            carte.replaceChildren(tete, t, motColore(o.mot), suite);
+            suite.addEventListener('click', () => {
+              bruitage.touche();
+              fini(premiere as Reponse);
+            });
+          } else fini(premiere as Reponse);
+          return;
+        }
+        bruitage.erreur();
+        // Après une erreur : regarder le mot juste, puis l'écrire de mémoire (une fois).
+        if (essai === 0) montrerFiche(() => ecrire(1), true);
         else fini(premiere as Reponse);
-      });
+      };
+      pareil.addEventListener('click', () => repondre(true));
+      trompe.addEventListener('click', () => repondre(false));
     };
 
-    if (o.fiche && o.aide) montrerFiche(() => reconstituer(0));
-    else reconstituer(0);
+    if (o.fiche && o.aide) montrerFiche(() => ecrire(0));
+    else ecrire(0);
   });
 }

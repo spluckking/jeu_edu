@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+    <meta name="theme-color" content="#3fa0ff" />
+    <title>La fête foraine</title>
+    <link rel="icon" href="/icone.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/icone-192.png" />
+  </head>
+  <body>
+    <canvas id="scene" aria-label="La fête foraine"></canvas>
+
+    <p id="bulle" class="bulle" role="status" hidden></p>
+
+    <div id="hud" class="hud">
+      <p id="tickets" class="tickets" aria-label="Tickets">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h18v3a2 2 0 0 0 0 4v3H3v-3a2 2 0 0 0 0-4z M14 7v10" /></svg>
+        <span id="tickets-nombre">0</span>
+      </p>
+      <p id="jetons" class="tickets jetons" aria-label="Jetons de manège">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5" /><path d="M12 7.5l1.3 2.8 3 .3-2.3 2 .7 3-2.7-1.6-2.7 1.6.7-3-2.3-2 3-.3z" /></svg>
+        <span id="jetons-nombre">0</span>
+      </p>
+      <ol id="calendrier" class="calendrier" aria-label="Ma semaine"></ol>
+      <button id="histoire" class="bouton-rond garderobe histoire" type="button" aria-label="L’histoire du jour">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5c3-1 5.5-1 8 1 2.5-2 5-2 8-1v14c-3-1-5.5-1-8 1-2.5-2-5-2-8-1z M12 6v14" /></svg>
+      </button>
+      <button id="garderobe" class="bouton-rond garderobe" type="button" aria-label="Mes lots">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3l-5 4 3 4 2-1v11h8V10l2 1 3-4-5-4c-1 2-2.5 3-4 3S9 5 8 3z" /></svg>
+      </button>
+    </div>
+
+    <button id="son" class="bouton-rond son" type="button" aria-label="Couper le son">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path class="haut-parleur" d="M4 9h4l5-4v14l-5-4H4z" /><path class="ondes" d="M16 9a4 4 0 0 1 0 6M18.5 6.5a7.5 7.5 0 0 1 0 11" /><path class="barre" d="M16 9l6 6M22 9l-6 6" /></svg>
+    </button>
+
+    <button id="parent" class="porte-parent" type="button" aria-label="Espace parent (appui long)">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2" /><path d="M8 11V8a4 4 0 0 1 8 0v3M12 15v2" /></svg>
+    </button>
+
+    <div id="zone-regard" class="zone-regard"></div>
+    <div id="zone-joystick" class="zone-joystick" hidden>
+      <div id="joystick" class="joystick"><div class="bouton-joystick"></div></div>
+    </div>
+    <button id="interagir" class="interagir" type="button" hidden>
+      <span class="interagir-mot">Entrer</span>
+      <span id="interagir-texte" class="interagir-texte"></span>
+    </button>
+
+    <section id="stand" class="stand" hidden aria-live="polite">
+      <header class="stand-tete">
+        <button id="retour" class="bouton-retour" type="button">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" /></svg>
+          La fête
+        </button>
+        <p id="manche-nom" class="manche-nom"></p>
+      </header>
+      <ol id="progres" class="progres" aria-label="Progression de la manche"></ol>
+
+      <div id="carte-manche" class="carte-manche" hidden>
+        <p id="carte-titre" class="carte-titre"></p>
+        <p id="carte-texte" class="carte-texte"></p>
+        <button id="carte-bouton" class="bouton-principal" type="button"></button>
+        <div id="construction" class="construction" hidden>
+          <p id="construction-texte" class="carte-texte"></p>
+          <ol id="construction-pieces" class="pieces" aria-hidden="true"></ol>
+          <button id="construire" class="bouton-secondaire" type="button"></button>
+        </div>
+        <button id="carte-retour" class="bouton-secondaire" type="button" hidden>Retour à la fête</button>
+      </div>
+
+      <div id="exercice" class="exercice" hidden>
+        <div class="question-ligne">
+          <p id="question" class="question"></p>
+          <button id="ecouter" class="bouton-rond ecouter" type="button" aria-label="Écouter la question">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z" /><path d="M16 9a4 4 0 0 1 0 6" /></svg>
+          </button>
+          <button id="bouton-indice" class="bouton-rond ecouter" type="button" aria-label="Un indice" hidden>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-4 10.5c.8.8 1 1.5 1 2.5h6c0-1 .2-1.7 1-2.5A6 6 0 0 0 12 3z" /></svg>
+          </button>
+        </div>
+        <p id="indice" class="indice" hidden></p>
+        <p id="correction" class="correction" hidden></p>
+        <div id="clavier" class="clavier"></div>
+        <button id="continuer" class="bouton-principal" type="button" hidden>Continuer</button>
+      </div>
+    </section>
+
+    <div id="entree" class="entree">
+      <div class="entree-carte">
+        <p class="entree-titre">La fête foraine</p>
+        <button id="entrer" class="bouton-principal" type="button">Entrer</button>
+      </div>
+    </div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

@@ -3,6 +3,8 @@
 // toucher un mot pour l'entendre, et la sauvegarde de la position. Voir docs/VILLE.md.
 
 import '../style.css';
+// L'écriture cursive de l'école (Playwrite France Moderne, licence OFL) : les mots de la dictée.
+import '@fontsource/playwrite-fr-moderne/latin-400.css';
 import './ville.css';
 import * as THREE from 'three';
 import { GLTFLoader, type GLTF } from 'three/addons/loaders/GLTFLoader.js';
@@ -18,11 +20,11 @@ import { choisirQualite, eclairer, ombrer } from '../scene/qualite.ts';
 import { CameraHaute } from '../scene/suivi.ts';
 import { dire } from '../son/voix.ts';
 import { installerDictee, type PointInteret } from './dictee-ville.ts';
-import { installerDemandes, majSeance, parlerA } from './demandes-ville.ts';
+import { aUneQuete, installerDemandes, majSeance, parlerA } from './demandes-ville.ts';
 import { installerEpicerie, rafraichirHud } from './epicerie-ville.ts';
 import { installerJardin } from './jardin-ville.ts';
 import { installerPoste } from './poste-ville.ts';
-import { essaiGrandDefi, installerFete, ouvrirStand, standFini } from './fete-ville.ts';
+import { appliquerReglagesDuJeu, essaiGrandDefi, installerFete, PRENOMS_ATTRACTION, toutFini, ouvrirStand, standFini } from './fete-ville.ts';
 import { chantierOuvert, ETAPES, etapesVisibles } from './attraction.ts';
 import attractions from '../../content/ville/attractions.json';
 import { jourDe } from '../memoire/jours.ts';
@@ -30,7 +32,21 @@ import { surveillerModeApp } from '../app/modeApp.ts';
 import { surveillerMiseAJour } from '../app/miseAJour.ts';
 import { ecrirePrenom } from '../ui/prenom.ts';
 import { avecPrenom, retenirPrenomEcrit } from './prenom-ecrit.ts';
-import { construirePiece, dedans, ENTREE_INTERIEUR, SORTIE_INTERIEUR, INTERIEUR, PANNEAU_PRENOM, resterDansLaPiece, tapis } from './maison-interieur.ts';
+import { choisirPhoto, lirePhoto, type IdPhoto } from './photos.ts';
+import { ecrituresDuSoir, statistiquesDictee } from './dictee-parent.ts';
+import { corrigerEssai, type EtatDictee } from '../dictee/etat.ts';
+import { voirPhoto } from './photo-vue.ts';
+import { ajouterALEchange, echanger, installerParent } from './parent-ville.ts';
+import { apresEnvoi, envoisDictee, lireRetourDictee } from './dictee-reve.ts';
+import { changerEcriture, toutesLesEcritures } from './ecritures.ts';
+import gazetteT from '../../content/ville/gazette.json';
+import { editionDuJour, lundiDe, questionnaire, quetesDeLaSemaine, reserve, type Quete } from './gazette.ts';
+import { lireLaGazette } from './gazette-vue.ts';
+import { lieuxDeLaCarte, ouvrirCarte, photographierLaVille, type Plan, type QueteCarte } from './carte.ts';
+import carteT from '../../content/ville/carte.json';
+import { peutTrier } from './poste.ts';
+import { buissonsCharges, peutPecher } from './riviere.ts';
+import { CADRE_FAMILLE, construirePiece, dedans, ENTREE_INTERIEUR, SORTIE_INTERIEUR, INTERIEUR, PANNEAU_PRENOM, resterDansLaPiece, tapis } from './maison-interieur.ts';
 import { bruitage, demarrerSon } from '../son/bruitages.ts';
 import { musique, type Piste } from '../son/musique.ts';
 import type { IdStand } from '../scene/fete.ts';
@@ -307,13 +323,12 @@ async function peupler(): Promise<void> {
       nom: h.nom,
       x: o.position.x,
       z: o.position.z,
-      // Sa demande du jour d'abord ; sinon, son dialogue d'accueil.
-      action: () =>
-        void parlerA(h.id).then((fait) => {
-          if (fait) return;
-          if (!etat.lus.includes(h.dialogue)) ouvrirDialogue(h);
-          else ouvrirStand('chamboule');
-        }),
+      // Parler : son accueil, puis son stand ; sa demande du jour a son propre bouton.
+      action: () => {
+        if (!etat.lus.includes(h.dialogue)) ouvrirDialogue(h);
+        else ouvrirStand('chamboule');
+      },
+      quete: { visible: () => aUneQuete(h.id), action: () => void parlerA(h.id) },
     });
   }
   // L'épicerie, son épicière devant l'étal, et le pommier (tranche 1B).
@@ -884,11 +899,36 @@ ui.fermer.addEventListener('click', () => {
   commandes.actives = true;
   void sauverEtat(etat);
 });
+// « Parler » : si l'habitant a une quête pour l'enfant (une demande, une lettre), on choisit
+// ensuite entre « Quête » et « Discuter » ; sinon, on discute tout de suite.
+const choixParler = document.body.appendChild(Object.assign(document.createElement('div'), { className: 'choix-parler', hidden: true }));
+const boutonQuete = Object.assign(document.createElement('button'), { type: 'button', className: 'interagir-quete' });
+boutonQuete.innerHTML = '<span class="interagir-quete-signe" aria-hidden="true">!</span><span class="interagir-mot">Quête</span>';
+const boutonDiscuter = Object.assign(document.createElement('button'), { type: 'button', className: 'interagir-discuter', textContent: 'Discuter' });
+choixParler.append(boutonQuete, boutonDiscuter);
+let choixPour: PointInteret | null = null;
 ui.interagir.addEventListener('click', () => {
+  if (proche?.quete?.visible()) {
+    bruitage.touche();
+    choixPour = proche;
+    choixParler.hidden = false;
+    ui.interagir.hidden = true;
+    return;
+  }
   proche?.action();
 });
+boutonQuete.addEventListener('click', () => {
+  bruitage.touche();
+  choixParler.hidden = true;
+  choixPour?.quete?.action();
+});
+boutonDiscuter.addEventListener('click', () => {
+  bruitage.touche();
+  choixParler.hidden = true;
+  choixPour?.action();
+});
 
-installerDictee({
+const dictee = installerDictee({
   atelier,
   ville,
   obstacles,
@@ -1009,7 +1049,7 @@ points.push({
   visible: roueConstruite,
   action: () => void faireUnTour(),
 });
-void installerFete({
+const feteInstallee = installerFete({
   points,
   occupe: (oui) => {
     occupe = oui;
@@ -1029,6 +1069,53 @@ void installerFete({
   },
   stands: Object.fromEntries(Object.entries(FETE.stands).map(([id, s]) => [id, devantLeStand(s)])) as unknown as Record<IdStand, { x: number; z: number }>,
   maneges: Object.fromEntries(Object.entries(FETE.maneges).map(([id, m]) => [id, devantLeStand(m, id === 'autos' ? 5.6 : 4.6)])) as unknown as Record<IdManege, { x: number; z: number }>,
+});
+// La sauvegarde du jeu d'avant est lue : ses réglages (volumes, voix), l'espace parent (appui long
+// sur le cadenas), et l'échange du jour avec le dépôt privé du rêve, comme le faisait le jeu d'avant.
+// La dictée part avec l'échange du rêve (l'état, les écritures) ; au retour, ce que le rêve a lu.
+ajouterALEchange({
+  envois: () => envoisDictee(etat.dictee),
+  apres: async (chemins, brut) => {
+    await apresEnvoi(chemins, jourDe(new Date()));
+    const retour = lireRetourDictee(brut);
+    if (!retour || (retour.jour && retour.jour === etat.dictee.retourLu)) return;
+    const ecritures = new Map((await toutesLesEcritures()).map((x) => [x.id, x]));
+    let d: EtatDictee = { ...etat.dictee, prioritaires: retour.prioritaires, retourLu: retour.jour };
+    for (const l of retour.lectures) {
+      const x = ecritures.get(l.id);
+      if (!x || x.reve !== null) continue;
+      await changerEcriture(l.id, { reve: l.juste, ...(l.lu ? { lu: l.lu } : {}) });
+      // Le parent a déjà vérifié : son avis compte plus que celui du rêve.
+      if (x.parent !== null) continue;
+      d = corrigerEssai(d, l.mot, l.id, l.juste, 'reve', l.lu);
+      // Il s'était dit juste, le rêve a lu une faute : il revoit son écriture demain.
+      if (x.enfant === true && !l.juste && x.sorte !== 'reprise') d = { ...d, aRevoir: [...d.aRevoir, { w: l.mot, ecriture: l.id, jour: x.jour }].slice(-5) };
+    }
+    etat.dictee = d;
+    void sauverEtat(etat);
+  },
+});
+void feteInstallee.then(() => {
+  appliquerReglagesDuJeu();
+  installerParent(
+    () => !occupe && !enDialogue,
+    [
+      { titre: 'Les mots de la semaine', ouvrir: () => dictee.ouvrirLaListe() },
+      { titre: 'Statistiques de la dictée', ouvrir: () => void statistiquesDictee(etat.dictee) },
+      {
+        titre: 'Les écritures à vérifier',
+        ouvrir: () =>
+          void ecrituresDuSoir((x, juste) => {
+            etat.dictee = corrigerEssai(etat.dictee, x.mot, x.id, juste, 'parent');
+            void sauverEtat(etat);
+            // Tes corrections partent au dépôt dès que l'écran se ferme : le rêve de la nuit les voit.
+          }).then(() => void echanger()),
+      },
+      { titre: 'La photo de l’enfant', ouvrir: () => void choisirPhoto('enfant').then((b) => b && mettreDansLeCadre('enfant', b)) },
+      { titre: 'La photo de famille', ouvrir: () => void choisirPhoto('famille').then((b) => b && mettreDansLeCadre('famille', b)) },
+    ],
+  );
+  void echanger();
 });
 
 installerEpicerie({
@@ -1134,6 +1221,11 @@ function promenade(dt: number): number {
     ui.interagirMot.textContent = proche.verbe;
     ui.interagirTexte.textContent = proche.nom;
   }
+  // Le choix « Quête » / « Discuter » reste tant qu'on est devant le même habitant.
+  if (!choixParler.hidden) {
+    if (proche !== choixPour || occupe || enDialogue) choixParler.hidden = true;
+    else ui.interagir.hidden = true;
+  }
   // En marchant, l'animation de marche même joystick à fond ; la course seulement avec le bouton.
   return vite ? force : Math.min(force, 0.7);
 }
@@ -1177,6 +1269,8 @@ let images = 0;
 let debutFps = performance.now();
 
 const horloge = new THREE.Clock();
+/** Les petits « ! » des quêtes : branchés une fois la ville prête (voir animerMarques). */
+let animerLesMarques: ((t: number, maintenant: number) => void) | null = null;
 renderer.setAnimationLoop(() => {
   const dt = Math.min(0.05, horloge.getDelta());
   const t = horloge.elapsedTime;
@@ -1213,6 +1307,7 @@ renderer.setAnimationLoop(() => {
   renderer.render(scene, camera);
   if (pas > 0) retenirPosition(performance.now());
   sonDeLEndroit(performance.now());
+  animerLesMarques?.(t, performance.now());
   if (boiteFps) {
     images++;
     const ecoule = performance.now() - debutFps;
@@ -1256,8 +1351,33 @@ function allerA(x: number, z: number, cap: number, maison: boolean): void {
     retenirPosition(performance.now(), true);
   });
 }
+/** Les cadres photo de la maison ; leurs photos sont lues sur la tablette. */
+let cadres: ReturnType<typeof construirePiece>['cadres'] | null = null;
+async function mettreDansLeCadre(id: IdPhoto, photo: Blob | null): Promise<void> {
+  if (!cadres) return;
+  try {
+    const image = photo ? await createImageBitmap(photo) : null;
+    cadres[id].montrer(image);
+    image?.close();
+  } catch {
+    cadres[id].montrer(null);
+  }
+}
+function regarderPhoto(id: IdPhoto): void {
+  const avant = commandes.actives;
+  commandes.actives = false;
+  void voirPhoto({
+    id,
+    ...(id === 'enfant' ? { prenom: etat.prenom, changerPrenom: () => choisirPrenom().then(() => etat.prenom) } : {}),
+  }).then(() => {
+    commandes.actives = avant;
+  });
+}
 async function poserInterieur(): Promise<void> {
-  ville.add(construirePiece());
+  const piece = construirePiece();
+  ville.add(piece.piece);
+  cadres = piece.cadres;
+  for (const id of ['enfant', 'famille'] as const) void lirePhoto(id).then((b) => mettreDansLeCadre(id, b));
   const meubles: Array<{ id: string; longueur: number; x: number; z: number; cap: number; r: number }> = [
     { id: 'interieur-lit', longueur: 2.3, x: -2.9, z: -1.7, cap: 0, r: 1.1 },
     { id: 'interieur-armoire', longueur: 1.6, x: 2.9, z: -2.75, cap: 0, r: 0.9 },
@@ -1273,6 +1393,7 @@ async function poserInterieur(): Promise<void> {
       ville.add(g.scene);
     }
     obstacles.push({ x, z, r: m.r });
+    if (g && m.id === 'interieur-table') poserLaGazette(g.scene);
   }
   try {
     const image = await new THREE.TextureLoader().loadAsync(`${import.meta.env.BASE_URL}modeles/interieur-tapis.webp`);
@@ -1283,15 +1404,309 @@ async function poserInterieur(): Promise<void> {
     // Pas de tapis : la pièce reste jolie sans.
   }
 }
+/** La Gazette posée à plat sur le plateau de la table : on cherche le plateau en lançant des
+ *  rayons vers le bas (la hauteur la plus fréquente entre 50 cm et 1,1 m). */
+function poserLaGazette(table: THREE.Object3D): void {
+  table.updateMatrixWorld(true);
+  const boite = new THREE.Box3().setFromObject(table);
+  const rayon = new THREE.Raycaster();
+  const touches: THREE.Vector3[] = [];
+  for (let i = 0; i <= 12; i++)
+    for (let k = 0; k <= 12; k++) {
+      const x = boite.min.x + ((boite.max.x - boite.min.x) * i) / 12;
+      const z = boite.min.z + ((boite.max.z - boite.min.z) * k) / 12;
+      rayon.set(new THREE.Vector3(x, 5, z), new THREE.Vector3(0, -1, 0));
+      const t = rayon.intersectObject(table, true)[0];
+      if (t && t.point.y > 0.5 && t.point.y < 1.1) touches.push(t.point);
+    }
+  if (!touches.length) return;
+  const compte = new Map<number, THREE.Vector3[]>();
+  for (const p of touches) {
+    const h = Math.round(p.y * 20);
+    compte.set(h, [...(compte.get(h) ?? []), p]);
+  }
+  const plateau = [...compte.values()].sort((a, b) => b.length - a.length)[0]!;
+  const centre = plateau.reduce((c, p) => c.add(p), new THREE.Vector3()).divideScalar(plateau.length);
+  const toile = document.createElement('canvas');
+  toile.width = 256;
+  toile.height = 180;
+  const d = toile.getContext('2d')!;
+  d.fillStyle = '#fbf6e9';
+  d.fillRect(0, 0, 256, 180);
+  d.fillStyle = '#2e2620';
+  d.font = 'bold 22px Georgia, serif';
+  d.textAlign = 'center';
+  d.fillText('La Gazette', 128, 30);
+  d.fillRect(14, 40, 228, 3);
+  d.fillStyle = '#9a8c7a';
+  for (let l = 0; l < 9; l++) {
+    d.fillRect(16, 56 + l * 13, 104, 6);
+    d.fillRect(136, 56 + l * 13, 104, 6);
+  }
+  const texture = new THREE.CanvasTexture(toile);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  const journal = new THREE.Mesh(new THREE.PlaneGeometry(0.5, 0.35).rotateX(-Math.PI / 2), new THREE.MeshStandardMaterial({ map: texture, roughness: 0.9 }));
+  journal.position.set(centre.x, centre.y + 0.012, centre.z);
+  journal.rotation.y = 0.25;
+  ville.add(journal);
+  PLACE_GAZETTE.x = centre.x;
+  PLACE_GAZETTE.z = centre.z;
+}
+const PLACE_GAZETTE = { x: INTERIEUR.x + 2.4, z: INTERIEUR.z + 0.4 };
+
 /** Les modèles Tripo de meubles n'ont pas tous leur devant du même côté. */
 const FACE_MEUBLES: Record<string, number> = { 'interieur-armoire': Math.PI / 2 };
 points.push(
   { verbe: 'Entrer', nom: 'Ta maison', x: PORTE_MAISON.x, z: PORTE_MAISON.z, visible: () => !dansLaMaison, action: () => allerA(ENTREE_INTERIEUR.x, ENTREE_INTERIEUR.z, Math.PI, true) },
-  { verbe: 'Sortir', nom: '', x: SORTIE_INTERIEUR.x, z: SORTIE_INTERIEUR.z, rayon: 1.4, visible: () => dansLaMaison, action: () => allerA(PORTE_MAISON.x, PORTE_MAISON.z + 1, 0, false) },
-  { verbe: 'Changer', nom: 'Ton prénom', x: PANNEAU_PRENOM.x, z: PANNEAU_PRENOM.z, rayon: 1.6, visible: () => dansLaMaison, action: () => void choisirPrenom() },
+  {
+    verbe: 'Sortir',
+    nom: '',
+    x: SORTIE_INTERIEUR.x,
+    z: SORTIE_INTERIEUR.z,
+    rayon: 1.4,
+    visible: () => dansLaMaison,
+    action: () => (gazetteLue() ? allerA(PORTE_MAISON.x, PORTE_MAISON.z + 1, 0, false) : annoncerEnVille(gazetteT.textes.fermee)),
+  },
+  {
+    verbe: gazetteT.textes.lire,
+    nom: gazetteT.textes.journal,
+    get x() {
+      return PLACE_GAZETTE.x;
+    },
+    get z() {
+      return PLACE_GAZETTE.z;
+    },
+    rayon: 2,
+    visible: () => dansLaMaison,
+    action: () => void ouvrirLaGazette(),
+  },
+  { verbe: 'Regarder', nom: 'Ta photo', x: PANNEAU_PRENOM.x, z: PANNEAU_PRENOM.z, rayon: 1.6, visible: () => dansLaMaison, action: () => regarderPhoto('enfant') },
+  { verbe: 'Regarder', nom: 'Ta famille', x: CADRE_FAMILLE.x, z: CADRE_FAMILLE.z, rayon: 1.8, visible: () => dansLaMaison, action: () => regarderPhoto('famille') },
 );
 
 await poserInterieur();
+
+// --- La Gazette de MiniVille : chaque jour, on la lit dans la maison avant de sortir ----------
+const gazetteLue = (): boolean => etat.gazette.valideLe === aujourdhuiVille();
+/** Les quêtes de la semaine d'aujourd'hui. */
+function quetesDuJour(): Quete[] {
+  return quetesDeLaSemaine({
+    jour: aujourdhuiVille(),
+    attraction: etat.attraction,
+    nomsAttractions: Object.fromEntries(attractions.attractions.map((a) => [a.id, a.nom])),
+    prenomsProposes: PRENOMS_ATTRACTION,
+    dictee: etat.dictee,
+    hasard: Math.random,
+  });
+}
+async function ouvrirLaGazette(): Promise<void> {
+  const jour = aujourdhuiVille();
+  const quetes = quetesDuJour();
+  const edition = editionDuJour(etat.gazette, quetes, jour, etat.prenom);
+  const lundi = lundiDe(jour);
+  const premiere = etat.gazette.premiere || lundi;
+  const semaine = Math.round((Date.parse(lundi) - Date.parse(premiere)) / (7 * 86400000)) + 1;
+  const questions = questionnaire(edition, Math.random);
+  const avant = commandes.actives;
+  commandes.actives = false;
+  occupe = true;
+  const ok = await lireLaGazette({
+    edition,
+    questions,
+    reserve: reserve(edition, questions, Math.random),
+    date: new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }),
+    semaine,
+    visiter: () => ouvrirLaCarte(true),
+  });
+  occupe = false;
+  commandes.actives = avant;
+  if (!ok) return;
+  const g = etat.gazette;
+  g.premiere = premiere;
+  g.valideLe = jour;
+  if (edition.type === 'histoire') g.histoiresLues = [...new Set([...g.histoiresLues, lundi])];
+  const resume =
+    edition.type === 'histoire'
+      ? `Semaine ${semaine} : histoire « ${edition.histoire.titre} » lue.`
+      : edition.type === 'quetes'
+        ? `Quêtes en cours : ${edition.quetes.map((q) => q.titre).join(', ')}.`
+        : `Bilan de la semaine : ${edition.quetes.map((q) => q.titre).join(', ')} finies.`;
+  g.chronique = [...g.chronique, { jour, texte: resume }].slice(-200);
+  void sauverEtat(etat);
+}
+// Chaque jour, le jeu commence dans la maison, et la porte reste fermée jusqu'à la Gazette lue.
+if (!gazetteLue() && (!adresse.has('essai') || adresse.has('maison'))) {
+  dansLaMaison = true;
+  heros.racine.position.set(ENTREE_INTERIEUR.x, 0.06, ENTREE_INTERIEUR.z);
+  heros.racine.rotation.y = Math.PI;
+  setTimeout(() => annoncerEnVille(gazetteT.textes.fermee), 1500);
+}
+
+// --- La carte : un bouton en haut à droite ; la ville vue du ciel, prise dans la scène -----------
+let planDeLaVille: Plan | null = null;
+let portrait: string | null = null;
+/** Le personnage en miniature pour la carte : photographié seul, de face, sur un fond magenta qu'on
+ *  rend ensuite transparent. */
+function portraitDuHeros(): string | null {
+  const CALQUE = 7;
+  const h = heros.racine;
+  h.traverse((o) => o.layers.enable(CALQUE));
+  soleil.layers.enable(CALQUE);
+  ciel.layers.enable(CALQUE);
+  const toile = renderer.domElement;
+  const cam = new THREE.PerspectiveCamera(26, toile.width / toile.height, 0.1, 50);
+  cam.layers.set(CALQUE);
+  const a = h.rotation.y;
+  cam.position.set(h.position.x + Math.sin(a) * 5, h.position.y + 2.4, h.position.z + Math.cos(a) * 5);
+  cam.lookAt(h.position.x, h.position.y + 0.95, h.position.z);
+  const fond = scene.background;
+  const brume = scene.fog;
+  scene.background = new THREE.Color(0xff00ff);
+  scene.fog = null;
+  renderer.render(scene, cam);
+  scene.background = fond;
+  scene.fog = brume;
+  h.traverse((o) => o.layers.disable(CALQUE));
+  soleil.layers.disable(CALQUE);
+  ciel.layers.disable(CALQUE);
+  // Le carré du milieu de l'écran, réduit, sans le magenta.
+  const cote = Math.min(toile.width, toile.height) * 0.62;
+  const sortie = Object.assign(document.createElement('canvas'), { width: 160, height: 160 });
+  const g = sortie.getContext('2d');
+  if (!g) return null;
+  g.drawImage(toile, (toile.width - cote) / 2, (toile.height - cote) / 2, cote, cote, 0, 0, 160, 160);
+  const image = g.getImageData(0, 0, 160, 160);
+  const px = image.data;
+  for (let i = 0; i < px.length; i += 4) {
+    const r = px[i] ?? 0;
+    const v = px[i + 1] ?? 0;
+    const b = px[i + 2] ?? 0;
+    // Plus le pixel est magenta, plus il est transparent (les bords restent doux).
+    const magenta = Math.min(r, b) - v;
+    if (magenta > 60) px[i + 3] = Math.max(0, 255 - (magenta - 60) * 3);
+  }
+  g.putImageData(image, 0, 0);
+  return sortie.toDataURL('image/png');
+}
+const boutonCarte = document.body.appendChild(Object.assign(document.createElement('button'), { type: 'button', className: 'bouton-carte', ariaLabel: 'Carte' }));
+boutonCarte.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2z M9 4v14 M15 6v14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg><span>Carte</span>';
+boutonCarte.addEventListener('click', () => {
+  if (occupe || enDialogue) return;
+  bruitage.touche();
+  void ouvrirLaCarte();
+});
+/** Toutes les quêtes à montrer sur la carte : les longues (celles de la semaine, le chantier) et
+ *  celles du jour (demandes des habitants, courrier, pêche, mûres, potager, révision, stands). */
+function quetesPourLaCarte(pourLaCarte = true): QueteCarte[] {
+  const Q = carteT.quetes;
+  const jour = aujourdhuiVille();
+  const liste: QueteCarte[] = quetesDuJour()
+    .filter((q) => !q.faite)
+    .map((q) => ({ ...(q.lieu === 'fete' ? FORAIN_ROUE : LIEUX.tableau), titre: q.titre, texte: q.phrases.join(' '), longue: true, hauteur: q.lieu === 'fete' ? 2.7 : 3.2 }));
+  const lieuChantier = etat.projets.enCours ? LIEUX_PROJETS[etat.projets.enCours] : undefined;
+  if (lieuChantier && !etat.projets.termine) liste.push({ ...lieuChantier, ...Q.chantier, longue: true, hauteur: 5 });
+  const duJour = (lieu: { x: number; z: number }, q: { titre: string; texte: string }, hauteur = 2.6): void => {
+    liste.push({ x: lieu.x, z: lieu.z, titre: q.titre, texte: q.texte, longue: false, hauteur });
+  };
+  const habitants: Array<{ id: string; nom: string; lieu: { x: number; z: number }; elle: boolean }> = [
+    { id: 'epiciere', nom: 'L’épicière', lieu: EPICIERE, elle: true },
+    { id: 'forain-chamboule', nom: 'Le forain', lieu: FORAIN, elle: false },
+  ];
+  for (const h of habitants) {
+    if (!aUneQuete(h.id)) continue;
+    const q = h.elle ? Q.demandeF : Q.demande;
+    duJour(h.lieu, { titre: q.titre, texte: q.texte.replace('{nom}', h.nom) });
+  }
+  if (peutTrier(etat.poste, jour)) duJour(POSTIERE, Q.courrier);
+  if (peutPecher(etat.riviere, jour)) duJour(LIEUX.ponton, Q.peche, 1.6);
+  if (buissonsCharges(etat.riviere, jour).length) duJour(BUISSONS_MURES[0] ?? LIEUX.ponton, Q.mures, 1.8);
+  if (etat.parcelles.some((p) => p.graine && !p.arrosages.includes(jour))) duJour(LIEUX.potager, Q.potager, 1.6);
+  const q = etat.dictee.quotidien;
+  if (etat.dictee.mots.length && !(q.jour === jour && q.fini)) duJour(LIEUX.tableau, Q.revision, 3.2);
+  // Sur la carte, un seul repère pour la fête ; dans la ville, un au-dessus de chaque forain à aider.
+  if (!toutFini()) {
+    if (pourLaCarte) duJour(LIEUX.fete, Q.stands);
+    else for (const id of Object.keys(FETE.stands) as IdStand[]) if (!standFini(id)) duJour(devantLeStand(FETE.stands[id]), Q.stands);
+  }
+  return liste;
+}
+
+// Dans la ville, un petit « ! » flotte au-dessus de chaque quête, de la même couleur que sur la
+// carte (orange : quête longue ; bleu : quête du jour). La liste est revue chaque seconde.
+function textureDeMarque(couleur: string): THREE.CanvasTexture {
+  const t = document.createElement('canvas');
+  t.width = t.height = 96;
+  const g = t.getContext('2d')!;
+  g.fillStyle = 'white';
+  g.beginPath();
+  g.arc(48, 48, 44, 0, Math.PI * 2);
+  g.fill();
+  g.fillStyle = couleur;
+  g.beginPath();
+  g.arc(48, 48, 36, 0, Math.PI * 2);
+  g.fill();
+  g.fillStyle = 'white';
+  g.font = 'bold 58px sans-serif';
+  g.textAlign = 'center';
+  g.textBaseline = 'middle';
+  g.fillText('!', 48, 52);
+  const x = new THREE.CanvasTexture(t);
+  x.colorSpace = THREE.SRGBColorSpace;
+  return x;
+}
+const MARQUE_LONGUE = new THREE.SpriteMaterial({ map: textureDeMarque('#f0703c'), fog: true });
+const MARQUE_DU_JOUR = new THREE.SpriteMaterial({ map: textureDeMarque('#3b8fd9'), fog: true });
+const marques: THREE.Sprite[] = [];
+let marquesPosees: QueteCarte[] = [];
+let prochainesMarques = 0;
+animerLesMarques = animerMarques;
+function animerMarques(t: number, maintenant: number): void {
+  if (maintenant > prochainesMarques) {
+    prochainesMarques = maintenant + 1000;
+    marquesPosees = quetesPourLaCarte(false);
+    while (marques.length < marquesPosees.length) {
+      const s = new THREE.Sprite(MARQUE_DU_JOUR);
+      s.scale.setScalar(0.55);
+      ville.add(s);
+      marques.push(s);
+    }
+    marques.forEach((s, i) => {
+      const q = marquesPosees[i];
+      s.visible = Boolean(q);
+      if (q) s.material = q.longue ? MARQUE_LONGUE : MARQUE_DU_JOUR;
+    });
+  }
+  marquesPosees.forEach((q, i) => {
+    const s = marques[i];
+    if (s) s.position.set(q.x, q.hauteur + Math.sin(t * 2.4 + i) * 0.08, q.z);
+  });
+}
+
+/** Ouvre la carte, avec un repère sur chaque quête de la semaine pas encore finie ; deLoin : sur
+ *  toute la ville (depuis la Gazette). */
+function ouvrirLaCarte(deLoin = false): Promise<void> {
+  const avant = commandes.actives;
+  commandes.actives = false;
+  const p = dansLaMaison ? LIEUX.maison : heros.racine.position;
+  const lieux = lieuxDeLaCarte(etat.projets.construits.includes('boulangerie'));
+  // Le personnage en miniature (il peut avoir changé de tenue) ; dans la maison, il n'y en a pas
+  // de photo à faire hors de la ville : on garde la dernière.
+  if (!dansLaMaison || !portrait) portrait = portraitDuHeros();
+  // La ville photographiée sans brouillard ni personnage (sa miniature le remplace), une fois par
+  // partie : elle ne change guère en une séance, et la photo prend une ou deux secondes.
+  if (!planDeLaVille) {
+    const brume = scene.fog;
+    scene.fog = null;
+    heros.racine.visible = false;
+    planDeLaVille = photographierLaVille(renderer, scene, lieux);
+    scene.fog = brume;
+    heros.racine.visible = true;
+  }
+  const plan = planDeLaVille;
+  return ouvrirCarte(plan, lieux, { x: p.x, z: p.z, portrait }, quetesPourLaCarte(), { deLoin }).then(() => {
+    commandes.actives = avant;
+  });
+}
 
 // Le prénom du personnage : demandé à la première arrivée, affiché en haut de l'écran ; il se
 // change dans la maison.
@@ -1334,6 +1749,8 @@ if (adresse.has('essai')) {
       grandDefi: essaiGrandDefi,
       tour: () => void faireUnTour(),
       prenom: () => void choisirPrenom(),
+      gazette: () => void ouvrirLaGazette(),
+      liste: () => dictee.ouvrirLaListe(),
     },
   });
 }

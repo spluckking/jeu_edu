@@ -124,17 +124,25 @@ body.ville #scene {
   line-height: 1.5;
 }
 
+/* Les mots de la dictée s'écrivent en cursive, comme à l'école. */
+.fiche-mot,
+.comparaison-mot,
+.ecriture-ligne .determinant {
+  font-family: 'Playwrite FR Moderne', cursive;
+  font-weight: 400;
+  letter-spacing: 0;
+}
 .fiche-mot {
   margin: 4px 0;
-  font-size: 3.4rem;
-  font-weight: 700;
-  letter-spacing: 0.02em;
+  font-size: 2.8rem;
+  line-height: 1.7;
 }
 
+/* La coupure des syllabes : un trait pointillé fin, qui gêne peu le lien des lettres. */
 .fiche-mot .syllabe.nouvelle {
-  margin-left: 0.18em;
-  padding-left: 0.18em;
-  border-left: 3px dotted rgba(74, 56, 51, 0.25);
+  margin-left: 0.06em;
+  padding-left: 0.06em;
+  border-left: 2px dotted rgba(74, 56, 51, 0.25);
 }
 
 .fiche-lieu,
@@ -847,4 +855,724 @@ button.produit {
 .fondu.noir {
   opacity: 1;
   pointer-events: auto;
+}
+
+/* Une photo de la maison, en grand : elle s'agrandit depuis le mur. */
+.photo-fond {
+  position: fixed;
+  inset: 0;
+  z-index: 12;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgba(40, 30, 22, 0.55);
+}
+.photo-fond[hidden] {
+  display: none;
+}
+.photo-carte {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  max-width: min(92vw, 900px);
+  max-height: calc(100vh - 32px);
+  padding: 18px 18px 12px;
+  border-radius: 28px;
+  background: var(--papier);
+  box-shadow: var(--ombre);
+  animation: photo-grandit 0.45s var(--rebond, ease-out);
+}
+@keyframes photo-grandit {
+  from {
+    transform: scale(0.25);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+.photo-cadre {
+  display: grid;
+  place-items: center;
+  padding: 12px;
+  border-radius: 10px;
+  background: #a8774a;
+  box-shadow: inset 0 0 0 3px #8a5f38;
+}
+.photo-cadre img {
+  display: block;
+  max-width: min(84vw, 840px);
+  max-height: calc(100vh - 260px);
+  border-radius: 4px;
+  object-fit: contain;
+}
+.photo-enfant .photo-cadre img {
+  max-height: calc(100vh - 320px);
+}
+.photo-vide {
+  display: grid;
+  place-items: center;
+  width: min(60vw, 420px);
+  aspect-ratio: 4 / 3;
+  margin: 0;
+  border-radius: 4px;
+  background: #fffaf0;
+  color: var(--encre);
+  font: 600 1.2rem var(--police);
+}
+.photo-enfant .photo-vide {
+  width: min(44vw, 300px);
+  aspect-ratio: 4 / 5;
+}
+.photo-prenom {
+  margin: 0;
+  color: var(--encre);
+  font: 700 2rem var(--police);
+}
+.photo-actions {
+  display: flex;
+  gap: 12px;
+}
+.photo-parent {
+  padding: 6px 12px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--encre);
+  font: 0.85rem var(--police);
+  opacity: 0.55;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.photo-parent.appui {
+  background: var(--jaune, #ffd27a);
+  opacity: 1;
+  transition: background 1.5s linear;
+}
+
+/* Le bouton de la carte, en haut à droite. */
+.bouton-carte {
+  position: fixed;
+  top: calc(14px + env(safe-area-inset-top));
+  right: calc(16px + env(safe-area-inset-right));
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 52px;
+  padding: 0 18px 0 14px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--papier);
+  box-shadow: var(--ombre);
+  color: var(--encre);
+  font: 700 1.2rem var(--police);
+}
+.bouton-carte svg {
+  width: 28px;
+  height: 28px;
+}
+
+/* La carte de la ville, en grand. */
+.carte-fond {
+  position: fixed;
+  inset: 0;
+  z-index: 12;
+  display: grid;
+  place-items: center;
+  padding: 12px;
+  background: rgba(40, 30, 22, 0.7);
+}
+.carte-boite {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px 14px;
+  border-radius: 24px;
+  background: var(--papier);
+  box-shadow: var(--ombre);
+  animation: photo-grandit 0.35s var(--rebond, ease-out);
+}
+.carte-titre-ville {
+  margin: 0;
+  color: var(--encre);
+  font: 700 1.5rem var(--police);
+}
+.carte-aide {
+  margin: 0;
+  color: var(--encre);
+  font: 1rem var(--police);
+}
+.carte-vue {
+  position: relative;
+  width: min(92vw, 1100px);
+  height: calc(100vh - 190px);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: inset 0 0 0 3px #a8774a;
+  background: #cfe3b0;
+}
+.carte-calque {
+  position: absolute;
+  top: 0;
+  left: 0;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  transition: transform 0.4s ease;
+}
+.carte-calque canvas {
+  display: block;
+  pointer-events: none;
+}
+/* Les flèches, au milieu de chaque bord, pour faire glisser la carte. */
+.carte-fleche {
+  position: absolute;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 250, 240, 0.92);
+  box-shadow: var(--ombre);
+  color: var(--encre);
+}
+.carte-fleche svg {
+  width: 36px;
+  height: 36px;
+}
+.carte-fleche:disabled {
+  opacity: 0.3;
+}
+.carte-fleche-haut {
+  top: 10px;
+  left: calc(50% - 32px);
+}
+.carte-fleche-bas {
+  bottom: 10px;
+  left: calc(50% - 32px);
+}
+.carte-fleche-gauche {
+  left: 10px;
+  top: calc(50% - 32px);
+}
+.carte-fleche-droite {
+  right: 10px;
+  top: calc(50% - 32px);
+}
+.carte-point,
+.carte-moi {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  margin: -7px 0 0 -7px;
+  border: 2px solid white;
+  border-radius: 50%;
+  background: #f08a5d;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+  pointer-events: none;
+}
+.carte-point.vise {
+  transform: scale(1.6);
+  background: #ffd27a;
+}
+.carte-moi {
+  width: 20px;
+  height: 20px;
+  margin: -10px 0 0 -10px;
+  background: #3b82f6;
+  animation: carte-bat 1.2s ease-in-out infinite;
+}
+@keyframes carte-bat {
+  50% {
+    box-shadow: 0 0 0 8px rgba(59, 130, 246, 0.3);
+  }
+}
+.carte-bulle {
+  position: absolute;
+  transform: translate(-50%, calc(-100% - 14px));
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: var(--papier);
+  box-shadow: var(--ombre);
+  color: var(--encre);
+  font: 700 1.15rem var(--police);
+  white-space: nowrap;
+  pointer-events: none;
+}
+.carte-bulle[hidden] {
+  display: none;
+}
+
+/* Le cadenas de l'espace parent : discret, en haut à droite, sous la carte (appui long). */
+.bouton-parent-ville {
+  position: fixed;
+  top: calc(76px + env(safe-area-inset-top));
+  right: calc(22px + env(safe-area-inset-right));
+  z-index: 4;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 250, 240, 0.55);
+  color: var(--encre);
+  opacity: 0.6;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.bouton-parent-ville svg {
+  width: 22px;
+  height: 22px;
+}
+.bouton-parent-ville.appui {
+  opacity: 1;
+  background: var(--jaune, #ffd27a);
+  transition: background 1.5s linear;
+}
+.carte-actions {
+  display: flex;
+  gap: 12px;
+}
+.carte-fleche[hidden] {
+  display: none;
+}
+
+/* Le contour lumineux des lieux, posé sur la photo de la carte ; il respire doucement. */
+.carte-calque .carte-contours {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  animation: carte-contours 2.4s ease-in-out infinite;
+}
+@keyframes carte-contours {
+  50% {
+    opacity: 0.55;
+  }
+}
+/* L'enfant en miniature, debout à sa place. */
+.carte-moi.portrait {
+  width: 64px;
+  height: 64px;
+  margin: -58px 0 0 -32px;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  animation: none;
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.45));
+}
+.carte-moi.portrait::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: -4px;
+  width: 26px;
+  height: 10px;
+  margin-left: -13px;
+  border-radius: 50%;
+  background: rgba(59, 130, 246, 0.45);
+  z-index: -1;
+  animation: carte-bat 1.2s ease-in-out infinite;
+}
+.carte-moi.portrait img {
+  width: 100%;
+  height: 100%;
+}
+
+/* --- La Gazette de MiniVille : une page de journal ------------------------------------------- */
+.gazette-fond {
+  position: fixed;
+  inset: 0;
+  z-index: 12;
+  display: grid;
+  place-items: center;
+  padding: 12px;
+  background: rgba(40, 30, 22, 0.6);
+}
+.gazette-fond[hidden] {
+  display: none;
+}
+.gazette-page {
+  display: flex;
+  flex-direction: column;
+  width: min(96vw, 1180px);
+  height: calc(100vh - 24px);
+  padding: 14px 22px 16px;
+  border-radius: 6px;
+  background: #fbf6e9 linear-gradient(180deg, rgba(120, 90, 50, 0.04), rgba(120, 90, 50, 0.1));
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
+  color: #2e2620;
+  animation: photo-grandit 0.4s var(--rebond, ease-out);
+}
+.gazette-tete {
+  text-align: center;
+  border-bottom: 3px double #2e2620;
+  padding-bottom: 4px;
+}
+.gazette-nom {
+  margin: 0;
+  font: 700 2.4rem Georgia, 'Times New Roman', serif;
+  letter-spacing: 0.02em;
+}
+.gazette-date {
+  margin: 2px 0 0;
+  font: italic 1rem Georgia, serif;
+}
+.gazette-corps {
+  display: grid;
+  grid-template-columns: 1fr minmax(260px, 34%);
+  gap: 20px;
+  flex: 1;
+  min-height: 0;
+  margin-top: 10px;
+}
+.gazette-article {
+  overflow-y: auto;
+  padding-right: 10px;
+  border-right: 1px solid rgba(46, 38, 32, 0.35);
+}
+.gazette-rubrique {
+  margin: 6px 0 2px;
+  font: 700 0.95rem var(--police);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #8a5f38;
+}
+.gazette-titre {
+  margin: 0 0 6px;
+  font: 700 1.6rem Georgia, serif;
+}
+.gazette-texte {
+  margin-bottom: 12px;
+  font: 1.35rem/1.55 var(--police);
+}
+.gazette-texte .gazette-phrase {
+  display: inline;
+  margin: 0;
+  font: inherit;
+  border-radius: 6px;
+  transition: background 0.3s;
+}
+.gazette-phrase.brille {
+  background: #ffe28a;
+  box-shadow: 0 0 0 3px #ffe28a;
+}
+.gazette-carte {
+  margin: 4px 0 12px;
+}
+.gazette-cote {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow-y: auto;
+}
+.gazette-numero {
+  margin: 0;
+  font: 700 0.95rem var(--police);
+  color: #8a5f38;
+}
+.gazette-question {
+  margin: 0;
+  font: 700 1.35rem/1.4 var(--police);
+}
+.gazette-choix-liste {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.gazette-choix {
+  min-height: 60px;
+  font-size: 1.25rem;
+}
+.gazette-choix.juste {
+  background: #b8e6a8;
+}
+.gazette-choix.faux {
+  opacity: 0.45;
+}
+.gazette-retour {
+  margin: 0;
+  min-height: 1.4em;
+  font: 1.1rem var(--police);
+}
+.gazette-bravo {
+  font: 700 1.4rem/1.4 var(--police);
+}
+/* Une bulle de quête sur la carte : plus longue, sur plusieurs lignes. */
+.carte-bulle.quete {
+  max-width: 300px;
+  white-space: normal;
+  text-align: center;
+  font-size: 1.05rem;
+}
+
+/* Une quête sur la carte : un repère « ! » qui sautille ; sa fiche reste dans un coin. */
+.carte-quete {
+  position: absolute;
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  margin: -46px 0 0 -20px;
+  border: 3px solid white;
+  border-radius: 50%;
+  background: #f0703c;
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.35);
+  color: white;
+  font: 800 1.5rem var(--police);
+  pointer-events: auto;
+  animation: carte-saute 1.4s ease-in-out infinite;
+}
+.carte-quete.choisie {
+  background: #ffb02e;
+  animation: none;
+  transform: scale(1.2);
+}
+@keyframes carte-saute {
+  50% {
+    transform: translateY(-6px);
+  }
+}
+.carte-fiche {
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  z-index: 4;
+  max-width: min(420px, 70%);
+  padding: 12px 40px 12px 16px;
+  border-radius: 16px;
+  background: rgba(255, 250, 240, 0.97);
+  box-shadow: var(--ombre);
+  color: var(--encre);
+}
+.carte-fiche[hidden] {
+  display: none;
+}
+.carte-fiche-titre {
+  margin: 0 0 4px;
+  font: 700 1.2rem var(--police);
+}
+.carte-fiche-texte {
+  margin: 0;
+  font: 1.05rem/1.4 var(--police);
+}
+.carte-fiche-fermer {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--encre);
+  font: 700 1.4rem var(--police);
+}
+
+/* Après « Parler », quand l'habitant a une quête : le choix entre « Quête » et « Discuter ». */
+.choix-parler {
+  position: fixed;
+  right: calc(28px + env(safe-area-inset-right));
+  bottom: calc(40px + env(safe-area-inset-bottom));
+  z-index: 2;
+  display: flex;
+  gap: 14px;
+  animation: apparaitre 0.3s var(--rebond);
+}
+.choix-parler[hidden] {
+  display: none;
+}
+.interagir-quete {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 84px;
+  padding: 12px 24px 12px 14px;
+  border: 0;
+  border-radius: 32px;
+  background: #f0703c;
+  color: white;
+  box-shadow: 0 7px 0 #b84d22, var(--ombre);
+}
+.interagir-discuter {
+  min-height: 84px;
+  padding: 12px 26px;
+  border: 0;
+  border-radius: 32px;
+  background: var(--rouge);
+  color: white;
+  box-shadow: 0 7px 0 var(--rouge-fonce), var(--ombre);
+  font: 700 1.8rem var(--police);
+}
+.interagir-discuter:active,
+.interagir-quete:active {
+  transform: translateY(4px);
+}
+.interagir-quete-signe {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: white;
+  color: #f0703c;
+  font: 800 1.6rem var(--police);
+}
+
+/* Deux sortes de quêtes sur la carte : longues (orange, plus grandes) et du jour (bleues). */
+.carte-quete.du-jour {
+  width: 32px;
+  height: 32px;
+  margin: -38px 0 0 -16px;
+  background: #3b8fd9;
+  font-size: 1.2rem;
+}
+.carte-quete.du-jour.choisie {
+  background: #7cc0f5;
+}
+.carte-fiche-sorte {
+  margin: 0 0 2px;
+  font: 700 0.85rem var(--police);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #3b8fd9;
+}
+.carte-fiche.longue .carte-fiche-sorte {
+  color: #f0703c;
+}
+.carte-legende {
+  font-size: 0.9rem;
+  opacity: 0.85;
+}
+
+/* --- L'écriture au stylet : une bande de cahier à grands carreaux (Seyès) ---------------------- */
+.ecriture-ligne {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+}
+.zone-ecriture {
+  position: relative;
+  flex: 1;
+  height: 210px;
+  border-radius: 12px;
+  background-color: #fffdf6;
+  /* Les lignes : une ligne forte tous les 8 mm (ici 64 px), trois fines entre, une marge rouge. */
+  background-image:
+    linear-gradient(90deg, transparent 54px, rgba(214, 69, 80, 0.55) 54px, rgba(214, 69, 80, 0.55) 56px, transparent 56px),
+    repeating-linear-gradient(180deg, transparent 0 15px, rgba(120, 140, 210, 0.35) 15px 16px),
+    repeating-linear-gradient(180deg, transparent 0 63px, rgba(70, 90, 180, 0.6) 63px 65px);
+  box-shadow: inset 0 0 0 2px #d9cdb5;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.zone-ecriture.en-gomme {
+  box-shadow: inset 0 0 0 3px #f0a050;
+}
+.zone-ecriture-toile {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+}
+.zone-ecriture-aide {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  margin: 0;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: rgba(255, 250, 240, 0.95);
+  box-shadow: var(--ombre);
+  color: var(--encre);
+  font: 700 1.1rem var(--police);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+.zone-ecriture-aide[hidden] {
+  display: none;
+}
+.bouton-gomme.active {
+  background: #ffe2c2;
+}
+.ecriture-comparee {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-height: 80px;
+}
+.ecriture-comparee img {
+  max-height: 110px;
+  max-width: 70vw;
+  border-radius: 8px;
+  background: white;
+  box-shadow: inset 0 0 0 1px #e2d8c4;
+}
+.ecriture-etiquette {
+  min-width: 70px;
+  color: #8a5f38;
+  font: 700 1rem var(--police);
+}
+/* La comparaison de fin de concours : une ligne par mot. */
+.comparaisons {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: calc(100vh - 260px);
+  overflow-y: auto;
+}
+.comparaison {
+  display: grid;
+  grid-template-columns: minmax(120px, 1fr) minmax(100px, auto) auto auto;
+  align-items: center;
+  gap: 10px;
+}
+.comparaison-image {
+  max-height: 64px;
+  max-width: 100%;
+  background: white;
+  border-radius: 6px;
+}
+.comparaison-mot {
+  font: 700 1.3rem var(--police);
+}
+.choix-petit {
+  padding: 8px 14px;
+  border: 0;
+  border-radius: 14px;
+  background: white;
+  box-shadow: var(--ombre);
+  font: 700 1rem var(--police);
+}
+.choix-petit.choisi {
+  background: #ffd27a;
+}
+.parent-a-verifier {
+  margin: 4px 0 8px;
+  font: 700 1.1rem var(--police);
+  color: #b84d22;
+}
+.comparaison.verification {
+  grid-template-columns: minmax(120px, 1fr) auto minmax(140px, 1fr) auto auto;
+}
+.comparaison.verification .lecture-texte {
+  margin: 0;
+  font-size: 0.95rem;
+}
+.ecriture-ligne .determinant {
+  font-size: 2rem;
 }

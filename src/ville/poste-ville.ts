@@ -200,5 +200,8 @@ async function recevoir(c: ContextePoste, habitant: string, nom: string): Promis
 
 export function installerPoste(c: ContextePoste): void {
   c.points.push({ verbe: T.trier, nom: T.nom, x: c.postiere.x, z: c.postiere.z, action: () => void aLaPoste(c) });
-  quandOnParle((habitant, nom) => recevoir(c, habitant, nom));
+  quandOnParle(
+    (habitant, nom) => recevoir(c, habitant, nom),
+    (habitant) => c.etat().poste.aLivrer.includes(habitant),
+  );
 }
