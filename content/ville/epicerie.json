@@ -100,7 +100,7 @@
     }
   ],
   "textes": {
-    "valide": false,
+    "valide": true,
     "nom": "L’épicière",
     "bienvenue": "Bonjour ! Tu es nouveau en ville ? Voici 10 euros pour faire tes premières courses. Range-les bien dans ton porte-monnaie !",
     "accueil": "Bonjour ! Qu’est-ce qui te ferait plaisir aujourd’hui ?",

@@ -1,6 +1,6 @@
 {
   "_lisez-moi": "La Gazette de MiniVille, le journal posé sur la table de la maison. Chaque jour, l'enfant la lit avant de sortir. Le premier jour de chaque semaine : l'histoire de la semaine puis les quêtes ; les autres jours : les quêtes pas encore finies ; quand tout est fini : un questionnaire sur ce qui s'est passé. histoires : une par semaine de jeu, dans l'ordre (la première est l'arrivée en ville). {prenom} : le prénom du personnage ; {attraction} : l'attraction en construction ; {forain} : le prénom de son forain ; {n} : un nombre. Chaque question a 3 réponses, la bonne en premier (elles sont mélangées à l'écran) ; indice : le rang de la phrase qui contient la réponse (à partir de 1), qui s'allume après une erreur. valide=false : textes à relire (A_VALIDER.md).",
-  "valide": false,
+  "valide": true,
   "nom": "La Gazette de MiniVille",
   "textes": {
     "lire": "Lire",
