@@ -999,21 +999,64 @@ button.produit {
   color: var(--encre);
   font: 1rem var(--police);
 }
-.carte-plan {
+.carte-vue {
   position: relative;
-  width: min(92vw, calc((100vh - 170px) * 213 / 175));
+  width: min(92vw, 1100px);
+  height: calc(100vh - 190px);
   border-radius: 12px;
   overflow: hidden;
+  box-shadow: inset 0 0 0 3px #a8774a;
+  background: #cfe3b0;
+}
+.carte-calque {
+  position: absolute;
+  top: 0;
+  left: 0;
   touch-action: none;
   user-select: none;
   -webkit-user-select: none;
-  box-shadow: inset 0 0 0 3px #a8774a;
+  transition: transform 0.4s ease;
 }
-.carte-plan img {
+.carte-calque canvas {
   display: block;
-  width: 100%;
-  height: 100%;
   pointer-events: none;
+}
+/* Les flèches, au milieu de chaque bord, pour faire glisser la carte. */
+.carte-fleche {
+  position: absolute;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 250, 240, 0.92);
+  box-shadow: var(--ombre);
+  color: var(--encre);
+}
+.carte-fleche svg {
+  width: 36px;
+  height: 36px;
+}
+.carte-fleche:disabled {
+  opacity: 0.3;
+}
+.carte-fleche-haut {
+  top: 10px;
+  left: calc(50% - 32px);
+}
+.carte-fleche-bas {
+  bottom: 10px;
+  left: calc(50% - 32px);
+}
+.carte-fleche-gauche {
+  left: 10px;
+  top: calc(50% - 32px);
+}
+.carte-fleche-droite {
+  right: 10px;
+  top: calc(50% - 32px);
 }
 .carte-point,
 .carte-moi {

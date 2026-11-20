@@ -1,7 +1,9 @@
-// La carte de la ville : une vue du ciel de toute la ville (photographiée dans la scène au moment
-// où on l'ouvre, donc toujours à jour), avec un point par lieu. L'enfant glisse le doigt dessus :
-// le nom du lieu le plus proche s'affiche. Un point qui bat montre où il est.
+// La carte de la ville : toute la ville vue de haut et de biais, comme dans le jeu (on reconnaît
+// les bâtiments), photographiée dans la scène au moment où on l'ouvre (toujours à jour). On n'en
+// voit qu'une partie, centrée sur l'enfant ; des flèches sur les bords la font glisser. L'enfant
+// glisse le doigt dessus : le nom du lieu le plus proche s'affiche. Un point bleu montre où il est.
 
+import * as THREE from 'three';
 import T from '../../content/ville/carte.json';
 import { LIEUX as PIEGES } from '../dictee/pieges.ts';
 import { bruitage } from '../son/bruitages.ts';
@@ -51,43 +53,134 @@ export function lieuProche(lieux: readonly LieuCarte[], x: number, z: number, po
   return meilleur;
 }
 
-const LARGEUR = BORDS.xMax - BORDS.xMin;
-const PROFONDEUR = BORDS.zMax - BORDS.zMin;
-const pc = (x: number, z: number): { left: string; top: string } => ({
-  left: `${((x - BORDS.xMin) / LARGEUR) * 100}%`,
-  top: `${((z - BORDS.zMin) / PROFONDEUR) * 100}%`,
-});
+/** L'angle de la vue : de haut, un peu de biais vers le nord (on voit les façades, au sud). */
+const ANGLE = 0.95;
+const SA = Math.sin(ANGLE);
+/** Au nord, de quoi voir le haut des grands bâtiments (la grande roue). */
+const MARGE_NORD = 10;
 
-export function ouvrirCarte(image: string, lieux: readonly LieuCarte[], ici: { x: number; z: number }): Promise<void> {
+/** La ville en image, et le passage des mètres aux pixels de l'image (et retour). */
+export interface Plan {
+  toile: HTMLCanvasElement;
+  /** Pixels de l'image par mètre. */
+  ppm: number;
+  versCarte(x: number, z: number): { x: number; y: number };
+  versMonde(px: number, py: number): { x: number; z: number };
+}
+
+/** Photographie toute la ville, morceau par morceau (chaque morceau à la taille de l'écran), dans
+ *  une grande image ; pixelsParMetre fixe la finesse. À appeler sans brouillard ni personnage. */
+export function photographierLaVille(renderer: THREE.WebGLRenderer, scene: THREE.Scene, pixelsParMetre = 12): Plan {
+  const L = BORDS.xMax - BORDS.xMin;
+  const haut = -BORDS.zMin * SA + MARGE_NORD;
+  const bas = -BORDS.zMax * SA;
+  const ppm = Math.min(pixelsParMetre, 4096 / L, 4096 / (haut - bas));
+  const toile = document.createElement('canvas');
+  toile.width = Math.round(L * ppm);
+  toile.height = Math.round((haut - bas) * ppm);
+  const g = toile.getContext('2d')!;
+  const ecran = renderer.domElement;
+  const tw = ecran.width;
+  const th = ecran.height;
+  const cam = new THREE.OrthographicCamera(-tw / 2 / ppm, tw / 2 / ppm, th / 2 / ppm, -th / 2 / ppm, 1, 500);
+  cam.rotation.set(-ANGLE, 0, 0);
+  const regard = new THREE.Vector3(0, -SA, -Math.cos(ANGLE));
+  for (let iy = 0; iy * th < toile.height; iy++) {
+    for (let ix = 0; ix * tw < toile.width; ix++) {
+      // Le point du sol au centre de ce morceau.
+      const x = BORDS.xMin + (ix + 0.5) * (tw / ppm);
+      const sCentre = haut - (iy + 0.5) * (th / ppm);
+      cam.position.set(x, 0, -sCentre / SA).addScaledVector(regard, -200);
+      cam.updateMatrixWorld();
+      renderer.render(scene, cam);
+      g.drawImage(ecran, ix * tw, iy * th);
+    }
+  }
+  return {
+    toile,
+    ppm,
+    versCarte: (x, z) => ({ x: (x - BORDS.xMin) * ppm, y: (haut + z * SA) * ppm }),
+    versMonde: (px, py) => ({ x: BORDS.xMin + px / ppm, z: (py / ppm - haut) / SA }),
+  };
+}
+
+/** Pixels d'écran par mètre, sur la carte. */
+const ZOOM = 14;
+
+const FLECHES = [
+  { cote: 'haut', dx: 0, dy: -1, d: 'M6 15l6-6 6 6' },
+  { cote: 'bas', dx: 0, dy: 1, d: 'M6 9l6 6 6-6' },
+  { cote: 'gauche', dx: -1, dy: 0, d: 'M15 6l-6 6 6 6' },
+  { cote: 'droite', dx: 1, dy: 0, d: 'M9 6l6 6-6 6' },
+] as const;
+
+export function ouvrirCarte(plan: Plan, lieux: readonly LieuCarte[], ici: { x: number; z: number }): Promise<void> {
   return new Promise((fini) => {
+    // À l'écran, 14 pixels par mètre : on voit le quartier autour de l'enfant.
+    const pr = plan.ppm / ZOOM;
     const fond = Object.assign(document.createElement('div'), { className: 'carte-fond' });
     const boite = Object.assign(document.createElement('div'), { className: 'carte-boite' });
     const titre = Object.assign(document.createElement('p'), { className: 'carte-titre-ville', textContent: T.titre });
     const aide = Object.assign(document.createElement('p'), { className: 'carte-aide', textContent: T.aide });
-    const plan = Object.assign(document.createElement('div'), { className: 'carte-plan' });
-    plan.style.aspectRatio = `${LARGEUR} / ${PROFONDEUR}`;
-    plan.append(Object.assign(document.createElement('img'), { src: image, alt: '', draggable: false }));
+    const vue = Object.assign(document.createElement('div'), { className: 'carte-vue' });
+    const calque = Object.assign(document.createElement('div'), { className: 'carte-calque' });
+    const W = plan.toile.width / pr;
+    const H = plan.toile.height / pr;
+    Object.assign(plan.toile.style, { width: `${W}px`, height: `${H}px` });
+    Object.assign(calque.style, { width: `${W}px`, height: `${H}px` });
+    calque.append(plan.toile);
+    const ou = (x: number, z: number): { left: string; top: string } => {
+      const p = plan.versCarte(x, z);
+      return { left: `${p.x / pr}px`, top: `${p.y / pr}px` };
+    };
     const points = lieux.map((l) => {
       const p = Object.assign(document.createElement('span'), { className: 'carte-point' });
-      Object.assign(p.style, pc(l.x, l.z));
-      plan.append(p);
+      Object.assign(p.style, ou(l.x, l.z));
+      calque.append(p);
       return p;
     });
     const moi = Object.assign(document.createElement('span'), { className: 'carte-moi' });
-    Object.assign(moi.style, pc(ici.x, ici.z));
-    plan.append(moi);
+    Object.assign(moi.style, ou(ici.x, ici.z));
     const bulle = Object.assign(document.createElement('span'), { className: 'carte-bulle' });
     bulle.hidden = true;
-    plan.append(bulle);
+    calque.append(moi, bulle);
+    vue.append(calque);
+
+    // Le décalage de l'image dans la fenêtre ; une flèche sans rien au-delà est grisée.
+    let ox = 0;
+    let oy = 0;
+    const fleches: Array<{ dx: number; dy: number; b: HTMLButtonElement }> = [];
+    const placer = (x: number, y: number): void => {
+      // offsetWidth : la taille sans l'animation d'ouverture (qui part d'un quart de la taille).
+      const r = { width: vue.offsetWidth, height: vue.offsetHeight };
+      ox = Math.max(0, Math.min(W - r.width, x));
+      oy = Math.max(0, Math.min(H - r.height, y));
+      calque.style.transform = `translate(${-ox}px, ${-oy}px)`;
+      for (const f of fleches) {
+        f.b.disabled = (f.dx < 0 && ox <= 0) || (f.dx > 0 && ox >= W - r.width - 1) || (f.dy < 0 && oy <= 0) || (f.dy > 0 && oy >= H - r.height - 1);
+      }
+    };
+    for (const f of FLECHES) {
+      const b = Object.assign(document.createElement('button'), { type: 'button', className: `carte-fleche carte-fleche-${f.cote}` });
+      b.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${f.d}" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+      b.addEventListener('click', () => {
+        bruitage.touche();
+        const r = { width: vue.offsetWidth, height: vue.offsetHeight };
+        bulle.hidden = true;
+        placer(ox + f.dx * r.width * 0.45, oy + f.dy * r.height * 0.45);
+      });
+      vue.append(b);
+      fleches.push({ dx: f.dx, dy: f.dy, b });
+    }
 
     // Le doigt glisse sur la carte : le nom du lieu le plus proche (ou « Tu es ici »).
     let dernier = '';
     const montrer = (e: PointerEvent): void => {
-      const r = plan.getBoundingClientRect();
-      const x = BORDS.xMin + ((e.clientX - r.left) / r.width) * LARGEUR;
-      const z = BORDS.zMin + ((e.clientY - r.top) / r.height) * PROFONDEUR;
+      const r = calque.getBoundingClientRect();
+      const k = calque.offsetWidth / r.width;
+      const m = plan.versMonde((e.clientX - r.left) * k * pr, (e.clientY - r.top) * k * pr);
       const tous = [...lieux, { nom: T.ici, x: ici.x, z: ici.z }];
-      const l = lieuProche(tous, x, z, (12 * LARGEUR) / Math.max(320, r.width) + 6);
+      const l = lieuProche(tous, m.x, m.z, 9);
       points.forEach((p, i) => p.classList.toggle('vise', lieux[i] === l));
       if (!l) {
         bulle.hidden = true;
@@ -97,15 +190,15 @@ export function ouvrirCarte(image: string, lieux: readonly LieuCarte[], ici: { x
       if (l.nom !== dernier) bruitage.touche();
       dernier = l.nom;
       bulle.textContent = l.nom;
-      Object.assign(bulle.style, pc(l.x, l.z));
+      Object.assign(bulle.style, ou(l.x, l.z));
       bulle.hidden = false;
     };
-    plan.addEventListener('pointerdown', (e) => {
+    calque.addEventListener('pointerdown', (e) => {
       e.preventDefault();
-      plan.setPointerCapture(e.pointerId);
+      calque.setPointerCapture(e.pointerId);
       montrer(e);
     });
-    plan.addEventListener('pointermove', montrer);
+    calque.addEventListener('pointermove', montrer);
 
     const fermer = Object.assign(document.createElement('button'), { type: 'button', className: 'bouton-principal', textContent: 'Fermer' });
     fermer.addEventListener('click', () => {
@@ -113,8 +206,14 @@ export function ouvrirCarte(image: string, lieux: readonly LieuCarte[], ici: { x
       fond.remove();
       fini();
     });
-    boite.append(titre, aide, plan, fermer);
+    boite.append(titre, aide, vue, fermer);
     fond.append(boite);
     document.body.append(fond);
+    // Au départ, l'enfant au milieu de la fenêtre.
+    const r = { width: vue.offsetWidth, height: vue.offsetHeight };
+    const c = plan.versCarte(ici.x, ici.z);
+    calque.style.transition = 'none';
+    placer(c.x / pr - r.width / 2, c.y / pr - r.height / 2);
+    requestAnimationFrame(() => requestAnimationFrame(() => (calque.style.transition = '')));
   });
 }

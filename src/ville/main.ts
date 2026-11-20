@@ -32,7 +32,7 @@ import { ecrirePrenom } from '../ui/prenom.ts';
 import { avecPrenom, retenirPrenomEcrit } from './prenom-ecrit.ts';
 import { lirePhoto, type IdPhoto } from './photos.ts';
 import { voirPhoto } from './photo-vue.ts';
-import { lieuxDeLaCarte, ouvrirCarte } from './carte.ts';
+import { lieuxDeLaCarte, ouvrirCarte, photographierLaVille, type Plan } from './carte.ts';
 import { CADRE_FAMILLE, construirePiece, dedans, ENTREE_INTERIEUR, SORTIE_INTERIEUR, INTERIEUR, PANNEAU_PRENOM, resterDansLaPiece, tapis } from './maison-interieur.ts';
 import { bruitage, demarrerSon } from '../son/bruitages.ts';
 import { musique, type Piste } from '../son/musique.ts';
@@ -1324,34 +1324,7 @@ points.push(
 await poserInterieur();
 
 // --- La carte : un bouton en haut à droite ; la ville vue du ciel, prise dans la scène -----------
-/** Photographie toute la ville vue d'en haut (sans brouillard ni personnage), en image. */
-function vueDuCiel(): string {
-  const toile = renderer.domElement;
-  const aspect = toile.width / toile.height;
-  const L = BORDS.xMax - BORDS.xMin;
-  const P = BORDS.zMax - BORDS.zMin;
-  // Le cadre de la caméra contient toute la ville ; on recoupe ensuite à la taille de la ville.
-  const demiL = Math.max(L, P * aspect) / 2;
-  const demiP = demiL / aspect;
-  const cx = (BORDS.xMin + BORDS.xMax) / 2;
-  const cz = (BORDS.zMin + BORDS.zMax) / 2;
-  const ciel = new THREE.OrthographicCamera(-demiL, demiL, demiP, -demiP, 1, 400);
-  ciel.position.set(cx, 200, cz);
-  ciel.up.set(0, 0, -1);
-  ciel.lookAt(cx, 0, cz);
-  const brume = scene.fog;
-  scene.fog = null;
-  heros.racine.visible = false;
-  renderer.render(scene, ciel);
-  const sortie = document.createElement('canvas');
-  const k = toile.width / (2 * demiL);
-  sortie.width = Math.round(L * k);
-  sortie.height = Math.round(P * k);
-  sortie.getContext('2d')!.drawImage(toile, (toile.width - sortie.width) / 2, (toile.height - sortie.height) / 2, sortie.width, sortie.height, 0, 0, sortie.width, sortie.height);
-  scene.fog = brume;
-  heros.racine.visible = true;
-  return sortie.toDataURL('image/jpeg', 0.85);
-}
+let planDeLaVille: Plan | null = null;
 const boutonCarte = document.body.appendChild(Object.assign(document.createElement('button'), { type: 'button', className: 'bouton-carte', ariaLabel: 'Carte' }));
 boutonCarte.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2z M9 4v14 M15 6v14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg><span>Carte</span>';
 boutonCarte.addEventListener('click', () => {
@@ -1360,8 +1333,18 @@ boutonCarte.addEventListener('click', () => {
   const avant = commandes.actives;
   commandes.actives = false;
   const p = dansLaMaison ? LIEUX.maison : heros.racine.position;
-  const image = vueDuCiel();
-  void ouvrirCarte(image, lieuxDeLaCarte(etat.projets.construits.includes('boulangerie')), { x: p.x, z: p.z }).then(() => {
+  // La ville photographiée sans brouillard ni personnage (un point bleu le remplace), une fois par
+  // partie : elle ne change guère en une séance, et la photo prend une ou deux secondes.
+  if (!planDeLaVille) {
+    const brume = scene.fog;
+    scene.fog = null;
+    heros.racine.visible = false;
+    planDeLaVille = photographierLaVille(renderer, scene);
+    scene.fog = brume;
+    heros.racine.visible = true;
+  }
+  const plan = planDeLaVille;
+  void ouvrirCarte(plan, lieuxDeLaCarte(etat.projets.construits.includes('boulangerie')), { x: p.x, z: p.z }).then(() => {
     commandes.actives = avant;
   });
 });
