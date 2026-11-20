@@ -1,0 +1,15 @@
+{
+  "_lisez-moi": "Le sac à dos : 8 cases, 10 objets d'une sorte par case (une lettre ou un colis par case). Ce qu'on jette, et ce qui ne rentre pas, est posé par terre et disparaît le lendemain. {n} : un nombre ; {objets} : « 3 pommes ». valide=false : textes à relire (A_VALIDER.md).",
+  "valide": false,
+  "titre": "Mon sac",
+  "vide": "Ton sac est vide.",
+  "aide": "Touche un objet pour le jeter. Il restera par terre jusqu’à demain.",
+  "cases": "{n} cases sur 8",
+  "jeterUn": "Jeter 1",
+  "jeterTout": "Jeter tout",
+  "garder": "Garder",
+  "plein": "Plus de place dans ton sac ! {objets} reste par terre. Fais de la place, puis reviens ici.",
+  "pleinPluriel": "Plus de place dans ton sac ! {objets} restent par terre. Fais de la place, puis reviens ici.",
+  "ramasser": "Ramasser",
+  "toujoursPlein": "Ton sac est encore plein : jette quelque chose d’abord."
+}

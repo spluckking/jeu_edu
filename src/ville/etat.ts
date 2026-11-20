@@ -17,6 +17,7 @@ import { riviereNeuve, type EtatRiviere } from './riviere.ts';
 import { attractionNeuve, lireAttraction, type EtatAttraction } from './attraction.ts';
 import attractions from '../../content/ville/attractions.json';
 import { gazetteNeuve, lireGazette, type EtatGazette } from './gazette.ts';
+import type { ObjetAuSol } from './sac.ts';
 
 /** La première attraction construite à la fête foraine. */
 export const PREMIERE_ATTRACTION = attractions.attractions[0]?.id ?? null;
@@ -25,7 +26,7 @@ export const PREMIERE_ATTRACTION = attractions.attractions[0]?.id ?? null;
 export const PARCELLES = 4;
 
 export interface EtatVille {
-  version: 10;
+  version: 11;
   /** Le prénom que l'enfant a donné à son personnage (vide : pas encore choisi). */
   prenom: string;
   /** Où se trouve le personnage, et vers où il regarde. */
@@ -59,11 +60,15 @@ export interface EtatVille {
   attraction: EtatAttraction;
   /** La Gazette : le dernier jour lu, les histoires lues, la chronique. */
   gazette: EtatGazette;
+  /** Les objets posés par terre (jetés, ou qui ne rentraient pas dans le sac). */
+  sol: ObjetAuSol[];
+  /** Le dernier jour où le sac a été rangé (objets de quête du jour, sol vidé). */
+  sacJour: string;
 }
 
 export function etatNeuf(): EtatVille {
   return {
-    version: 10,
+    version: 11,
     prenom: '',
     position: { x: 0, z: 6, cap: Math.PI },
     lus: [],
@@ -81,6 +86,8 @@ export function etatNeuf(): EtatVille {
     projets: projetsNeufs(PREMIER_PROJET),
     attraction: attractionNeuve(PREMIERE_ATTRACTION),
     gazette: gazetteNeuve(),
+    sol: [],
+    sacJour: '',
   };
 }
 
@@ -90,7 +97,7 @@ function compteur(v: unknown): Record<string, number> {
   return Object.fromEntries(Object.entries(v).filter((e): e is [string, number] => Number.isInteger(e[1]) && e[1] > 0));
 }
 
-/** Relit un état brut (versions 1 à 10) ; un état illisible repart de zéro plutôt que de bloquer le jeu. */
+/** Relit un état brut (versions 1 à 11) ; un état illisible repart de zéro plutôt que de bloquer le jeu. */
 export function lireEtat(brut: unknown): EtatVille {
   const neuf = etatNeuf();
   if (typeof brut !== 'object' || brut === null) return neuf;
@@ -107,7 +114,7 @@ export function lireEtat(brut: unknown): EtatVille {
   const pj = o.projets;
   const entier = (x: unknown): number => (Number.isInteger(x) && (x as number) >= 0 ? (x as number) : 0);
   return {
-    version: 10,
+    version: 11,
     // Avant la version 9, pas de prénom : il est demandé à l'arrivée.
     prenom: typeof o.prenom === 'string' ? nettoyerPrenom(o.prenom) : '',
     position: p && nombre(p.x) && nombre(p.z) && nombre(p.cap) ? { x: p.x, z: p.z, cap: p.cap } : neuf.position,
@@ -160,6 +167,11 @@ export function lireEtat(brut: unknown): EtatVille {
     attraction: lireAttraction(o.attraction, PREMIERE_ATTRACTION),
     // Avant la version 10, pas de Gazette : la première se lit au prochain lancement.
     gazette: lireGazette(o.gazette),
+    // Avant la version 11, rien par terre.
+    sol: Array.isArray(o.sol)
+      ? o.sol.filter((x): x is ObjetAuSol => typeof x?.id === 'string' && typeof x.produit === 'string' && Number.isInteger(x.nombre) && x.nombre > 0 && typeof x.x === 'number' && typeof x.z === 'number' && typeof x.jour === 'string')
+      : [],
+    sacJour: typeof o.sacJour === 'string' ? o.sacJour : '',
   };
 }
 

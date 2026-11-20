@@ -1693,3 +1693,52 @@ button.produit {
     repeating-linear-gradient(90deg, rgba(70, 90, 180, 0.38) 0 1px, transparent 1px 100px),
     repeating-linear-gradient(180deg, rgba(70, 90, 180, 0.38) 0 1px, transparent 1px 100px);
 }
+
+/* --- Le sac à dos : 8 cases ------------------------------------------------------------------- */
+.sac-grille {
+  display: grid;
+  grid-template-columns: repeat(4, 96px);
+  gap: 10px;
+  justify-content: center;
+}
+.sac-case {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 96px;
+  height: 96px;
+  border: 0;
+  border-radius: 18px;
+  background: #efe3cc;
+  box-shadow: inset 0 3px 0 rgba(0, 0, 0, 0.06);
+}
+.sac-case.pleine {
+  background: #fffaf0;
+  box-shadow: var(--ombre);
+}
+.sac-case .produit-icone {
+  width: 62px;
+  height: 62px;
+}
+.sac-nombre {
+  position: absolute;
+  right: 8px;
+  bottom: 4px;
+  color: var(--encre);
+  font: 800 1.2rem var(--police);
+}
+.sac-compte {
+  margin: 0;
+  color: var(--encre-douce);
+  font: 700 1rem var(--police);
+}
+.sac-apercu {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font: 700 1.4rem var(--police);
+}
+.sac-apercu .produit-icone {
+  width: 80px;
+  height: 80px;
+}
