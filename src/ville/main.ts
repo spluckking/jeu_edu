@@ -893,15 +893,33 @@ ui.fermer.addEventListener('click', () => {
   commandes.actives = true;
   void sauverEtat(etat);
 });
+// « Parler » : si l'habitant a une quête pour l'enfant (une demande, une lettre), on choisit
+// ensuite entre « Quête » et « Discuter » ; sinon, on discute tout de suite.
+const choixParler = document.body.appendChild(Object.assign(document.createElement('div'), { className: 'choix-parler', hidden: true }));
+const boutonQuete = Object.assign(document.createElement('button'), { type: 'button', className: 'interagir-quete' });
+boutonQuete.innerHTML = '<span class="interagir-quete-signe" aria-hidden="true">!</span><span class="interagir-mot">Quête</span>';
+const boutonDiscuter = Object.assign(document.createElement('button'), { type: 'button', className: 'interagir-discuter', textContent: 'Discuter' });
+choixParler.append(boutonQuete, boutonDiscuter);
+let choixPour: PointInteret | null = null;
 ui.interagir.addEventListener('click', () => {
+  if (proche?.quete?.visible()) {
+    bruitage.touche();
+    choixPour = proche;
+    choixParler.hidden = false;
+    ui.interagir.hidden = true;
+    return;
+  }
   proche?.action();
 });
-// Le bouton « Quête », à côté : quand celui à qui on parle a une demande (ou une lettre) pour l'enfant.
-const boutonQuete = document.body.appendChild(Object.assign(document.createElement('button'), { type: 'button', className: 'interagir-quete', hidden: true }));
-boutonQuete.innerHTML = '<span class="interagir-quete-signe" aria-hidden="true">!</span><span class="interagir-mot">Quête</span>';
 boutonQuete.addEventListener('click', () => {
   bruitage.touche();
-  proche?.quete?.action();
+  choixParler.hidden = true;
+  choixPour?.quete?.action();
+});
+boutonDiscuter.addEventListener('click', () => {
+  bruitage.touche();
+  choixParler.hidden = true;
+  choixPour?.action();
 });
 
 installerDictee({
@@ -1157,7 +1175,11 @@ function promenade(dt: number): number {
     ui.interagirMot.textContent = proche.verbe;
     ui.interagirTexte.textContent = proche.nom;
   }
-  boutonQuete.hidden = !proche?.quete || ui.interagir.hidden || !proche.quete.visible();
+  // Le choix « Quête » / « Discuter » reste tant qu'on est devant le même habitant.
+  if (!choixParler.hidden) {
+    if (proche !== choixPour || occupe || enDialogue) choixParler.hidden = true;
+    else ui.interagir.hidden = true;
+  }
   // En marchant, l'animation de marche même joystick à fond ; la course seulement avec le bouton.
   return vite ? force : Math.min(force, 0.7);
 }
@@ -1201,6 +1223,8 @@ let images = 0;
 let debutFps = performance.now();
 
 const horloge = new THREE.Clock();
+/** Les petits « ! » des quêtes : branchés une fois la ville prête (voir animerMarques). */
+let animerLesMarques: ((t: number, maintenant: number) => void) | null = null;
 renderer.setAnimationLoop(() => {
   const dt = Math.min(0.05, horloge.getDelta());
   const t = horloge.elapsedTime;
@@ -1237,6 +1261,7 @@ renderer.setAnimationLoop(() => {
   renderer.render(scene, camera);
   if (pas > 0) retenirPosition(performance.now());
   sonDeLEndroit(performance.now());
+  animerLesMarques?.(t, performance.now());
   if (boiteFps) {
     images++;
     const ecoule = performance.now() - debutFps;
@@ -1527,16 +1552,16 @@ boutonCarte.addEventListener('click', () => {
 });
 /** Toutes les quêtes à montrer sur la carte : les longues (celles de la semaine, le chantier) et
  *  celles du jour (demandes des habitants, courrier, pêche, mûres, potager, révision, stands). */
-function quetesPourLaCarte(): QueteCarte[] {
+function quetesPourLaCarte(pourLaCarte = true): QueteCarte[] {
   const Q = carteT.quetes;
   const jour = aujourdhuiVille();
   const liste: QueteCarte[] = quetesDuJour()
     .filter((q) => !q.faite)
-    .map((q) => ({ ...(q.lieu === 'fete' ? FORAIN_ROUE : LIEUX.tableau), titre: q.titre, texte: q.phrases.join(' '), longue: true }));
+    .map((q) => ({ ...(q.lieu === 'fete' ? FORAIN_ROUE : LIEUX.tableau), titre: q.titre, texte: q.phrases.join(' '), longue: true, hauteur: q.lieu === 'fete' ? 2.7 : 3.2 }));
   const lieuChantier = etat.projets.enCours ? LIEUX_PROJETS[etat.projets.enCours] : undefined;
-  if (lieuChantier && !etat.projets.termine) liste.push({ ...lieuChantier, ...Q.chantier, longue: true });
-  const duJour = (lieu: { x: number; z: number }, q: { titre: string; texte: string }): void => {
-    liste.push({ x: lieu.x, z: lieu.z, titre: q.titre, texte: q.texte, longue: false });
+  if (lieuChantier && !etat.projets.termine) liste.push({ ...lieuChantier, ...Q.chantier, longue: true, hauteur: 5 });
+  const duJour = (lieu: { x: number; z: number }, q: { titre: string; texte: string }, hauteur = 2.6): void => {
+    liste.push({ x: lieu.x, z: lieu.z, titre: q.titre, texte: q.texte, longue: false, hauteur });
   };
   const habitants: Array<{ id: string; nom: string; lieu: { x: number; z: number }; elle: boolean }> = [
     { id: 'epiciere', nom: 'L’épicière', lieu: EPICIERE, elle: true },
@@ -1548,13 +1573,68 @@ function quetesPourLaCarte(): QueteCarte[] {
     duJour(h.lieu, { titre: q.titre, texte: q.texte.replace('{nom}', h.nom) });
   }
   if (peutTrier(etat.poste, jour)) duJour(POSTIERE, Q.courrier);
-  if (peutPecher(etat.riviere, jour)) duJour(LIEUX.ponton, Q.peche);
-  if (buissonsCharges(etat.riviere, jour).length) duJour(BUISSONS_MURES[0] ?? LIEUX.ponton, Q.mures);
-  if (etat.parcelles.some((p) => p.graine && !p.arrosages.includes(jour))) duJour(LIEUX.potager, Q.potager);
+  if (peutPecher(etat.riviere, jour)) duJour(LIEUX.ponton, Q.peche, 1.6);
+  if (buissonsCharges(etat.riviere, jour).length) duJour(BUISSONS_MURES[0] ?? LIEUX.ponton, Q.mures, 1.8);
+  if (etat.parcelles.some((p) => p.graine && !p.arrosages.includes(jour))) duJour(LIEUX.potager, Q.potager, 1.6);
   const q = etat.dictee.quotidien;
-  if (etat.dictee.mots.length && !(q.jour === jour && q.fini)) duJour(LIEUX.tableau, Q.revision);
-  if (!toutFini()) duJour(LIEUX.fete, Q.stands);
+  if (etat.dictee.mots.length && !(q.jour === jour && q.fini)) duJour(LIEUX.tableau, Q.revision, 3.2);
+  // Sur la carte, un seul repère pour la fête ; dans la ville, un au-dessus de chaque forain à aider.
+  if (!toutFini()) {
+    if (pourLaCarte) duJour(LIEUX.fete, Q.stands);
+    else for (const id of Object.keys(FETE.stands) as IdStand[]) if (!standFini(id)) duJour(devantLeStand(FETE.stands[id]), Q.stands);
+  }
   return liste;
+}
+
+// Dans la ville, un petit « ! » flotte au-dessus de chaque quête, de la même couleur que sur la
+// carte (orange : quête longue ; bleu : quête du jour). La liste est revue chaque seconde.
+function textureDeMarque(couleur: string): THREE.CanvasTexture {
+  const t = document.createElement('canvas');
+  t.width = t.height = 96;
+  const g = t.getContext('2d')!;
+  g.fillStyle = 'white';
+  g.beginPath();
+  g.arc(48, 48, 44, 0, Math.PI * 2);
+  g.fill();
+  g.fillStyle = couleur;
+  g.beginPath();
+  g.arc(48, 48, 36, 0, Math.PI * 2);
+  g.fill();
+  g.fillStyle = 'white';
+  g.font = 'bold 58px sans-serif';
+  g.textAlign = 'center';
+  g.textBaseline = 'middle';
+  g.fillText('!', 48, 52);
+  const x = new THREE.CanvasTexture(t);
+  x.colorSpace = THREE.SRGBColorSpace;
+  return x;
+}
+const MARQUE_LONGUE = new THREE.SpriteMaterial({ map: textureDeMarque('#f0703c'), fog: true });
+const MARQUE_DU_JOUR = new THREE.SpriteMaterial({ map: textureDeMarque('#3b8fd9'), fog: true });
+const marques: THREE.Sprite[] = [];
+let marquesPosees: QueteCarte[] = [];
+let prochainesMarques = 0;
+animerLesMarques = animerMarques;
+function animerMarques(t: number, maintenant: number): void {
+  if (maintenant > prochainesMarques) {
+    prochainesMarques = maintenant + 1000;
+    marquesPosees = quetesPourLaCarte(false);
+    while (marques.length < marquesPosees.length) {
+      const s = new THREE.Sprite(MARQUE_DU_JOUR);
+      s.scale.setScalar(0.55);
+      ville.add(s);
+      marques.push(s);
+    }
+    marques.forEach((s, i) => {
+      const q = marquesPosees[i];
+      s.visible = Boolean(q);
+      if (q) s.material = q.longue ? MARQUE_LONGUE : MARQUE_DU_JOUR;
+    });
+  }
+  marquesPosees.forEach((q, i) => {
+    const s = marques[i];
+    if (s) s.position.set(q.x, q.hauteur + Math.sin(t * 2.4 + i) * 0.08, q.z);
+  });
 }
 
 /** Ouvre la carte, avec un repère sur chaque quête de la semaine pas encore finie ; deLoin : sur

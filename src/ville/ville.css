@@ -1372,12 +1372,20 @@ button.produit {
   font: 700 1.4rem var(--police);
 }
 
-/* Le bouton « Quête », à gauche du bouton d'action, quand l'habitant a une demande. */
-.interagir-quete {
+/* Après « Parler », quand l'habitant a une quête : le choix entre « Quête » et « Discuter ». */
+.choix-parler {
   position: fixed;
-  right: calc(232px + env(safe-area-inset-right));
+  right: calc(28px + env(safe-area-inset-right));
   bottom: calc(40px + env(safe-area-inset-bottom));
   z-index: 2;
+  display: flex;
+  gap: 14px;
+  animation: apparaitre 0.3s var(--rebond);
+}
+.choix-parler[hidden] {
+  display: none;
+}
+.interagir-quete {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -1388,11 +1396,18 @@ button.produit {
   background: #f0703c;
   color: white;
   box-shadow: 0 7px 0 #b84d22, var(--ombre);
-  animation: apparaitre 0.35s var(--rebond);
 }
-.interagir-quete[hidden] {
-  display: none;
+.interagir-discuter {
+  min-height: 84px;
+  padding: 12px 26px;
+  border: 0;
+  border-radius: 32px;
+  background: var(--rouge);
+  color: white;
+  box-shadow: 0 7px 0 var(--rouge-fonce), var(--ombre);
+  font: 700 1.8rem var(--police);
 }
+.interagir-discuter:active,
 .interagir-quete:active {
   transform: translateY(4px);
 }

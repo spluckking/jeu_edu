@@ -216,6 +216,8 @@ export interface QueteCarte {
   titre: string;
   texte: string;
   longue: boolean;
+  /** À quelle hauteur poser son petit « ! » dans la ville (au-dessus d'une tête, d'un toit…). */
+  hauteur: number;
 }
 
 /** quetes : les quêtes en cours, chacune marquée d'un repère ; un toucher sur le repère ouvre sa
