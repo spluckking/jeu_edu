@@ -1,7 +1,6 @@
-// La rivière et le bois dans la ville (tranche 1C). Au ponton : des poissons nagent, l'enfant
-// les touche un par un et ils remplissent des seaux de même taille ; à la fin, la phrase
-// « 3 seaux de 4 poissons, 4 + 4 + 4 = 12, c'est 3 fois 4 ». Au bois : trois buissons de
-// mûres, chacun en porte autant ; après le troisième, la même phrase avec les mûres.
+// La rivière et le bois dans la ville (tranche 1C). Au ponton : la pêche à la canne (6 lancers,
+// chaque poisson a un poids), puis le poids total et les poissons à relâcher (100 g au plus).
+// Au bois : trois buissons de mûres, chacun en porte autant ; après le troisième, la même phrase avec les mûres.
 
 import riviere from '../../content/ville/riviere.json';
 import { aujourdhui } from '../dictee/leitner.ts';
@@ -10,8 +9,10 @@ import { confettis } from '../ui/confettis.ts';
 import { mettre } from './commerce.ts';
 import type { PointInteret } from './dictee-ville.ts';
 import type { EtatVille } from './etat.ts';
-import { bouton, carte, creer, icone, remplir, texteALire } from './interface.ts';
-import { addition, BUISSONS, buissonsCharges, cueillirBuisson, muresParBuisson, pecheDuJour, peutPecher } from './riviere.ts';
+import { carte, creer, icone, remplir } from './interface.ts';
+import { brouillonDisponible } from './brouillon.ts';
+import { finDePeche, lancers } from './peche-canne-vue.ts';
+import { addition, BUISSONS, buissonsCharges, cueillirBuisson, muresParBuisson, peutPecher } from './riviere.ts';
 
 export interface ContexteRiviere {
   points: PointInteret[];
@@ -34,58 +35,10 @@ function ouvrir(c: ContexteRiviere): HTMLElement {
   return f;
 }
 function fermer(c: ContexteRiviere, f: HTMLElement): void {
+  brouillonDisponible(false);
   f.remove();
   c.occupe(false);
   c.apresUnChangement();
-}
-
-/** La pêche : chaque poisson touché va dans le premier seau qui n'est pas plein. */
-function pecher(f: HTMLElement, seaux: number, parSeau: number): Promise<void> {
-  return new Promise((ok) => {
-    const total = seaux * parSeau;
-    const s = creer('section', 'exercice');
-    const eau = creer('div', 'eau-peche');
-    const rangee = creer('div', 'rangee-seaux');
-    const contenus: HTMLElement[] = [];
-    for (let i = 0; i < seaux; i++) {
-      const seau = creer('div', 'seau');
-      const dedans = creer('div', 'seau-poissons');
-      seau.append(icone('seau'), dedans, creer('span', 'seau-compte', `0 / ${parSeau}`));
-      contenus.push(dedans);
-      rangee.append(seau);
-    }
-    s.append(creer('p', 'exercice-titre', T.ponton), texteALire(remplir(T.consignePeche, { parSeau })), eau, rangee);
-    f.replaceChildren(s);
-    let attrapes = 0;
-    for (let i = 0; i < total; i++) {
-      const p = bouton('poisson-nage', '');
-      p.append(icone('poisson'));
-      p.setAttribute('aria-label', 'Un poisson');
-      // Chaque poisson nage à sa hauteur, à sa vitesse, dans un sens ou l'autre.
-      p.style.top = `${8 + ((i * 37) % 76)}%`;
-      p.style.animationDuration = `${5 + ((i * 13) % 6)}s`;
-      p.style.animationDelay = `${-((i * 7) % 9)}s`;
-      if (i % 2) p.classList.add('vers-la-gauche');
-      p.addEventListener('click', () => {
-        p.remove();
-        const n = Math.floor(attrapes / parSeau);
-        const dedans = contenus[n];
-        attrapes++;
-        if (dedans) {
-          dedans.append(icone('poisson'));
-          const dans = attrapes - n * parSeau;
-          const compte = dedans.parentElement?.querySelector('.seau-compte');
-          if (compte) compte.textContent = `${dans} / ${parSeau}`;
-          if (dans === parSeau) {
-            dedans.parentElement?.classList.add('plein');
-            bruitage.reussite();
-          } else bruitage.touche();
-        }
-        if (attrapes === total) setTimeout(ok, 600);
-      });
-      eau.append(p);
-    }
-  });
 }
 
 async function auPonton(c: ContexteRiviere): Promise<void> {
@@ -96,13 +49,16 @@ async function auPonton(c: ContexteRiviere): Promise<void> {
     fermer(c, f);
     return;
   }
-  const { seaux, parSeau } = pecheDuJour(jour);
-  await pecher(f, seaux, parSeau);
+  const poissons = await lancers(f);
+  // La partie du jour est jouée, même s'il n'a rien attrapé.
   const e = c.etat();
-  c.changer({ ...e, riviere: { ...e.riviere, peche: jour }, panier: mettre(e.panier, 'poisson', seaux * parSeau) });
-  bruitage.finDeManche();
-  confettis();
-  await carte(f, T.ponton, remplir(T.bilanPeche, { seaux, parSeau, addition: addition(seaux, parSeau) }), ['Super !']);
+  c.changer({ ...e, riviere: { ...e.riviere, peche: jour } });
+  if (!poissons.length) await carte(f, T.ponton, T.canne.aucun, ['D’accord']);
+  else {
+    const gardes = await finDePeche(f, poissons);
+    const e2 = c.etat();
+    c.changer({ ...e2, panier: mettre(e2.panier, 'poisson', gardes) });
+  }
   fermer(c, f);
 }
 
