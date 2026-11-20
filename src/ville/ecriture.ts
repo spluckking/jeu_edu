@@ -41,21 +41,25 @@ export function zoneEcriture(): ZoneEcriture {
   const changer = (): void => abonnes.forEach((f) => f());
 
   // La taille réelle de la toile suit celle de la zone (et la finesse de l'écran).
+  // La taille de mise en page (clientWidth), pas celle qu'on voit pendant une animation d'ouverture.
   const ajuster = (): void => {
-    const r = element.getBoundingClientRect();
-    if (!r.width || !r.height) return;
-    const ancien = encre ? g.getImageData(0, 0, toile.width, toile.height) : null;
+    const l = element.clientWidth;
+    const h = element.clientHeight;
+    if (!l || !h) return;
     ratio = window.devicePixelRatio || 1;
-    toile.width = Math.round(r.width * ratio);
-    toile.height = Math.round(r.height * ratio);
+    if (toile.width === Math.round(l * ratio) && toile.height === Math.round(h * ratio)) return;
+    const ancien = encre ? g.getImageData(0, 0, toile.width, toile.height) : null;
+    toile.width = Math.round(l * ratio);
+    toile.height = Math.round(h * ratio);
     if (ancien) g.putImageData(ancien, 0, 0);
   };
   new ResizeObserver(ajuster).observe(element);
 
   let trait: { id: number; x: number; y: number; gomme: boolean } | null = null;
+  // Le point sous la pointe, dans les pixels de la toile (même si la zone est agrandie ou réduite à l'écran).
   const point = (e: PointerEvent): { x: number; y: number } => {
     const r = toile.getBoundingClientRect();
-    return { x: (e.clientX - r.left) * ratio, y: (e.clientY - r.top) * ratio };
+    return { x: ((e.clientX - r.left) * toile.width) / Math.max(1, r.width), y: ((e.clientY - r.top) * toile.height) / Math.max(1, r.height) };
   };
   // La gomme du stylet : bouton 5 (bout arrière) ou bouton latéral maintenu (buttons & 32).
   const gommeDuStylet = (e: PointerEvent): boolean => e.button === 5 || (e.buttons & 32) !== 0;

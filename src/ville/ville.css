@@ -1593,3 +1593,28 @@ button.produit {
   pointer-events: none;
   white-space: nowrap;
 }
+
+/* L'écriture : les boutons en haut, la zone d'écriture en bas ; la carte reste en place. */
+.exercice.avec-ecriture {
+  width: min(96vw, 1100px);
+}
+.barre-ecriture {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+}
+.barre-ecriture .exercice-outils,
+.barre-ecriture .exercice-actions {
+  margin: 0;
+}
+.exercice-fond:has(.avec-ecriture) {
+  align-items: start;
+  padding-top: calc(70px + env(safe-area-inset-top));
+  touch-action: none;
+}
+.avec-ecriture .zone-ecriture {
+  height: min(300px, 42vh);
+}

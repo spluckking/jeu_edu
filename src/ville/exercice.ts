@@ -103,10 +103,11 @@ export function exercer(fond: HTMLElement, o: OptionsExercice): Promise<Reponse>
       const sur = bouton('bouton-principal', 'Sûr de moi');
       const hesite = bouton('bouton-secondaire', 'J’hésite');
       actions.append(hesite, sur);
-      actions.hidden = true;
+      // Les boutons restent à leur place (grisés tant que rien n'est écrit) : rien ne bouge sous le stylet.
+      sur.disabled = hesite.disabled = true;
       let aideUtilisee = false;
       let enGomme = false;
-      zone.quandChange(() => (actions.hidden = zone.vide()));
+      zone.quandChange(() => (sur.disabled = hesite.disabled = zone.vide()));
       gomme.addEventListener('click', () => {
         enGomme = !enGomme;
         zone.gomme(enGomme);
@@ -143,9 +144,13 @@ export function exercer(fond: HTMLElement, o: OptionsExercice): Promise<Reponse>
       };
       sur.addEventListener('click', () => void valider(false));
       hesite.addEventListener('click', () => void valider(true));
+      // Tous les boutons en haut : la main posée en bas pour écrire ne les touche pas.
       const outils = creer('div', 'exercice-outils');
       outils.append(reecouter, indice, gomme, effacer);
-      carte.replaceChildren(tete, titre, ligne, outils, actions);
+      const barre = creer('div', 'barre-ecriture');
+      barre.append(outils, actions);
+      carte.replaceChildren(tete, titre, barre, ligne);
+      carte.classList.add('avec-ecriture');
       ecouter(o.mot, o.phrase);
     };
 
