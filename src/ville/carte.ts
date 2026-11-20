@@ -209,7 +209,14 @@ const FLECHES = [
 ] as const;
 
 /** ici.portrait : le personnage en miniature (image), posé à sa place sur la carte. */
-export function ouvrirCarte(plan: Plan, lieux: readonly LieuCarte[], ici: { x: number; z: number; portrait: string | null }): Promise<void> {
+/** visite : des étapes à montrer l'une après l'autre (les quêtes de la Gazette), avec « Suivant ». */
+export function ouvrirCarte(
+  plan: Plan,
+  lieux: readonly LieuCarte[],
+  ici: { x: number; z: number; portrait: string | null },
+  visite: ReadonlyArray<{ x: number; z: number; texte: string }> = [],
+  suivant = 'Suivant',
+): Promise<void> {
   return new Promise((fini) => {
     // pr : pixels de l'image par pixel d'écran. De près (7 pixels d'écran par mètre), on voit le
     // quartier autour de l'enfant ; de loin, toute la ville tient dans la fenêtre.
@@ -287,6 +294,7 @@ export function ouvrirCarte(plan: Plan, lieux: readonly LieuCarte[], ici: { x: n
       }
       if (l.nom !== dernier) bruitage.touche();
       dernier = l.nom;
+      bulle.classList.remove('quete');
       bulle.textContent = l.nom;
       Object.assign(bulle.style, ou(l.x, l.z));
       bulle.hidden = false;
@@ -307,6 +315,29 @@ export function ouvrirCarte(plan: Plan, lieux: readonly LieuCarte[], ici: { x: n
     const loin = Object.assign(document.createElement('button'), { type: 'button', className: 'bouton-secondaire', textContent: T.deLoin });
     const actions = Object.assign(document.createElement('div'), { className: 'carte-actions' });
     actions.append(loin, fermer);
+    // La visite : chaque étape au milieu de la fenêtre, sa phrase dans une bulle.
+    let etape = 0;
+    const montrerEtape = (): void => {
+      const v = visite[etape];
+      if (!v) return;
+      const c = plan.versCarte(v.x, v.z);
+      placer(c.x / pr - vue.offsetWidth / 2, c.y / pr - vue.offsetHeight / 2);
+      bulle.classList.add('quete');
+      bulle.textContent = v.texte;
+      Object.assign(bulle.style, ou(v.x, v.z));
+      bulle.hidden = false;
+      bouton.hidden = etape >= visite.length - 1;
+    };
+    const bouton = Object.assign(document.createElement('button'), { type: 'button', className: 'bouton-principal', textContent: suivant });
+    bouton.addEventListener('click', () => {
+      bruitage.touche();
+      etape++;
+      montrerEtape();
+    });
+    if (visite.length) {
+      loin.hidden = true;
+      actions.prepend(bouton);
+    }
     boite.append(titre, aide, vue, actions);
     fond.append(boite);
     document.body.append(fond);
@@ -332,5 +363,6 @@ export function ouvrirCarte(plan: Plan, lieux: readonly LieuCarte[], ici: { x: n
       echelle();
     });
     echelle();
+    if (visite.length) requestAnimationFrame(montrerEtape);
   });
 }

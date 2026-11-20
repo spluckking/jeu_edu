@@ -424,7 +424,7 @@ function finirEpreuve(): void {
 }
 
 /** Les trois prénoms proposés pour le forain d'une attraction. */
-const PRENOMS_ATTRACTION: Record<string, readonly string[]> = { 'grande-roue': ['Gustave', 'Firmin', 'Émile'] };
+export const PRENOMS_ATTRACTION: Record<string, readonly string[]> = { 'grande-roue': ['Gustave', 'Firmin', 'Émile'] };
 
 /** Comment on appelle le forain de l'attraction : son prénom, s'il en a un. */
 export function nomDuForainDeLAttraction(e: EtatAttraction = ctx.etat()): string {

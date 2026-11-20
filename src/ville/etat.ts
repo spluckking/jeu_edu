@@ -15,6 +15,7 @@ export const PREMIER_PROJET = 'boulangerie';
 import { riviereNeuve, type EtatRiviere } from './riviere.ts';
 import { attractionNeuve, lireAttraction, type EtatAttraction } from './attraction.ts';
 import attractions from '../../content/ville/attractions.json';
+import { gazetteNeuve, lireGazette, type EtatGazette } from './gazette.ts';
 
 /** La première attraction construite à la fête foraine. */
 export const PREMIERE_ATTRACTION = attractions.attractions[0]?.id ?? null;
@@ -23,7 +24,7 @@ export const PREMIERE_ATTRACTION = attractions.attractions[0]?.id ?? null;
 export const PARCELLES = 4;
 
 export interface EtatVille {
-  version: 9;
+  version: 10;
   /** Le prénom que l'enfant a donné à son personnage (vide : pas encore choisi). */
   prenom: string;
   /** Où se trouve le personnage, et vers où il regarde. */
@@ -55,11 +56,13 @@ export interface EtatVille {
   projets: EtatProjets;
   /** L'attraction en construction à la fête foraine, et celles déjà construites. */
   attraction: EtatAttraction;
+  /** La Gazette : le dernier jour lu, les histoires lues, la chronique. */
+  gazette: EtatGazette;
 }
 
 export function etatNeuf(): EtatVille {
   return {
-    version: 9,
+    version: 10,
     prenom: '',
     position: { x: 0, z: 6, cap: Math.PI },
     lus: [],
@@ -76,6 +79,7 @@ export function etatNeuf(): EtatVille {
     poste: posteNeuve(),
     projets: projetsNeufs(PREMIER_PROJET),
     attraction: attractionNeuve(PREMIERE_ATTRACTION),
+    gazette: gazetteNeuve(),
   };
 }
 
@@ -85,7 +89,7 @@ function compteur(v: unknown): Record<string, number> {
   return Object.fromEntries(Object.entries(v).filter((e): e is [string, number] => Number.isInteger(e[1]) && e[1] > 0));
 }
 
-/** Relit un état brut (versions 1 à 9) ; un état illisible repart de zéro plutôt que de bloquer le jeu. */
+/** Relit un état brut (versions 1 à 10) ; un état illisible repart de zéro plutôt que de bloquer le jeu. */
 export function lireEtat(brut: unknown): EtatVille {
   const neuf = etatNeuf();
   if (typeof brut !== 'object' || brut === null) return neuf;
@@ -102,7 +106,7 @@ export function lireEtat(brut: unknown): EtatVille {
   const pj = o.projets;
   const entier = (x: unknown): number => (Number.isInteger(x) && (x as number) >= 0 ? (x as number) : 0);
   return {
-    version: 9,
+    version: 10,
     // Avant la version 9, pas de prénom : il est demandé à l'arrivée.
     prenom: typeof o.prenom === 'string' ? nettoyerPrenom(o.prenom) : '',
     position: p && nombre(p.x) && nombre(p.z) && nombre(p.cap) ? { x: p.x, z: p.z, cap: p.cap } : neuf.position,
@@ -153,6 +157,8 @@ export function lireEtat(brut: unknown): EtatVille {
         : projetsNeufs(PREMIER_PROJET),
     // Avant la version 8, pas d'attraction en construction : la première commence.
     attraction: lireAttraction(o.attraction, PREMIERE_ATTRACTION),
+    // Avant la version 10, pas de Gazette : la première se lit au prochain lancement.
+    gazette: lireGazette(o.gazette),
   };
 }
 

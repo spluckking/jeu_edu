@@ -1180,3 +1180,130 @@ button.produit {
   width: 100%;
   height: 100%;
 }
+
+/* --- La Gazette de MiniVille : une page de journal ------------------------------------------- */
+.gazette-fond {
+  position: fixed;
+  inset: 0;
+  z-index: 12;
+  display: grid;
+  place-items: center;
+  padding: 12px;
+  background: rgba(40, 30, 22, 0.6);
+}
+.gazette-fond[hidden] {
+  display: none;
+}
+.gazette-page {
+  display: flex;
+  flex-direction: column;
+  width: min(96vw, 1180px);
+  height: calc(100vh - 24px);
+  padding: 14px 22px 16px;
+  border-radius: 6px;
+  background: #fbf6e9 linear-gradient(180deg, rgba(120, 90, 50, 0.04), rgba(120, 90, 50, 0.1));
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
+  color: #2e2620;
+  animation: photo-grandit 0.4s var(--rebond, ease-out);
+}
+.gazette-tete {
+  text-align: center;
+  border-bottom: 3px double #2e2620;
+  padding-bottom: 4px;
+}
+.gazette-nom {
+  margin: 0;
+  font: 700 2.4rem Georgia, 'Times New Roman', serif;
+  letter-spacing: 0.02em;
+}
+.gazette-date {
+  margin: 2px 0 0;
+  font: italic 1rem Georgia, serif;
+}
+.gazette-corps {
+  display: grid;
+  grid-template-columns: 1fr minmax(260px, 34%);
+  gap: 20px;
+  flex: 1;
+  min-height: 0;
+  margin-top: 10px;
+}
+.gazette-article {
+  overflow-y: auto;
+  padding-right: 10px;
+  border-right: 1px solid rgba(46, 38, 32, 0.35);
+}
+.gazette-rubrique {
+  margin: 6px 0 2px;
+  font: 700 0.95rem var(--police);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #8a5f38;
+}
+.gazette-titre {
+  margin: 0 0 6px;
+  font: 700 1.6rem Georgia, serif;
+}
+.gazette-texte {
+  margin-bottom: 12px;
+  font: 1.35rem/1.55 var(--police);
+}
+.gazette-texte .gazette-phrase {
+  display: inline;
+  margin: 0;
+  font: inherit;
+  border-radius: 6px;
+  transition: background 0.3s;
+}
+.gazette-phrase.brille {
+  background: #ffe28a;
+  box-shadow: 0 0 0 3px #ffe28a;
+}
+.gazette-carte {
+  margin: 4px 0 12px;
+}
+.gazette-cote {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow-y: auto;
+}
+.gazette-numero {
+  margin: 0;
+  font: 700 0.95rem var(--police);
+  color: #8a5f38;
+}
+.gazette-question {
+  margin: 0;
+  font: 700 1.35rem/1.4 var(--police);
+}
+.gazette-choix-liste {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.gazette-choix {
+  min-height: 60px;
+  font-size: 1.25rem;
+}
+.gazette-choix.juste {
+  background: #b8e6a8;
+}
+.gazette-choix.faux {
+  opacity: 0.45;
+}
+.gazette-retour {
+  margin: 0;
+  min-height: 1.4em;
+  font: 1.1rem var(--police);
+}
+.gazette-bravo {
+  font: 700 1.4rem/1.4 var(--police);
+}
+/* Une bulle de quête sur la carte : plus longue, sur plusieurs lignes. */
+.carte-bulle.quete {
+  max-width: 300px;
+  white-space: normal;
+  text-align: center;
+  font-size: 1.05rem;
+}

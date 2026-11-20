@@ -22,7 +22,7 @@ import { installerDemandes, majSeance, parlerA } from './demandes-ville.ts';
 import { installerEpicerie, rafraichirHud } from './epicerie-ville.ts';
 import { installerJardin } from './jardin-ville.ts';
 import { installerPoste } from './poste-ville.ts';
-import { appliquerReglagesDuJeu, essaiGrandDefi, installerFete, ouvrirStand, standFini } from './fete-ville.ts';
+import { appliquerReglagesDuJeu, essaiGrandDefi, installerFete, PRENOMS_ATTRACTION, ouvrirStand, standFini } from './fete-ville.ts';
 import { chantierOuvert, ETAPES, etapesVisibles } from './attraction.ts';
 import attractions from '../../content/ville/attractions.json';
 import { jourDe } from '../memoire/jours.ts';
@@ -33,6 +33,9 @@ import { avecPrenom, retenirPrenomEcrit } from './prenom-ecrit.ts';
 import { lirePhoto, type IdPhoto } from './photos.ts';
 import { voirPhoto } from './photo-vue.ts';
 import { echanger, installerParent } from './parent-ville.ts';
+import gazetteT from '../../content/ville/gazette.json';
+import { editionDuJour, lundiDe, questionnaire, quetesDeLaSemaine } from './gazette.ts';
+import { lireLaGazette } from './gazette-vue.ts';
 import { lieuxDeLaCarte, ouvrirCarte, photographierLaVille, type Plan } from './carte.ts';
 import { CADRE_FAMILLE, construirePiece, dedans, ENTREE_INTERIEUR, SORTIE_INTERIEUR, INTERIEUR, PANNEAU_PRENOM, resterDansLaPiece, tapis } from './maison-interieur.ts';
 import { bruitage, demarrerSon } from '../son/bruitages.ts';
@@ -1310,6 +1313,7 @@ async function poserInterieur(): Promise<void> {
       ville.add(g.scene);
     }
     obstacles.push({ x, z, r: m.r });
+    if (g && m.id === 'interieur-table') poserLaGazette(g.scene);
   }
   try {
     const image = await new THREE.TextureLoader().loadAsync(`${import.meta.env.BASE_URL}modeles/interieur-tapis.webp`);
@@ -1320,16 +1324,137 @@ async function poserInterieur(): Promise<void> {
     // Pas de tapis : la pièce reste jolie sans.
   }
 }
+/** La Gazette posée à plat sur le plateau de la table : on cherche le plateau en lançant des
+ *  rayons vers le bas (la hauteur la plus fréquente entre 50 cm et 1,1 m). */
+function poserLaGazette(table: THREE.Object3D): void {
+  table.updateMatrixWorld(true);
+  const boite = new THREE.Box3().setFromObject(table);
+  const rayon = new THREE.Raycaster();
+  const touches: THREE.Vector3[] = [];
+  for (let i = 0; i <= 12; i++)
+    for (let k = 0; k <= 12; k++) {
+      const x = boite.min.x + ((boite.max.x - boite.min.x) * i) / 12;
+      const z = boite.min.z + ((boite.max.z - boite.min.z) * k) / 12;
+      rayon.set(new THREE.Vector3(x, 5, z), new THREE.Vector3(0, -1, 0));
+      const t = rayon.intersectObject(table, true)[0];
+      if (t && t.point.y > 0.5 && t.point.y < 1.1) touches.push(t.point);
+    }
+  if (!touches.length) return;
+  const compte = new Map<number, THREE.Vector3[]>();
+  for (const p of touches) {
+    const h = Math.round(p.y * 20);
+    compte.set(h, [...(compte.get(h) ?? []), p]);
+  }
+  const plateau = [...compte.values()].sort((a, b) => b.length - a.length)[0]!;
+  const centre = plateau.reduce((c, p) => c.add(p), new THREE.Vector3()).divideScalar(plateau.length);
+  const toile = document.createElement('canvas');
+  toile.width = 256;
+  toile.height = 180;
+  const d = toile.getContext('2d')!;
+  d.fillStyle = '#fbf6e9';
+  d.fillRect(0, 0, 256, 180);
+  d.fillStyle = '#2e2620';
+  d.font = 'bold 22px Georgia, serif';
+  d.textAlign = 'center';
+  d.fillText('La Gazette', 128, 30);
+  d.fillRect(14, 40, 228, 3);
+  d.fillStyle = '#9a8c7a';
+  for (let l = 0; l < 9; l++) {
+    d.fillRect(16, 56 + l * 13, 104, 6);
+    d.fillRect(136, 56 + l * 13, 104, 6);
+  }
+  const texture = new THREE.CanvasTexture(toile);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  const journal = new THREE.Mesh(new THREE.PlaneGeometry(0.5, 0.35).rotateX(-Math.PI / 2), new THREE.MeshStandardMaterial({ map: texture, roughness: 0.9 }));
+  journal.position.set(centre.x, centre.y + 0.012, centre.z);
+  journal.rotation.y = 0.25;
+  ville.add(journal);
+  PLACE_GAZETTE.x = centre.x;
+  PLACE_GAZETTE.z = centre.z;
+}
+const PLACE_GAZETTE = { x: INTERIEUR.x + 2.4, z: INTERIEUR.z + 0.4 };
+
 /** Les modèles Tripo de meubles n'ont pas tous leur devant du même côté. */
 const FACE_MEUBLES: Record<string, number> = { 'interieur-armoire': Math.PI / 2 };
 points.push(
   { verbe: 'Entrer', nom: 'Ta maison', x: PORTE_MAISON.x, z: PORTE_MAISON.z, visible: () => !dansLaMaison, action: () => allerA(ENTREE_INTERIEUR.x, ENTREE_INTERIEUR.z, Math.PI, true) },
-  { verbe: 'Sortir', nom: '', x: SORTIE_INTERIEUR.x, z: SORTIE_INTERIEUR.z, rayon: 1.4, visible: () => dansLaMaison, action: () => allerA(PORTE_MAISON.x, PORTE_MAISON.z + 1, 0, false) },
+  {
+    verbe: 'Sortir',
+    nom: '',
+    x: SORTIE_INTERIEUR.x,
+    z: SORTIE_INTERIEUR.z,
+    rayon: 1.4,
+    visible: () => dansLaMaison,
+    action: () => (gazetteLue() ? allerA(PORTE_MAISON.x, PORTE_MAISON.z + 1, 0, false) : annoncerEnVille(gazetteT.textes.fermee)),
+  },
+  {
+    verbe: gazetteT.textes.lire,
+    nom: gazetteT.textes.journal,
+    get x() {
+      return PLACE_GAZETTE.x;
+    },
+    get z() {
+      return PLACE_GAZETTE.z;
+    },
+    rayon: 2,
+    visible: () => dansLaMaison,
+    action: () => void ouvrirLaGazette(),
+  },
   { verbe: 'Regarder', nom: 'Ta photo', x: PANNEAU_PRENOM.x, z: PANNEAU_PRENOM.z, rayon: 1.6, visible: () => dansLaMaison, action: () => regarderPhoto('enfant') },
   { verbe: 'Regarder', nom: 'Ta famille', x: CADRE_FAMILLE.x, z: CADRE_FAMILLE.z, rayon: 1.8, visible: () => dansLaMaison, action: () => regarderPhoto('famille') },
 );
 
 await poserInterieur();
+
+// --- La Gazette de MiniVille : chaque jour, on la lit dans la maison avant de sortir ----------
+const gazetteLue = (): boolean => etat.gazette.valideLe === aujourdhuiVille();
+async function ouvrirLaGazette(): Promise<void> {
+  const jour = aujourdhuiVille();
+  const quetes = quetesDeLaSemaine({
+    jour,
+    attraction: etat.attraction,
+    nomsAttractions: Object.fromEntries(attractions.attractions.map((a) => [a.id, a.nom])),
+    prenomsProposes: PRENOMS_ATTRACTION,
+    dictee: etat.dictee,
+    hasard: Math.random,
+  });
+  const edition = editionDuJour(etat.gazette, quetes, jour, etat.prenom);
+  const lundi = lundiDe(jour);
+  const premiere = etat.gazette.premiere || lundi;
+  const semaine = Math.round((Date.parse(lundi) - Date.parse(premiere)) / (7 * 86400000)) + 1;
+  const avant = commandes.actives;
+  commandes.actives = false;
+  occupe = true;
+  const ok = await lireLaGazette({
+    edition,
+    questions: questionnaire(edition, Math.random),
+    date: new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }),
+    semaine,
+    visiter: (qs) => ouvrirLaCarte(qs.map((q) => ({ ...(q.lieu === 'fete' ? FORAIN_ROUE : LIEUX.tableau), texte: `${q.titre} : ${q.phrases.join(' ')}` }))),
+  });
+  occupe = false;
+  commandes.actives = avant;
+  if (!ok) return;
+  const g = etat.gazette;
+  g.premiere = premiere;
+  g.valideLe = jour;
+  if (edition.type === 'histoire') g.histoiresLues = [...new Set([...g.histoiresLues, lundi])];
+  const resume =
+    edition.type === 'histoire'
+      ? `Semaine ${semaine} : histoire « ${edition.histoire.titre} » lue.`
+      : edition.type === 'quetes'
+        ? `Quêtes en cours : ${edition.quetes.map((q) => q.titre).join(', ')}.`
+        : `Bilan de la semaine : ${edition.quetes.map((q) => q.titre).join(', ')} finies.`;
+  g.chronique = [...g.chronique, { jour, texte: resume }].slice(-200);
+  void sauverEtat(etat);
+}
+// Chaque jour, le jeu commence dans la maison, et la porte reste fermée jusqu'à la Gazette lue.
+if (!gazetteLue() && (!adresse.has('essai') || adresse.has('maison'))) {
+  dansLaMaison = true;
+  heros.racine.position.set(ENTREE_INTERIEUR.x, 0.06, ENTREE_INTERIEUR.z);
+  heros.racine.rotation.y = Math.PI;
+  setTimeout(() => annoncerEnVille(gazetteT.textes.fermee), 1500);
+}
 
 // --- La carte : un bouton en haut à droite ; la ville vue du ciel, prise dans la scène -----------
 let planDeLaVille: Plan | null = null;
@@ -1382,6 +1507,10 @@ boutonCarte.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3
 boutonCarte.addEventListener('click', () => {
   if (occupe || enDialogue) return;
   bruitage.touche();
+  void ouvrirLaCarte();
+});
+/** Ouvre la carte ; visite : des étapes à montrer l'une après l'autre (les quêtes de la Gazette). */
+function ouvrirLaCarte(visite: Array<{ x: number; z: number; texte: string }> = []): Promise<void> {
   const avant = commandes.actives;
   commandes.actives = false;
   const p = dansLaMaison ? LIEUX.maison : heros.racine.position;
@@ -1400,10 +1529,10 @@ boutonCarte.addEventListener('click', () => {
     heros.racine.visible = true;
   }
   const plan = planDeLaVille;
-  void ouvrirCarte(plan, lieux, { x: p.x, z: p.z, portrait }).then(() => {
+  return ouvrirCarte(plan, lieux, { x: p.x, z: p.z, portrait }, visite, gazetteT.textes.suivant).then(() => {
     commandes.actives = avant;
   });
-});
+}
 
 // Le prénom du personnage : demandé à la première arrivée, affiché en haut de l'écran ; il se
 // change dans la maison.
@@ -1446,6 +1575,7 @@ if (adresse.has('essai')) {
       grandDefi: essaiGrandDefi,
       tour: () => void faireUnTour(),
       prenom: () => void choisirPrenom(),
+      gazette: () => void ouvrirLaGazette(),
     },
   });
 }

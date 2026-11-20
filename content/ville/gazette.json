@@ -1,0 +1,82 @@
+{
+  "_lisez-moi": "La Gazette de MiniVille, le journal posé sur la table de la maison. Chaque jour, l'enfant la lit avant de sortir. Le premier jour de chaque semaine : l'histoire de la semaine puis les quêtes ; les autres jours : les quêtes pas encore finies ; quand tout est fini : un questionnaire sur ce qui s'est passé. histoires : une par semaine de jeu, dans l'ordre (la première est l'arrivée en ville). {prenom} : le prénom du personnage ; {attraction} : l'attraction en construction ; {forain} : le prénom de son forain ; {n} : un nombre. Chaque question a 3 réponses, la bonne en premier (elles sont mélangées à l'écran) ; indice : le rang de la phrase qui contient la réponse (à partir de 1), qui s'allume après une erreur. valide=false : textes à relire (A_VALIDER.md).",
+  "valide": false,
+  "nom": "La Gazette de MiniVille",
+  "textes": {
+    "lire": "Lire",
+    "journal": "Ta Gazette",
+    "fermee": "Lis d’abord ta Gazette : elle t’attend sur la table !",
+    "histoire": "L’histoire de la semaine",
+    "quetes": "Les quêtes de la semaine",
+    "bilan": "Toutes tes quêtes sont finies ! Bravo. Voyons ce dont tu te souviens.",
+    "carte": "Voir sur la carte",
+    "suivant": "Suivant",
+    "questionnaire": "Le questionnaire",
+    "question": "Question {n} sur {total}",
+    "juste": "Bravo, c’est juste !",
+    "faux": "Ce n’est pas ça. Relis la phrase qui brille, puis réessaie.",
+    "fini": "Bravo ! Tu as tout compris. Ta journée peut commencer !",
+    "rien": "Pas de nouvelles aujourd’hui. Bonne journée à MiniVille !",
+    "jaiLu": "J’ai lu",
+    "sortir": "Bonne journée !"
+  },
+  "histoires": [
+    {
+      "titre": "Bienvenue à MiniVille !",
+      "phrases": [
+        "Ce matin, un nouvel habitant est arrivé à MiniVille : c’est toi, {prenom} !",
+        "Ta petite maison au toit orange t’attendait, au nord de la place.",
+        "Sur la place, la fontaine chante et le tableau des mots affiche la liste de la semaine.",
+        "L’épicière a rangé ses fruits frais, et la postière trie déjà le courrier.",
+        "De l’autre côté du pont, la fête foraine prépare une surprise.",
+        "Les cinq forains des stands ont besoin d’aide pour la construire.",
+        "Chaque matin, ta Gazette te dira ce qu’il reste à faire.",
+        "Bonne semaine, et bienvenue chez toi !"
+      ],
+      "questions": [
+        { "question": "De quelle couleur est le toit de ta maison ?", "choix": ["orange", "bleu", "vert"], "indice": 2 },
+        { "question": "Que fait la postière ce matin ?", "choix": ["Elle trie le courrier.", "Elle vend des fruits.", "Elle construit un manège."], "indice": 4 },
+        { "question": "Combien de forains ont besoin d’aide ?", "choix": ["cinq", "deux", "dix"], "indice": 6 },
+        { "question": "Où est affichée la liste des mots ?", "choix": ["sur le tableau des mots", "sur la porte de la poste", "dans ta maison"], "indice": 3 },
+        { "question": "Où se trouve ta maison ?", "choix": ["au nord de la place", "à côté de l’étang", "dans la fête foraine"], "indice": 2 }
+      ]
+    }
+  ],
+  "quetes": {
+    "attraction": {
+      "titre": "{attraction} en construction",
+      "phrases": [
+        "Aide les cinq forains de la fête : chaque journée d’aide fait monter {attraction}.",
+        "Vendredi, à partir de midi, {forain} te lancera son grand défi."
+      ],
+      "questions": [
+        { "question": "Qui dois-tu aider pour construire l’attraction ?", "choix": ["les cinq forains", "l’épicière", "la postière"], "indice": 1 },
+        { "question": "Quand le grand défi commence-t-il ?", "choix": ["vendredi à midi", "lundi matin", "dimanche soir"], "indice": 2 }
+      ],
+      "forainSansNom": "le forain de l’attraction"
+    },
+    "mots": {
+      "titre": "Les mots de la semaine",
+      "phrases": [
+        "Cette semaine, il y a {n} mots à apprendre : ils sont au tableau des mots, sur la place.",
+        "La veille de la dictée, viens au tableau pour le concours d’écriture."
+      ],
+      "questions": [
+        { "question": "Où trouves-tu les mots de la semaine ?", "choix": ["au tableau des mots", "à la poste", "à la fête foraine"], "indice": 1 },
+        { "question": "Combien de mots y a-t-il à apprendre cette semaine ?", "choix": ["{n}", "{n+3}", "{n+6}"], "indice": 1 },
+        { "question": "Quand a lieu le concours d’écriture ?", "choix": ["la veille de la dictée", "le jour de la rentrée", "le dimanche"], "indice": 2 }
+      ]
+    }
+  },
+  "bilan": {
+    "attraction": [
+      { "question": "Quelle attraction a été terminée cette semaine ?", "choix": ["{attraction}", "le carrousel", "le train fantôme"] },
+      { "question": "Comment s’appelle le forain de {attraction} ?", "choix": ["{forain}", "{autre1}", "{autre2}"] }
+    ],
+    "mots": [
+      { "question": "Combien de mots avait la liste de la semaine ?", "choix": ["{n}", "{n+3}", "{n+6}"] },
+      { "question": "Lequel de ces mots était dans la liste de la semaine ?", "choix": ["{mot}", "{leurre1}", "{leurre2}"] }
+    ],
+    "leurres": ["girafe", "chocolat", "montagne", "parapluie", "tambour", "citrouille", "papillon", "fusée"]
+  }
+}
