@@ -42,7 +42,7 @@ import { ajouterALEchange, echanger, installerParent } from './parent-ville.ts';
 import { apresEnvoi, envoisDictee, lireRetourDictee } from './dictee-reve.ts';
 import { changerEcriture, toutesLesEcritures } from './ecritures.ts';
 import gazetteT from '../../content/ville/gazette.json';
-import { editionDuJour, lundiDe, questionnaire, quetesDeLaSemaine, reserve, type Quete } from './gazette.ts';
+import { editionDuJour, gazetteNeuve, lundiDe, questionnaire, quetesDeLaSemaine, reserve, type Quete } from './gazette.ts';
 import { lireLaGazette } from './gazette-vue.ts';
 import { lieuxDeLaCarte, ouvrirCarte, photographierLaVille, type Plan, type QueteCarte } from './carte.ts';
 import carteT from '../../content/ville/carte.json';
@@ -1116,6 +1116,16 @@ void feteInstallee.then(() => {
           }).then(() => void echanger()),
       },
       { titre: 'Tester les voix', ouvrir: () => void testerLesVoix(etat.dictee.mots.map((m) => m.w)) },
+      {
+        titre: 'Recommencer l’arrivée (prénom et Gazette)',
+        // Seulement le prénom et la Gazette : la dictée, l'argent, les quêtes et les photos restent.
+        ouvrir: () => {
+          if (!window.confirm('Effacer le prénom du personnage et la Gazette ? Au prochain lancement, la question du prénom reviendra, et la journée recommencera dans la maison avec la première Gazette. Tout le reste est gardé.')) return;
+          etat.prenom = '';
+          etat.gazette = gazetteNeuve();
+          void sauverEtat(etat).then(() => location.reload());
+        },
+      },
       { titre: 'La photo de l’enfant', ouvrir: () => void choisirPhoto('enfant').then((b) => b && mettreDansLeCadre('enfant', b)) },
       { titre: 'La photo de famille', ouvrir: () => void choisirPhoto('famille').then((b) => b && mettreDansLeCadre('famille', b)) },
     ],
