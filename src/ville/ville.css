@@ -1130,3 +1130,10 @@ button.produit {
   background: var(--jaune, #ffd27a);
   transition: background 1.5s linear;
 }
+.carte-actions {
+  display: flex;
+  gap: 12px;
+}
+.carte-fleche[hidden] {
+  display: none;
+}

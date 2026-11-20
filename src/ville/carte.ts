@@ -85,6 +85,18 @@ export function photographierLaVille(renderer: THREE.WebGLRenderer, scene: THREE
   const cam = new THREE.OrthographicCamera(-tw / 2 / ppm, tw / 2 / ppm, th / 2 / ppm, -th / 2 / ppm, 1, 500);
   cam.rotation.set(-ANGLE, 0, 0);
   const regard = new THREE.Vector3(0, -SA, -Math.cos(ANGLE));
+  // Vu de biais, le décalage de profondeur des sols (berges, chemins) les ferait passer devant
+  // l'eau : on l'enlève le temps de la photo (la caméra orthographique n'en a pas besoin).
+  const decales: THREE.Material[] = [];
+  scene.traverse((o) => {
+    const m = (o as THREE.Mesh).material;
+    for (const x of Array.isArray(m) ? m : m ? [m] : []) {
+      if (x.polygonOffset) {
+        x.polygonOffset = false;
+        decales.push(x);
+      }
+    }
+  });
   for (let iy = 0; iy * th < toile.height; iy++) {
     for (let ix = 0; ix * tw < toile.width; ix++) {
       // Le point du sol au centre de ce morceau.
@@ -96,6 +108,7 @@ export function photographierLaVille(renderer: THREE.WebGLRenderer, scene: THREE
       g.drawImage(ecran, ix * tw, iy * th);
     }
   }
+  for (const m of decales) m.polygonOffset = true;
   return {
     toile,
     ppm,
@@ -116,31 +129,33 @@ const FLECHES = [
 
 export function ouvrirCarte(plan: Plan, lieux: readonly LieuCarte[], ici: { x: number; z: number }): Promise<void> {
   return new Promise((fini) => {
-    // À l'écran, 14 pixels par mètre : on voit le quartier autour de l'enfant.
-    const pr = plan.ppm / ZOOM;
+    // pr : pixels de l'image par pixel d'écran. De près (14 pixels d'écran par mètre), on voit le
+    // quartier autour de l'enfant ; de loin, toute la ville tient dans la fenêtre.
+    let pr = plan.ppm / ZOOM;
+    let deLoin = false;
     const fond = Object.assign(document.createElement('div'), { className: 'carte-fond' });
     const boite = Object.assign(document.createElement('div'), { className: 'carte-boite' });
     const titre = Object.assign(document.createElement('p'), { className: 'carte-titre-ville', textContent: T.titre });
     const aide = Object.assign(document.createElement('p'), { className: 'carte-aide', textContent: T.aide });
     const vue = Object.assign(document.createElement('div'), { className: 'carte-vue' });
     const calque = Object.assign(document.createElement('div'), { className: 'carte-calque' });
-    const W = plan.toile.width / pr;
-    const H = plan.toile.height / pr;
-    Object.assign(plan.toile.style, { width: `${W}px`, height: `${H}px` });
-    Object.assign(calque.style, { width: `${W}px`, height: `${H}px` });
+    let W = 0;
+    let H = 0;
     calque.append(plan.toile);
+    /** Les repères posés sur la carte, à replacer quand l'échelle change. */
+    const reperes: Array<{ e: HTMLElement; x: number; z: number }> = [];
     const ou = (x: number, z: number): { left: string; top: string } => {
       const p = plan.versCarte(x, z);
       return { left: `${p.x / pr}px`, top: `${p.y / pr}px` };
     };
     const points = lieux.map((l) => {
       const p = Object.assign(document.createElement('span'), { className: 'carte-point' });
-      Object.assign(p.style, ou(l.x, l.z));
+      reperes.push({ e: p, x: l.x, z: l.z });
       calque.append(p);
       return p;
     });
     const moi = Object.assign(document.createElement('span'), { className: 'carte-moi' });
-    Object.assign(moi.style, ou(ici.x, ici.z));
+    reperes.push({ e: moi, x: ici.x, z: ici.z });
     const bulle = Object.assign(document.createElement('span'), { className: 'carte-bulle' });
     bulle.hidden = true;
     calque.append(moi, bulle);
@@ -153,11 +168,13 @@ export function ouvrirCarte(plan: Plan, lieux: readonly LieuCarte[], ici: { x: n
     const placer = (x: number, y: number): void => {
       // offsetWidth : la taille sans l'animation d'ouverture (qui part d'un quart de la taille).
       const r = { width: vue.offsetWidth, height: vue.offsetHeight };
-      ox = Math.max(0, Math.min(W - r.width, x));
-      oy = Math.max(0, Math.min(H - r.height, y));
+      // Plus petite que la fenêtre (de loin), la carte est centrée.
+      ox = W <= r.width ? (W - r.width) / 2 : Math.max(0, Math.min(W - r.width, x));
+      oy = H <= r.height ? (H - r.height) / 2 : Math.max(0, Math.min(H - r.height, y));
       calque.style.transform = `translate(${-ox}px, ${-oy}px)`;
       for (const f of fleches) {
-        f.b.disabled = (f.dx < 0 && ox <= 0) || (f.dx > 0 && ox >= W - r.width - 1) || (f.dy < 0 && oy <= 0) || (f.dy > 0 && oy >= H - r.height - 1);
+        f.b.hidden = deLoin;
+        f.b.disabled =(f.dx < 0 && ox <= 0) || (f.dx > 0 && ox >= W - r.width - 1) || (f.dy < 0 && oy <= 0) || (f.dy > 0 && oy >= H - r.height - 1);
       }
     };
     for (const f of FLECHES) {
@@ -206,14 +223,33 @@ export function ouvrirCarte(plan: Plan, lieux: readonly LieuCarte[], ici: { x: n
       fond.remove();
       fini();
     });
-    boite.append(titre, aide, vue, fermer);
+    const loin = Object.assign(document.createElement('button'), { type: 'button', className: 'bouton-secondaire', textContent: T.deLoin });
+    const actions = Object.assign(document.createElement('div'), { className: 'carte-actions' });
+    actions.append(loin, fermer);
+    boite.append(titre, aide, vue, actions);
     fond.append(boite);
     document.body.append(fond);
-    // Au départ, l'enfant au milieu de la fenêtre.
-    const r = { width: vue.offsetWidth, height: vue.offsetHeight };
-    const c = plan.versCarte(ici.x, ici.z);
-    calque.style.transition = 'none';
-    placer(c.x / pr - r.width / 2, c.y / pr - r.height / 2);
-    requestAnimationFrame(() => requestAnimationFrame(() => (calque.style.transition = '')));
+    /** Change d'échelle, puis met l'enfant au milieu de la fenêtre. */
+    const echelle = (): void => {
+      const r = { width: vue.offsetWidth, height: vue.offsetHeight };
+      pr = deLoin ? Math.max(plan.toile.width / r.width, plan.toile.height / r.height) : plan.ppm / ZOOM;
+      W = plan.toile.width / pr;
+      H = plan.toile.height / pr;
+      Object.assign(plan.toile.style, { width: `${W}px`, height: `${H}px` });
+      Object.assign(calque.style, { width: `${W}px`, height: `${H}px` });
+      for (const p of reperes) Object.assign(p.e.style, ou(p.x, p.z));
+      bulle.hidden = true;
+      const c = plan.versCarte(ici.x, ici.z);
+      calque.style.transition = 'none';
+      placer(c.x / pr - r.width / 2, c.y / pr - r.height / 2);
+      requestAnimationFrame(() => requestAnimationFrame(() => (calque.style.transition = '')));
+      loin.textContent = deLoin ? T.dePres : T.deLoin;
+    };
+    loin.addEventListener('click', () => {
+      bruitage.touche();
+      deLoin = !deLoin;
+      echelle();
+    });
+    echelle();
   });
 }

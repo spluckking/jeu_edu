@@ -4,6 +4,8 @@
   "titre": "La carte",
   "aide": "Glisse ton doigt sur la carte pour lire le nom des lieux.",
   "ici": "Tu es ici",
+  "deLoin": "Toute la ville",
+  "dePres": "Autour de moi",
   "lieux": {
     "maison": "Ta maison",
     "potager": "Ton potager",
