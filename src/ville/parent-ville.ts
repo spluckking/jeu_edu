@@ -6,7 +6,7 @@ import { chargerFeuilleton, lireSemaine, type Semaine } from '../histoire/feuill
 import { jourDe } from '../memoire/jours.ts';
 import { ouvrirEspaceParent, porteParent } from '../parent/espace.ts';
 import type { Preparation } from '../reve/preparation.ts';
-import { lireAcces, synchroniser } from '../reve/synchro.ts';
+import { lireAcces, synchroniser, type Envoi } from '../reve/synchro.ts';
 import { appliquerReglagesDuJeu, remplacerSauvegarde, sauvegardeDuJeu, sauverLeJeu, standsDuJeu } from './fete-ville.ts';
 
 const aujourdhui = (): ReturnType<typeof jourDe> => jourDe(new Date());
@@ -30,6 +30,16 @@ function appliquerPreparation(p: Preparation): void {
   s.preparation = p;
 }
 
+/** Ce que la ville ajoute à l'échange (la dictée) : les fichiers à déposer, puis la suite. */
+export interface ExtraEchange {
+  envois(): Promise<Envoi[]>;
+  apres(chemins: readonly string[], brut: unknown): Promise<void>;
+}
+let extra: ExtraEchange | null = null;
+export function ajouterALEchange(x: ExtraEchange): void {
+  extra = x;
+}
+
 let echangeEnCours = false;
 /** Un échange avec le dépôt privé, s'il y a une clé et du réseau ; renvoie un message pour le parent. */
 export async function echanger(): Promise<string> {
@@ -40,7 +50,8 @@ export async function echanger(): Promise<string> {
   echangeEnCours = true;
   const s = sauvegardeDuJeu();
   try {
-    const r = await synchroniser(s, acces, aujourdhui());
+    const r = await synchroniser(s, acces, aujourdhui(), fetch, extra ? await extra.envois() : []);
+    if (extra) await extra.apres(r.chemins, r.brut);
     s.synchro = { derniere: new Date().toISOString() };
     if (r.preparation && r.preparation.jour !== s.preparation?.jour) appliquerPreparation(r.preparation);
     else if (r.preparation) s.preparation = { ...r.preparation };

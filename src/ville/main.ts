@@ -32,9 +32,11 @@ import { ecrirePrenom } from '../ui/prenom.ts';
 import { avecPrenom, retenirPrenomEcrit } from './prenom-ecrit.ts';
 import { choisirPhoto, lirePhoto, type IdPhoto } from './photos.ts';
 import { ecrituresDuSoir, statistiquesDictee } from './dictee-parent.ts';
-import { corrigerEssai } from '../dictee/etat.ts';
+import { corrigerEssai, type EtatDictee } from '../dictee/etat.ts';
 import { voirPhoto } from './photo-vue.ts';
-import { echanger, installerParent } from './parent-ville.ts';
+import { ajouterALEchange, echanger, installerParent } from './parent-ville.ts';
+import { apresEnvoi, envoisDictee, lireRetourDictee } from './dictee-reve.ts';
+import { changerEcriture, toutesLesEcritures } from './ecritures.ts';
 import gazetteT from '../../content/ville/gazette.json';
 import { editionDuJour, lundiDe, questionnaire, quetesDeLaSemaine, reserve, type Quete } from './gazette.ts';
 import { lireLaGazette } from './gazette-vue.ts';
@@ -1068,6 +1070,29 @@ const feteInstallee = installerFete({
 });
 // La sauvegarde du jeu d'avant est lue : ses réglages (volumes, voix), l'espace parent (appui long
 // sur le cadenas), et l'échange du jour avec le dépôt privé du rêve, comme le faisait le jeu d'avant.
+// La dictée part avec l'échange du rêve (l'état, les écritures) ; au retour, ce que le rêve a lu.
+ajouterALEchange({
+  envois: () => envoisDictee(etat.dictee),
+  apres: async (chemins, brut) => {
+    await apresEnvoi(chemins, jourDe(new Date()));
+    const retour = lireRetourDictee(brut);
+    if (!retour || (retour.jour && retour.jour === etat.dictee.retourLu)) return;
+    const ecritures = new Map((await toutesLesEcritures()).map((x) => [x.id, x]));
+    let d: EtatDictee = { ...etat.dictee, prioritaires: retour.prioritaires, retourLu: retour.jour };
+    for (const l of retour.lectures) {
+      const x = ecritures.get(l.id);
+      if (!x || x.reve !== null) continue;
+      await changerEcriture(l.id, { reve: l.juste, ...(l.lu ? { lu: l.lu } : {}) });
+      // Le parent a déjà vérifié : son avis compte plus que celui du rêve.
+      if (x.parent !== null) continue;
+      d = corrigerEssai(d, l.mot, l.id, l.juste, 'reve', l.lu);
+      // Il s'était dit juste, le rêve a lu une faute : il revoit son écriture demain.
+      if (x.enfant === true && !l.juste && x.sorte !== 'reprise') d = { ...d, aRevoir: [...d.aRevoir, { w: l.mot, ecriture: l.id, jour: x.jour }].slice(-5) };
+    }
+    etat.dictee = d;
+    void sauverEtat(etat);
+  },
+});
 void feteInstallee.then(() => {
   appliquerReglagesDuJeu();
   installerParent(

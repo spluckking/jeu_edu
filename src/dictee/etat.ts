@@ -28,6 +28,8 @@ export interface EtatDictee {
   prioritaires: string[];
   /** Ce que le rêve a trouvé faux alors que l'enfant l'avait jugé juste : on le lui montre. */
   aRevoir: Array<{ w: string; ecriture: string; jour: Jour }>;
+  /** Le jour de la dernière préparation du rêve déjà appliquée. */
+  retourLu?: string;
 }
 
 export function dicteeNeuve(): EtatDictee {
