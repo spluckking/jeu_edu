@@ -124,17 +124,25 @@ body.ville #scene {
   line-height: 1.5;
 }
 
+/* Les mots de la dictée s'écrivent en cursive, comme à l'école. */
+.fiche-mot,
+.comparaison-mot,
+.ecriture-ligne .determinant {
+  font-family: 'Playwrite FR Moderne', cursive;
+  font-weight: 400;
+  letter-spacing: 0;
+}
 .fiche-mot {
   margin: 4px 0;
-  font-size: 3.4rem;
-  font-weight: 700;
-  letter-spacing: 0.02em;
+  font-size: 2.8rem;
+  line-height: 1.7;
 }
 
+/* La coupure des syllabes : un trait pointillé fin, qui gêne peu le lien des lettres. */
 .fiche-mot .syllabe.nouvelle {
-  margin-left: 0.18em;
-  padding-left: 0.18em;
-  border-left: 3px dotted rgba(74, 56, 51, 0.25);
+  margin-left: 0.06em;
+  padding-left: 0.06em;
+  border-left: 2px dotted rgba(74, 56, 51, 0.25);
 }
 
 .fiche-lieu,
@@ -1564,4 +1572,7 @@ button.produit {
 .comparaison.verification .lecture-texte {
   margin: 0;
   font-size: 0.95rem;
+}
+.ecriture-ligne .determinant {
+  font-size: 2rem;
 }

@@ -3,6 +3,8 @@
 // toucher un mot pour l'entendre, et la sauvegarde de la position. Voir docs/VILLE.md.
 
 import '../style.css';
+// L'écriture cursive de l'école (Playwrite France Moderne, licence OFL) : les mots de la dictée.
+import '@fontsource/playwrite-fr-moderne/latin-400.css';
 import './ville.css';
 import * as THREE from 'three';
 import { GLTFLoader, type GLTF } from 'three/addons/loaders/GLTFLoader.js';
