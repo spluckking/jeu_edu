@@ -14,7 +14,7 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, unlinkSync, writeFile
 import { join } from 'node:path';
 import { cleVoix, empreinte, normaliserPhrase } from '../src/son/cle-voix.ts';
 import { fichierSalutation, SALUTATIONS } from '../src/son/salutations.ts';
-import { fichierForain, phrasesDesForains, VOIX_FORAINS } from '../src/ville/voix-forains.ts';
+import { fichierForain, phrasesDesForains, phrasesDesHabitants, VOIX_FORAINS } from '../src/ville/voix-forains.ts';
 
 const RACINE = new URL('..', import.meta.url).pathname.replace(/^\/([A-Z]:)/, '$1');
 const SORTIE = join(RACINE, 'public', 'voix');
@@ -201,7 +201,9 @@ for (const [forain, d] of Object.entries(SALUTATIONS)) {
 mkdirSync(join(SORTIE, 'ville'), { recursive: true });
 const fete = JSON.parse(readFileSync(join(RACINE, 'content', 'ville', 'fete.json'), 'utf8'));
 const gardesVille = new Set();
-for (const [forain, phrase] of phrasesDesForains(fete)) {
+// Et les salutations des habitants de la ville (content/ville/salutations-habitants.json).
+const habitants = JSON.parse(readFileSync(join(RACINE, 'content', 'ville', 'salutations-habitants.json'), 'utf8'));
+for (const [forain, phrase] of [...phrasesDesForains(fete), ...phrasesDesHabitants(habitants)]) {
   const nom = fichierForain(forain, phrase);
   if (!nom) continue;
   gardesVille.add(nom.replace('ville/', ''));

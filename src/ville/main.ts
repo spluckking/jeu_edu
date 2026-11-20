@@ -21,6 +21,7 @@ import { CameraHaute } from '../scene/suivi.ts';
 import { dire } from '../son/voix.ts';
 import { installerDictee, type PointInteret } from './dictee-ville.ts';
 import { aUneQuete, installerDemandes, majSeance, parlerA } from './demandes-ville.ts';
+import { saluerHabitant } from './salut-habitants.ts';
 import { installerEpicerie, rafraichirHud } from './epicerie-ville.ts';
 import { installerJardin } from './jardin-ville.ts';
 import { installerPoste } from './poste-ville.ts';
@@ -909,6 +910,8 @@ const boutonDiscuter = Object.assign(document.createElement('button'), { type: '
 choixParler.append(boutonQuete, boutonDiscuter);
 let choixPour: PointInteret | null = null;
 ui.interagir.addEventListener('click', () => {
+  // Un habitant dit bonjour (sa voix enregistrée), avant le choix ou la conversation.
+  if (proche) saluerHabitant(proche.nom);
   if (proche?.quete?.visible()) {
     bruitage.touche();
     choixPour = proche;
