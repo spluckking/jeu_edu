@@ -2,7 +2,7 @@
 // l'avance (public/voix/, générée par scripts/generer-voix.mjs, jouée hors ligne), sinon par la
 // synthèse vocale de la tablette, en français (phrases avec un prénom ou un nombre tiré au sort).
 
-import { estMuet } from './bruitages.ts';
+import { estMuet, sortieSon } from './bruitages.ts';
 import { cleVoix } from './cle-voix.ts';
 import { fichierSalutation, SALUTATIONS } from './salutations.ts';
 
@@ -43,11 +43,75 @@ void fetch(`${DOSSIER}manifest.json`)
 
 let enCours: HTMLAudioElement | null = null;
 
+// --- Jouer un fichier enregistré ------------------------------------------------------------
+// Par le moteur audio du jeu (comme la musique et les bruitages) : le fichier est lu puis décodé.
+// Un lecteur <audio> ne sait souvent pas lire un MP3 venu du cache hors ligne de l'appli
+// installée (il demande des morceaux du fichier) : sur la tablette, les voix restaient muettes.
+// Le lecteur <audio> ne sert plus que si le moteur audio n'est pas encore démarré.
+const tampons = new Map<string, Promise<AudioBuffer | null>>();
+function tampon(fichier: string, c: AudioContext): Promise<AudioBuffer | null> {
+  let t = tampons.get(fichier);
+  if (!t) {
+    t = fetch(`${DOSSIER}${fichier}`)
+      .then((r) => (r.ok ? r.arrayBuffer() : null))
+      .then((o) => (o ? c.decodeAudioData(o) : null))
+      .catch(() => null);
+    tampons.set(fichier, t);
+  }
+  return t;
+}
+/** Ce qui joue en ce moment sur chaque canal (le principal, et celui des salutations). */
+const canaux: Record<'principal' | 'salut', { source: AudioBufferSourceNode | null; numero: number }> = {
+  principal: { source: null, numero: 0 },
+  salut: { source: null, numero: 0 },
+};
+function couper(canal: 'principal' | 'salut'): void {
+  const c = canaux[canal];
+  c.numero++;
+  try {
+    c.source?.stop();
+  } catch {
+    // Déjà fini.
+  }
+  c.source = null;
+}
+/** Joue le fichier sur ce canal ; secours si le fichier manque ou ne se lit pas. */
+function jouer(fichier: string, canal: 'principal' | 'salut', secours: () => void): void {
+  const son = sortieSon();
+  if (!son) {
+    const audio = new Audio(`${DOSSIER}${fichier}`);
+    audio.volume = volume;
+    if (canal === 'principal') enCours = audio;
+    audio.addEventListener('error', secours);
+    audio.play().catch(secours);
+    return;
+  }
+  const c = canaux[canal];
+  const numero = c.numero;
+  void tampon(fichier, son.contexte).then((t) => {
+    if (c.numero !== numero) return;
+    if (!t) return secours();
+    if (son.contexte.state === 'suspended') void son.contexte.resume();
+    const source = son.contexte.createBufferSource();
+    source.buffer = t;
+    const gain = son.contexte.createGain();
+    gain.gain.value = volume;
+    // Directement vers la sortie : la voix de la dictée se fait entendre même son coupé.
+    source.connect(gain).connect(son.contexte.destination);
+    source.start();
+    c.source = source;
+    source.addEventListener('ended', () => {
+      if (c.source === source) c.source = null;
+    });
+  });
+}
+
 function arreter(): void {
   if (enCours) {
     enCours.pause();
     enCours = null;
   }
+  couper('principal');
   if ('speechSynthesis' in window) speechSynthesis.cancel();
 }
 
@@ -74,22 +138,13 @@ export function dire(texte: string, dictee = false): void {
     parSynthese(texte, dictee);
     return;
   }
-  const audio = new Audio(`${DOSSIER}${fichier}`);
-  audio.volume = volume;
-  enCours = audio;
-  // Si le navigateur refuse (son pas encore débloqué), la voix de la tablette prend le relais.
-  audio.play().catch(() => {
-    if (enCours === audio) {
-      enCours = null;
-      parSynthese(texte, dictee);
-    }
-  });
+  // Si le fichier ne se lit pas, la voix de la tablette prend le relais.
+  jouer(fichier, 'principal', () => parSynthese(texte, dictee));
 }
 
 // --- Les salutations doublées des forains ---------------------------------------------------
 
 const dernieres = new Map<string, number>();
-let salutation: HTMLAudioElement | null = null;
 
 /** Le forain dit bonjour quand l'enfant entre dans son stand (une phrase au hasard, jamais deux fois de suite). */
 export function saluer(forain: string): void {
@@ -98,12 +153,9 @@ export function saluer(forain: string): void {
   let rang = Math.floor(Math.random() * d.phrases.length);
   if (d.phrases.length > 1 && rang === dernieres.get(forain)) rang = (rang + 1) % d.phrases.length;
   dernieres.set(forain, rang);
-  salutation?.pause();
-  // Un lecteur à part : une consigne lue ensuite ne coupe pas la salutation.
-  const audio = new Audio(`${DOSSIER}${fichierSalutation(forain, rang)}`);
-  audio.volume = volume;
-  salutation = audio;
-  audio.play().catch(() => undefined);
+  couper('salut');
+  // Un canal à part : une consigne lue ensuite ne coupe pas la salutation.
+  jouer(fichierSalutation(forain, rang), 'salut', () => undefined);
 }
 
 /** Une phrase enregistrée avec la voix d'un personnage (fichier relatif au dossier des voix) ; si le
@@ -112,14 +164,5 @@ export function direEnregistre(fichier: string | null, texte: string): void {
   if (estMuet()) return;
   arreter();
   if (!fichier) return parSynthese(texte, false);
-  const audio = new Audio(`${DOSSIER}${fichier}`);
-  audio.volume = volume;
-  enCours = audio;
-  const secours = (): void => {
-    if (enCours !== audio) return;
-    enCours = null;
-    parSynthese(texte, false);
-  };
-  audio.addEventListener('error', secours);
-  audio.play().catch(secours);
+  jouer(fichier, 'principal', () => parSynthese(texte, false));
 }

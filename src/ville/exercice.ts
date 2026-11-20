@@ -55,12 +55,20 @@ function ecouter(mot: string, phrase: string): void {
 }
 
 /** Lance l'exercice d'un mot ; se résout avec la première réponse (celle qui compte). */
-export function exercer(fond: HTMLElement, o: OptionsExercice): Promise<Reponse> {
+/** Se résout avec la réponse qui compte, ou null si l'enfant a touché « Sortir ». */
+export function exercer(fond: HTMLElement, o: OptionsExercice): Promise<Reponse | null> {
   return new Promise((fini) => {
     const carte = creer('section', 'exercice');
     fond.replaceChildren(carte);
     const { lieu } = detecter(o.mot);
-    const tete = creer('p', 'exercice-rang', o.rang);
+    // En haut : où en est la série, et « Sortir » (ce qui est déjà fait est gardé).
+    const tete = creer('div', 'exercice-tete');
+    const sortir = bouton('bouton-sortir', 'Sortir');
+    sortir.addEventListener('click', () => {
+      bruitage.touche();
+      fini(null);
+    });
+    tete.append(creer('p', 'exercice-rang', o.rang), sortir);
 
     const montrerFiche = (puis: () => void, bref = false): void => {
       const titre = creer('p', 'exercice-titre', bref ? 'Regarde bien le mot !' : 'Un nouveau mot');
