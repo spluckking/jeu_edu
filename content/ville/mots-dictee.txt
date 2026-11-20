@@ -22,3 +22,31 @@ la grotte | La famille dort au fond de la grotte.
 dessiner | Il aime dessiner des animaux sur les murs.
 encore | Ce dessin est encore visible aujourd'hui.
 mais | Le mammouth est fort, mais les chasseurs sont malins.
+
+# Les anciens mots (semaines passées), qui reviennent dans la révision
+la jungle | Le tigre se cache dans la jungle.
+une fleur | Une fleur rouge pousse au pied de l'arbre.
+une feuille | Une grande feuille tombe de l'arbre.
+l'attention | Le guide attire l'attention des enfants.
+un éléphant | Un éléphant boit au bord de la rivière.
+un singe | Un singe saute de branche en branche.
+un serpent | Un serpent glisse entre les herbes.
+un oiseau | Un oiseau chante en haut de l'arbre.
+un lion | Un lion dort à l'ombre.
+la lune | La lune éclaire la jungle.
+voir | La nuit, il est difficile de voir les animaux.
+peindre | J'aime peindre des fleurs.
+lointain | Le lion vient d'un pays lointain.
+lointaine | Elle rêve d'une île lointaine.
+exotique | Le perroquet est un oiseau exotique.
+entre | Le serpent passe entre deux pierres.
+le milieu | L'arbre est au milieu de la clairière.
+la végétation | La végétation est très dense.
+le doigt | Il montre le singe avec le doigt.
+une direction | Le guide montre la bonne direction.
+le rêve | Le rêve de Léo est de voir un lion.
+un musicien | Un musicien joue du tambour.
+pointer | Il ne faut pas pointer les gens du doigt.
+écouter | J'aime écouter les oiseaux.
+dévoiler | Le magicien va dévoiler son secret.
+en | Nous partons en voyage.
