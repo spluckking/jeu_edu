@@ -1,7 +1,8 @@
 // La carte de la ville : toute la ville vue de haut et de biais, comme dans le jeu (on reconnaît
 // les bâtiments), photographiée dans la scène au moment où on l'ouvre (toujours à jour). On n'en
 // voit qu'une partie, centrée sur l'enfant ; des flèches sur les bords la font glisser. L'enfant
-// glisse le doigt dessus : le nom du lieu le plus proche s'affiche. Un point bleu montre où il est.
+// glisse le doigt dessus : le nom du lieu le plus proche s'affiche. Les lieux sont détourés d'un
+// contour qui brille ; l'enfant est là, en miniature.
 
 import * as THREE from 'three';
 import T from '../../content/ville/carte.json';
@@ -13,6 +14,8 @@ export interface LieuCarte {
   nom: string;
   x: number;
   z: number;
+  /** Ce qui est à moins de r mètres (bâtiment, décor) est détouré sur la carte ; 0 : rien. */
+  r: number;
 }
 
 /** Les lieux de la carte. La boulangerie n'est un « chantier » que tant qu'elle n'est pas construite. */
@@ -20,23 +23,23 @@ export function lieuxDeLaCarte(boulangerieConstruite: boolean): LieuCarte[] {
   const n = T.lieux;
   const mures = BUISSONS_MURES.reduce((s, b) => ({ x: s.x + b.x / BUISSONS_MURES.length, z: s.z + b.z / BUISSONS_MURES.length }), { x: 0, z: 0 });
   return [
-    { nom: n.maison, ...LIEUX.maison },
-    { nom: n.potager, ...LIEUX.potager },
-    { nom: n.pommier, ...LIEUX.pommier },
-    { nom: n.place, x: 0, z: 0 },
-    { nom: n.tableau, ...LIEUX.tableau },
-    { nom: n.murDesMots, ...LIEUX.murDesMots },
-    { nom: n.epicerie, ...LIEUX.epicerie },
-    { nom: n.poste, ...LIEUX.poste },
-    { nom: boulangerieConstruite ? n.boulangerie : n.chantier, ...LIEUX.boulangerie },
-    { nom: PIEGES.double.nom, ...LIEUX.tour },
-    { nom: PIEGES.mbp.nom, ...LIEUX.pont },
-    { nom: n.etang, x: ETANG.x, z: ETANG.z },
-    { nom: n.ponton, ...LIEUX.ponton },
-    { nom: n.bois, x: -64, z: -24 },
-    { nom: n.mures, ...mures },
-    { nom: n.fete, ...LIEUX.fete },
-  ].map(({ nom, x, z }) => ({ nom, x, z }));
+    { nom: n.maison, ...LIEUX.maison, r: 5.5 },
+    { nom: n.potager, ...LIEUX.potager, r: 5 },
+    { nom: n.pommier, ...LIEUX.pommier, r: 3 },
+    { nom: n.place, x: 0, z: 0, r: 3 },
+    { nom: n.tableau, ...LIEUX.tableau, r: 1.6 },
+    { nom: n.murDesMots, ...LIEUX.murDesMots, r: 2.5 },
+    { nom: n.epicerie, ...LIEUX.epicerie, r: 5 },
+    { nom: n.poste, ...LIEUX.poste, r: 5 },
+    { nom: boulangerieConstruite ? n.boulangerie : n.chantier, ...LIEUX.boulangerie, r: 5 },
+    { nom: PIEGES.double.nom, ...LIEUX.tour, r: 3 },
+    { nom: PIEGES.mbp.nom, ...LIEUX.pont, r: 6.5 },
+    { nom: n.etang, x: ETANG.x, z: ETANG.z, r: 16 },
+    { nom: n.ponton, ...LIEUX.ponton, r: 3 },
+    { nom: n.bois, x: -64, z: -24, r: 0 },
+    { nom: n.mures, ...mures, r: 6 },
+    { nom: n.fete, ...LIEUX.fete, r: 31 },
+  ].map(({ nom, x, z, r }) => ({ nom, x, z, r }));
 }
 
 /** Le lieu le plus proche de ce point, s'il est assez près (en mètres). */
@@ -62,6 +65,8 @@ const MARGE_NORD = 10;
 /** La ville en image, et le passage des mètres aux pixels de l'image (et retour). */
 export interface Plan {
   toile: HTMLCanvasElement;
+  /** Le contour lumineux des lieux, à poser sur la photo (même proportions, moitié moins fin). */
+  contours: HTMLCanvasElement;
   /** Pixels de l'image par mètre. */
   ppm: number;
   versCarte(x: number, z: number): { x: number; y: number };
@@ -70,7 +75,7 @@ export interface Plan {
 
 /** Photographie toute la ville, morceau par morceau (chaque morceau à la taille de l'écran), dans
  *  une grande image ; pixelsParMetre fixe la finesse. À appeler sans brouillard ni personnage. */
-export function photographierLaVille(renderer: THREE.WebGLRenderer, scene: THREE.Scene, pixelsParMetre = 12): Plan {
+export function photographierLaVille(renderer: THREE.WebGLRenderer, scene: THREE.Scene, lieux: readonly LieuCarte[], pixelsParMetre = 12): Plan {
   const L = BORDS.xMax - BORDS.xMin;
   const haut = -BORDS.zMin * SA + MARGE_NORD;
   const bas = -BORDS.zMax * SA;
@@ -97,28 +102,104 @@ export function photographierLaVille(renderer: THREE.WebGLRenderer, scene: THREE
       }
     }
   });
-  for (let iy = 0; iy * th < toile.height; iy++) {
-    for (let ix = 0; ix * tw < toile.width; ix++) {
-      // Le point du sol au centre de ce morceau.
-      const x = BORDS.xMin + (ix + 0.5) * (tw / ppm);
-      const sCentre = haut - (iy + 0.5) * (th / ppm);
-      cam.position.set(x, 0, -sCentre / SA).addScaledVector(regard, -200);
-      cam.updateMatrixWorld();
-      renderer.render(scene, cam);
-      g.drawImage(ecran, ix * tw, iy * th);
+  const photographier = (dessin: CanvasRenderingContext2D, k: number): void => {
+    for (let iy = 0; iy * th < toile.height; iy++) {
+      for (let ix = 0; ix * tw < toile.width; ix++) {
+        // Le point du sol au centre de ce morceau.
+        const x = BORDS.xMin + (ix + 0.5) * (tw / ppm);
+        const sCentre = haut - (iy + 0.5) * (th / ppm);
+        cam.position.set(x, 0, -sCentre / SA).addScaledVector(regard, -200);
+        cam.updateMatrixWorld();
+        renderer.render(scene, cam);
+        dessin.drawImage(ecran, ix * tw * k, iy * th * k, tw * k, th * k);
+      }
     }
-  }
+  };
+  photographier(g, 1);
   for (const m of decales) m.polygonOffset = true;
+  const contours = detourer(scene, lieux, toile, (d, k) => photographier(d, k));
   return {
     toile,
+    contours,
     ppm,
     versCarte: (x, z) => ({ x: (x - BORDS.xMin) * ppm, y: (haut + z * SA) * ppm }),
     versMonde: (px, py) => ({ x: BORDS.xMin + px / ppm, z: (py / ppm - haut) / SA }),
   };
 }
 
-/** Pixels d'écran par mètre, sur la carte. */
-const ZOOM = 14;
+/** Le contour lumineux des lieux : on photographie une seconde fois la ville, avec seulement ce qui
+ *  est près d'un lieu (bâtiments, décor, étang), tout en blanc sur fond noir, à moitié de la
+ *  finesse ; puis on ne garde que le bord de ces formes, élargi, qui brille. */
+function detourer(
+  scene: THREE.Scene,
+  lieux: readonly LieuCarte[],
+  toile: HTMLCanvasElement,
+  photographier: (d: CanvasRenderingContext2D, k: number) => void,
+): HTMLCanvasElement {
+  const K = 0.5;
+  const w = Math.round(toile.width * K);
+  const h = Math.round(toile.height * K);
+  const masque = Object.assign(document.createElement('canvas'), { width: w, height: h });
+  const caches: THREE.Object3D[] = [];
+  const sphere = new THREE.Sphere();
+  scene.traverse((o) => {
+    if (!o.visible) return;
+    const mesh = o as THREE.Mesh;
+    const dessine = mesh.isMesh || (o as THREE.Line).isLine || (o as THREE.Points).isPoints;
+    if (!dessine) return;
+    let garde = false;
+    if (mesh.isMesh && !(o as THREE.InstancedMesh).isInstancedMesh) {
+      if (!mesh.geometry.boundingSphere) mesh.geometry.computeBoundingSphere();
+      sphere.copy(mesh.geometry.boundingSphere!).applyMatrix4(mesh.matrixWorld);
+      garde = sphere.radius < 16 && lieux.some((l) => l.r > 0 && Math.hypot(sphere.center.x - l.x, sphere.center.z - l.z) < l.r);
+    }
+    if (!garde) {
+      o.visible = false;
+      caches.push(o);
+    }
+  });
+  const fond = scene.background;
+  const blanc = new THREE.MeshBasicMaterial({ color: 0xffffff });
+  scene.background = new THREE.Color(0x000000);
+  scene.overrideMaterial = blanc;
+  photographier(masque.getContext('2d')!, K);
+  scene.overrideMaterial = null;
+  scene.background = fond;
+  blanc.dispose();
+  for (const o of caches) o.visible = true;
+
+  // Le blanc devient une forme pleine (opaque), couleur crème.
+  const m = masque.getContext('2d')!;
+  const image = m.getImageData(0, 0, w, h);
+  const px = image.data;
+  for (let i = 0; i < px.length; i += 4) {
+    const plein = (px[i] ?? 0) > 60;
+    px[i] = 255;
+    px[i + 1] = 252;
+    px[i + 2] = 230;
+    px[i + 3] = plein ? 255 : 0;
+  }
+  m.putImageData(image, 0, 0);
+  // Le bord : la forme élargie dans toutes les directions, moins la forme elle-même.
+  const bord = Object.assign(document.createElement('canvas'), { width: w, height: h });
+  const b = bord.getContext('2d')!;
+  for (let a = 0; a < 16; a++) {
+    const t = (a / 16) * Math.PI * 2;
+    b.drawImage(masque, Math.cos(t) * 3.5, Math.sin(t) * 3.5);
+  }
+  b.globalCompositeOperation = 'destination-out';
+  b.drawImage(masque, 0, 0);
+  // Il brille un peu.
+  const contours = Object.assign(document.createElement('canvas'), { width: w, height: h });
+  const c = contours.getContext('2d')!;
+  c.shadowColor = 'rgba(255, 196, 64, 1)';
+  c.shadowBlur = 9;
+  for (let i = 0; i < 3; i++) c.drawImage(bord, 0, 0);
+  return contours;
+}
+
+/** Pixels d'écran par mètre, sur la carte (de près). */
+const ZOOM = 7;
 
 const FLECHES = [
   { cote: 'haut', dx: 0, dy: -1, d: 'M6 15l6-6 6 6' },
@@ -127,9 +208,10 @@ const FLECHES = [
   { cote: 'droite', dx: 1, dy: 0, d: 'M9 6l6 6-6 6' },
 ] as const;
 
-export function ouvrirCarte(plan: Plan, lieux: readonly LieuCarte[], ici: { x: number; z: number }): Promise<void> {
+/** ici.portrait : le personnage en miniature (image), posé à sa place sur la carte. */
+export function ouvrirCarte(plan: Plan, lieux: readonly LieuCarte[], ici: { x: number; z: number; portrait: string | null }): Promise<void> {
   return new Promise((fini) => {
-    // pr : pixels de l'image par pixel d'écran. De près (14 pixels d'écran par mètre), on voit le
+    // pr : pixels de l'image par pixel d'écran. De près (7 pixels d'écran par mètre), on voit le
     // quartier autour de l'enfant ; de loin, toute la ville tient dans la fenêtre.
     let pr = plan.ppm / ZOOM;
     let deLoin = false;
@@ -141,20 +223,20 @@ export function ouvrirCarte(plan: Plan, lieux: readonly LieuCarte[], ici: { x: n
     const calque = Object.assign(document.createElement('div'), { className: 'carte-calque' });
     let W = 0;
     let H = 0;
-    calque.append(plan.toile);
+    plan.contours.className = 'carte-contours';
+    calque.append(plan.toile, plan.contours);
     /** Les repères posés sur la carte, à replacer quand l'échelle change. */
     const reperes: Array<{ e: HTMLElement; x: number; z: number }> = [];
     const ou = (x: number, z: number): { left: string; top: string } => {
       const p = plan.versCarte(x, z);
       return { left: `${p.x / pr}px`, top: `${p.y / pr}px` };
     };
-    const points = lieux.map((l) => {
-      const p = Object.assign(document.createElement('span'), { className: 'carte-point' });
-      reperes.push({ e: p, x: l.x, z: l.z });
-      calque.append(p);
-      return p;
-    });
+    // L'enfant : son personnage en miniature (ou un point bleu, si le portrait manque).
     const moi = Object.assign(document.createElement('span'), { className: 'carte-moi' });
+    if (ici.portrait) {
+      moi.classList.add('portrait');
+      moi.append(Object.assign(document.createElement('img'), { src: ici.portrait, alt: '', draggable: false }));
+    }
     reperes.push({ e: moi, x: ici.x, z: ici.z });
     const bulle = Object.assign(document.createElement('span'), { className: 'carte-bulle' });
     bulle.hidden = true;
@@ -196,9 +278,8 @@ export function ouvrirCarte(plan: Plan, lieux: readonly LieuCarte[], ici: { x: n
       const r = calque.getBoundingClientRect();
       const k = calque.offsetWidth / r.width;
       const m = plan.versMonde((e.clientX - r.left) * k * pr, (e.clientY - r.top) * k * pr);
-      const tous = [...lieux, { nom: T.ici, x: ici.x, z: ici.z }];
+      const tous = [...lieux, { nom: T.ici, x: ici.x, z: ici.z, r: 0 }];
       const l = lieuProche(tous, m.x, m.z, 9);
-      points.forEach((p, i) => p.classList.toggle('vise', lieux[i] === l));
       if (!l) {
         bulle.hidden = true;
         dernier = '';
@@ -235,7 +316,7 @@ export function ouvrirCarte(plan: Plan, lieux: readonly LieuCarte[], ici: { x: n
       pr = deLoin ? Math.max(plan.toile.width / r.width, plan.toile.height / r.height) : plan.ppm / ZOOM;
       W = plan.toile.width / pr;
       H = plan.toile.height / pr;
-      Object.assign(plan.toile.style, { width: `${W}px`, height: `${H}px` });
+      for (const t of [plan.toile, plan.contours]) Object.assign(t.style, { width: `${W}px`, height: `${H}px` });
       Object.assign(calque.style, { width: `${W}px`, height: `${H}px` });
       for (const p of reperes) Object.assign(p.e.style, ou(p.x, p.z));
       bulle.hidden = true;

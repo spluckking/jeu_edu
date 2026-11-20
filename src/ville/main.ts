@@ -1333,6 +1333,50 @@ await poserInterieur();
 
 // --- La carte : un bouton en haut à droite ; la ville vue du ciel, prise dans la scène -----------
 let planDeLaVille: Plan | null = null;
+let portrait: string | null = null;
+/** Le personnage en miniature pour la carte : photographié seul, de face, sur un fond magenta qu'on
+ *  rend ensuite transparent. */
+function portraitDuHeros(): string | null {
+  const CALQUE = 7;
+  const h = heros.racine;
+  h.traverse((o) => o.layers.enable(CALQUE));
+  soleil.layers.enable(CALQUE);
+  ciel.layers.enable(CALQUE);
+  const toile = renderer.domElement;
+  const cam = new THREE.PerspectiveCamera(26, toile.width / toile.height, 0.1, 50);
+  cam.layers.set(CALQUE);
+  const a = h.rotation.y;
+  cam.position.set(h.position.x + Math.sin(a) * 5, h.position.y + 2.4, h.position.z + Math.cos(a) * 5);
+  cam.lookAt(h.position.x, h.position.y + 0.95, h.position.z);
+  const fond = scene.background;
+  const brume = scene.fog;
+  scene.background = new THREE.Color(0xff00ff);
+  scene.fog = null;
+  renderer.render(scene, cam);
+  scene.background = fond;
+  scene.fog = brume;
+  h.traverse((o) => o.layers.disable(CALQUE));
+  soleil.layers.disable(CALQUE);
+  ciel.layers.disable(CALQUE);
+  // Le carré du milieu de l'écran, réduit, sans le magenta.
+  const cote = Math.min(toile.width, toile.height) * 0.62;
+  const sortie = Object.assign(document.createElement('canvas'), { width: 160, height: 160 });
+  const g = sortie.getContext('2d');
+  if (!g) return null;
+  g.drawImage(toile, (toile.width - cote) / 2, (toile.height - cote) / 2, cote, cote, 0, 0, 160, 160);
+  const image = g.getImageData(0, 0, 160, 160);
+  const px = image.data;
+  for (let i = 0; i < px.length; i += 4) {
+    const r = px[i] ?? 0;
+    const v = px[i + 1] ?? 0;
+    const b = px[i + 2] ?? 0;
+    // Plus le pixel est magenta, plus il est transparent (les bords restent doux).
+    const magenta = Math.min(r, b) - v;
+    if (magenta > 60) px[i + 3] = Math.max(0, 255 - (magenta - 60) * 3);
+  }
+  g.putImageData(image, 0, 0);
+  return sortie.toDataURL('image/png');
+}
 const boutonCarte = document.body.appendChild(Object.assign(document.createElement('button'), { type: 'button', className: 'bouton-carte', ariaLabel: 'Carte' }));
 boutonCarte.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2z M9 4v14 M15 6v14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg><span>Carte</span>';
 boutonCarte.addEventListener('click', () => {
@@ -1341,18 +1385,22 @@ boutonCarte.addEventListener('click', () => {
   const avant = commandes.actives;
   commandes.actives = false;
   const p = dansLaMaison ? LIEUX.maison : heros.racine.position;
-  // La ville photographiée sans brouillard ni personnage (un point bleu le remplace), une fois par
+  const lieux = lieuxDeLaCarte(etat.projets.construits.includes('boulangerie'));
+  // Le personnage en miniature (il peut avoir changé de tenue) ; dans la maison, il n'y en a pas
+  // de photo à faire hors de la ville : on garde la dernière.
+  if (!dansLaMaison || !portrait) portrait = portraitDuHeros();
+  // La ville photographiée sans brouillard ni personnage (sa miniature le remplace), une fois par
   // partie : elle ne change guère en une séance, et la photo prend une ou deux secondes.
   if (!planDeLaVille) {
     const brume = scene.fog;
     scene.fog = null;
     heros.racine.visible = false;
-    planDeLaVille = photographierLaVille(renderer, scene);
+    planDeLaVille = photographierLaVille(renderer, scene, lieux);
     scene.fog = brume;
     heros.racine.visible = true;
   }
   const plan = planDeLaVille;
-  void ouvrirCarte(plan, lieuxDeLaCarte(etat.projets.construits.includes('boulangerie')), { x: p.x, z: p.z }).then(() => {
+  void ouvrirCarte(plan, lieux, { x: p.x, z: p.z, portrait }).then(() => {
     commandes.actives = avant;
   });
 });
