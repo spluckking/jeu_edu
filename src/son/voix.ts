@@ -115,15 +115,50 @@ function arreter(): void {
   if ('speechSynthesis' in window) speechSynthesis.cancel();
 }
 
-function parSynthese(texte: string, dictee: boolean): void {
-  if (!('speechSynthesis' in window)) return;
+function parSynthese(texte: string, dictee: boolean, suivi?: (r: string) => void): void {
+  if (!('speechSynthesis' in window)) {
+    suivi?.('pas de voix de tablette dans ce navigateur');
+    return;
+  }
+  if (!voix) choisirVoix();
   const phrase = new SpeechSynthesisUtterance(texte);
   phrase.lang = 'fr-FR';
   if (voix) phrase.voice = voix;
   phrase.rate = dictee ? vitesse * 0.87 : vitesse;
   phrase.pitch = 1.05;
   phrase.volume = volume;
-  speechSynthesis.speak(phrase);
+  phrase.addEventListener('start', () => suivi?.('la voix de la tablette parle'));
+  phrase.addEventListener('error', (e) => suivi?.(`erreur de la voix de la tablette : ${(e as SpeechSynthesisErrorEvent).error}`));
+  // Sur Chrome pour Android, parler juste après « cancel » peut ne rien dire : on laisse un instant.
+  window.setTimeout(() => speechSynthesis.speak(phrase), speechSynthesis.speaking || speechSynthesis.pending ? 120 : 0);
+}
+
+/** Pour l'espace parent : ce que la tablette sait faire avec les voix. */
+export function etatDesVoix(mots: readonly string[]): { manifeste: number; avecVoix: string[]; sansVoix: string[]; francaises: string[]; moteur: string } {
+  const avecVoix = mots.filter((m) => enregistrees[cleVoix(m, 'dictee')]);
+  return {
+    manifeste: Object.keys(enregistrees).length,
+    avecVoix,
+    sansVoix: mots.filter((m) => !avecVoix.includes(m)),
+    francaises: 'speechSynthesis' in window ? speechSynthesis.getVoices().filter((v) => v.lang.toLowerCase().startsWith('fr')).map((v) => `${v.name} (${v.lang})`) : [],
+    moteur: sortieSon()?.contexte.state ?? 'pas encore démarré (touche l’écran)',
+  };
+}
+
+/** Pour l'espace parent : joue un mot enregistré, ou le dit avec la voix de la tablette, et
+ *  raconte ce qui s'est passé. */
+export function essayerUneVoix(texte: string, tablette: boolean, suivi: (r: string) => void): void {
+  arreter();
+  if (tablette) return parSynthese(texte, true, suivi);
+  const fichier = enregistrees[cleVoix(texte, 'dictee')];
+  if (!fichier) return suivi('pas d’enregistrement pour ce mot');
+  const son = sortieSon();
+  if (!son) return suivi('le moteur audio n’est pas démarré');
+  void tampon(fichier, son.contexte).then((t) => {
+    if (!t) return suivi(`le fichier ${fichier} ne se lit pas`);
+    jouer(fichier, 'principal', () => suivi('échec de lecture'));
+    suivi(`enregistrement joué (${t.duration.toFixed(1)} s, moteur : ${son.contexte.state})`);
+  });
 }
 
 /**

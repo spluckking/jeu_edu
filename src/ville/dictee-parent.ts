@@ -5,6 +5,7 @@ import { chances, type FicheMot } from '../dictee/memoire.ts';
 import type { EtatDictee } from '../dictee/etat.ts';
 import { aujourdhui } from '../dictee/leitner.ts';
 import { bruitage } from '../son/bruitages.ts';
+import { essayerUneVoix, etatDesVoix } from '../son/voix.ts';
 import { changerEcriture, toutesLesEcritures, verdict, type Ecriture } from './ecritures.ts';
 
 const creer = <K extends keyof HTMLElementTagNameMap>(tag: K, classe = '', texte = ''): HTMLElementTagNameMap[K] => {
@@ -92,6 +93,28 @@ export async function statistiquesDictee(e: EtatDictee): Promise<void> {
     section('Les anciens mots, encore en mémoire', anciens.length ? tableauDesMots(anciens, fiches, jour) : creer('p', 'lecture-texte', 'Aucun.')),
     section('Les concours d’écriture', listeConcours),
     section('Sus pour toujours', sus),
+  ]);
+}
+
+/** Tester les voix sur cette tablette : ce qui marche, ce qui manque, et deux boutons d'écoute. */
+export async function testerLesVoix(mots: readonly string[]): Promise<void> {
+  const e = etatDesVoix(mots);
+  const ligne = (t: string): HTMLElement => creer('p', 'lecture-texte', t);
+  const resultat = creer('p', 'parent-a-verifier', '');
+  const premier = e.avecVoix[0] ?? mots[0] ?? 'la grotte';
+  const boutons = creer('div', 'lecture-boutons');
+  const enregistre = bouton('bouton-principal', `Écouter « ${premier} » (enregistré)`);
+  const tablette = bouton('bouton-secondaire', `Écouter « ${premier} » (voix de la tablette)`);
+  enregistre.addEventListener('click', () => essayerUneVoix(premier, false, (r) => (resultat.textContent = r)));
+  tablette.addEventListener('click', () => essayerUneVoix(premier, true, (r) => (resultat.textContent = r)));
+  boutons.append(enregistre, tablette);
+  await fenetre('Tester les voix', [
+    ligne(`Moteur audio : ${e.moteur}.`),
+    ligne(`Voix enregistrées dans le jeu : ${e.manifeste}.`),
+    ligne(`Mots de la liste avec une voix enregistrée : ${e.avecVoix.length} sur ${mots.length}.${e.sansVoix.length ? ` Sans voix : ${e.sansVoix.slice(0, 12).join(', ')}${e.sansVoix.length > 12 ? '…' : ''}.` : ''}`),
+    ligne(`Voix françaises de la tablette : ${e.francaises.length ? e.francaises.join(', ') : 'aucune'}.`),
+    boutons,
+    resultat,
   ]);
 }
 

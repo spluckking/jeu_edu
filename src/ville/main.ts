@@ -34,7 +34,7 @@ import { bandeauEssai } from '../app/essai.ts';
 import { ecrirePrenom } from '../ui/prenom.ts';
 import { avecPrenom, retenirPrenomEcrit } from './prenom-ecrit.ts';
 import { choisirPhoto, lirePhoto, type IdPhoto } from './photos.ts';
-import { ecrituresDuSoir, statistiquesDictee } from './dictee-parent.ts';
+import { ecrituresDuSoir, statistiquesDictee, testerLesVoix } from './dictee-parent.ts';
 import { corrigerEssai, type EtatDictee } from '../dictee/etat.ts';
 import { voirPhoto } from './photo-vue.ts';
 import { ajouterALEchange, echanger, installerParent } from './parent-ville.ts';
@@ -1112,6 +1112,7 @@ void feteInstallee.then(() => {
             // Tes corrections partent au dépôt dès que l'écran se ferme : le rêve de la nuit les voit.
           }).then(() => void echanger()),
       },
+      { titre: 'Tester les voix', ouvrir: () => void testerLesVoix(etat.dictee.mots.map((m) => m.w)) },
       { titre: 'La photo de l’enfant', ouvrir: () => void choisirPhoto('enfant').then((b) => b && mettreDansLeCadre('enfant', b)) },
       { titre: 'La photo de famille', ouvrir: () => void choisirPhoto('famille').then((b) => b && mettreDansLeCadre('famille', b)) },
     ],
