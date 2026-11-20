@@ -3,6 +3,7 @@
 // privé du rêve, à l'arrivée et à la demande du parent, comme le faisait le jeu d'avant.
 
 import { chargerFeuilleton, lireSemaine, type Semaine } from '../histoire/feuilleton.ts';
+import { MODE_ESSAI } from '../app/essai.ts';
 import { jourDe } from '../memoire/jours.ts';
 import { ouvrirEspaceParent, porteParent } from '../parent/espace.ts';
 import type { Preparation } from '../reve/preparation.ts';
@@ -43,6 +44,7 @@ export function ajouterALEchange(x: ExtraEchange): void {
 let echangeEnCours = false;
 /** Un échange avec le dépôt privé, s'il y a une clé et du réseau ; renvoie un message pour le parent. */
 export async function echanger(): Promise<string> {
+  if (MODE_ESSAI) return 'Mode essai : rien n’est envoyé au rêve.';
   const acces = lireAcces();
   if (!acces) return 'Pas de clé enregistrée : aucun échange.';
   if (!navigator.onLine) return 'Pas de réseau : l’échange se fera plus tard.';

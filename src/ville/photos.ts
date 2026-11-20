@@ -3,9 +3,11 @@
 // sont jamais envoyées nulle part, ni écrites dans le dépôt, ni mises dans l'export de sauvegarde
 // (base à part : « jeu-edu-photos »).
 
+import { memoire } from '../app/essai.ts';
+
 export type IdPhoto = 'enfant' | 'famille';
 
-const BASE = 'jeu-edu-photos';
+const BASE = memoire('jeu-edu-photos');
 /** Le plus grand côté d'une photo gardée, en pixels : assez pour l'écran, léger pour la tablette. */
 const COTE_MAX = 1280;
 

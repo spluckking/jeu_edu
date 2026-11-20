@@ -1576,3 +1576,20 @@ button.produit {
 .ecriture-ligne .determinant {
   font-size: 2rem;
 }
+
+/* Le mode essai du parent (« ?test ») : un bandeau toujours visible. */
+.bandeau-essai {
+  position: fixed;
+  left: 50%;
+  bottom: calc(6px + env(safe-area-inset-bottom));
+  z-index: 30;
+  margin: 0;
+  padding: 4px 14px;
+  border-radius: 999px;
+  background: #c62828;
+  color: white;
+  font: 700 0.85rem var(--police);
+  transform: translateX(-50%);
+  pointer-events: none;
+  white-space: nowrap;
+}
