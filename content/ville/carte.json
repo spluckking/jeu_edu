@@ -1,0 +1,24 @@
+{
+  "_lisez-moi": "La carte de la ville : le titre, l'aide, et le nom de chaque lieu quand on passe le doigt dessus. Les noms des lieux des mots de dictée (la tour, le pont) viennent de src/dictee/pieges.ts. valide=false : textes à relire (A_VALIDER.md).",
+  "valide": false,
+  "titre": "La carte",
+  "aide": "Glisse ton doigt sur la carte pour lire le nom des lieux.",
+  "ici": "Tu es ici",
+  "lieux": {
+    "maison": "Ta maison",
+    "potager": "Ton potager",
+    "pommier": "Le pommier",
+    "place": "La place de la fontaine",
+    "tableau": "Le tableau des mots",
+    "murDesMots": "Le mur des mots",
+    "epicerie": "L’épicerie",
+    "poste": "La poste",
+    "boulangerie": "La boulangerie",
+    "chantier": "Le chantier",
+    "etang": "L’étang",
+    "ponton": "Le ponton de pêche",
+    "bois": "Le bois",
+    "mures": "Les mûres",
+    "fete": "La fête foraine"
+  }
+}
