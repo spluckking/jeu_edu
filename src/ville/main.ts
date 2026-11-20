@@ -30,6 +30,7 @@ import attractions from '../../content/ville/attractions.json';
 import { jourDe } from '../memoire/jours.ts';
 import { surveillerModeApp } from '../app/modeApp.ts';
 import { surveillerMiseAJour } from '../app/miseAJour.ts';
+import { bandeauEssai } from '../app/essai.ts';
 import { ecrirePrenom } from '../ui/prenom.ts';
 import { avecPrenom, retenirPrenomEcrit } from './prenom-ecrit.ts';
 import { choisirPhoto, lirePhoto, type IdPhoto } from './photos.ts';
@@ -1728,6 +1729,7 @@ if (!etat.prenom && !adresse.has('essai')) void choisirPrenom();
 // L'appli MiniVille s'ouvre ici : plein écran au premier toucher, et mise à jour proposée
 // seulement quand l'enfant se promène (jamais pendant un exercice ou un dialogue).
 surveillerModeApp();
+bandeauEssai();
 // Le son ne peut démarrer qu'après un toucher (règle des navigateurs).
 addEventListener('pointerdown', demarrerSon, { capture: true });
 if (import.meta.env.PROD) surveillerMiseAJour(() => !occupe && !enDialogue);

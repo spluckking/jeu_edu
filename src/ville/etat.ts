@@ -2,6 +2,7 @@
 // tant que la ville est en construction : rien de ce que l'enfant a gagné n'est touché.
 
 import { nettoyerPrenom } from '../histoire/lecture.ts';
+import { memoire } from '../app/essai.ts';
 import { dicteeNeuve, type EtatDictee } from '../dictee/etat.ts';
 import type { PorteMonnaie } from './argent.ts';
 import { POMMES_PAR_ARBRE, type Panier, type Pommier, type Ventes } from './commerce.ts';
@@ -162,7 +163,7 @@ export function lireEtat(brut: unknown): EtatVille {
   };
 }
 
-const BASE = 'jeu-edu-ville';
+const BASE = memoire('jeu-edu-ville');
 
 function ouvrir(): Promise<IDBDatabase> {
   return new Promise((ok, ko) => {

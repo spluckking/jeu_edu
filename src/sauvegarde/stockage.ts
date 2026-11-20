@@ -1,8 +1,9 @@
 // La sauvegarde vit dans IndexedDB, sur la tablette.
 
 import { JOURNAL_MAX, migrer, type Sauvegarde } from './format.ts';
+import { memoire } from '../app/essai.ts';
 
-const BASE = 'jeu-edu';
+const BASE = memoire('jeu-edu');
 const MAGASIN = 'donnees';
 const CLE = 'sauvegarde';
 

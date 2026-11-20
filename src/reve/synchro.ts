@@ -3,6 +3,7 @@
 // réseau du jeu ; sans réseau ou sans clé, le jeu continue normalement.
 
 import { ajouterJours, jourDe, type Jour } from '../memoire/jours.ts';
+import { memoire } from '../app/essai.ts';
 import type { Sauvegarde } from '../sauvegarde/format.ts';
 import { lirePreparation, type Preparation } from './preparation.ts';
 
@@ -15,8 +16,8 @@ export interface Acces {
 
 export type Recuperer = (url: string, init?: RequestInit) => Promise<Response>;
 
-const CLE_ACCES = 'jeu-edu:acces';
-const CLE_ENVOIS = 'jeu-edu:envois';
+const CLE_ACCES = memoire('jeu-edu:acces');
+const CLE_ENVOIS = memoire('jeu-edu:envois');
 export const DEPOT_VALIDE = /^[\w.-]+\/[\w.-]+$/;
 
 /** La clé reste sur la tablette, à part de la sauvegarde : elle n'est jamais envoyée ailleurs. */

@@ -3,6 +3,8 @@
 // privé du rêve, qui les relit ; le parent peut aussi les vérifier chaque soir dans l'espace
 // parent. Elles sont effacées de la tablette au bout de 14 jours, une fois envoyées.
 
+import { memoire } from '../app/essai.ts';
+
 export interface Ecriture {
   id: string;
   jour: string;
@@ -22,7 +24,7 @@ export interface Ecriture {
   image: Blob;
 }
 
-const BASE = 'jeu-edu-ecritures';
+const BASE = memoire('jeu-edu-ecritures');
 const GARDE_JOURS = 14;
 
 function ouvrir(): Promise<IDBDatabase> {
