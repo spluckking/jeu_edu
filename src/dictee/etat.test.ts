@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { difficulteDuMot } from './memoire.ts';
 import { changerListe, dicteeNeuve, estJourDeConcours, importerDicteeBlocs, jamaisVu, lireListe, motsRestants, noter, noterConcours, revisionDuJour } from './etat.ts';
 import { aReconstituer, tuiles } from './tuiles.ts';
 
@@ -69,6 +70,14 @@ describe('import de Dictée-Blocs', () => {
     expect(e?.memoire.chevaux?.intervalle).toBe(7);
     expect(e?.retires[0]?.w).toBe('maison');
     expect(e?.concours[0]?.justes).toBe(18);
+    // L'historique démarre la mémoire des mots : pas besoin de tout revoir comme une liste neuve.
+    const grotte = e?.fiches['la grotte'];
+    expect(grotte?.s).toBe(3);
+    expect(grotte?.dernier).toBe('2026-11-17');
+    expect(grotte?.essais[0]?.ecrit).toBe('grote');
+    expect(e?.fiches.chevaux?.s).toBe(7);
+    // Un mot facile pour lui (facilité 2,4) est jugé moins difficile que le mot seul ne le laisse penser.
+    expect(e?.fiches.chevaux?.d).toBeLessThan(difficulteDuMot('chevaux'));
     expect(importerDicteeBlocs({ pas: 'ça' }, '2026-11-18')).toBeNull();
   });
 });

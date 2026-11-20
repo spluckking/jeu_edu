@@ -219,6 +219,8 @@ export function importerDicteeBlocs(brut: unknown, jour: Jour): EtatDictee | nul
     const date = jourOuNul(b?.date);
     if (date) e.concours.push({ date, justes: nombre(b.score, 0), total: nombre(b.total, 0), rates: [] });
   }
+  // Son historique démarre la mémoire de chaque mot (sinon tout repartirait de zéro).
+  e.fiches = fichesDepuisHistorique(e);
   return e;
 }
 
@@ -234,4 +236,44 @@ export function corrigerEssai(e: EtatDictee, w: string, ecriture: string, juste:
     refaite = reviserFiche(refaite, { ...x, note });
   }
   return { ...e, fiches: { ...e.fiches, [w]: refaite } };
+}
+
+/** Ce que l'historique de Dictée-Blocs dit de chaque mot, pour démarrer sa mémoire (FSRS) sans
+ *  repartir de zéro : la stabilité vient de sa boîte (semaine) ou de son intervalle (mine), la
+ *  difficulté du mot est ajustée par ses échecs et sa facilité, et ses fautes connues deviennent
+ *  des essais ratés (pour les statistiques et le rêve). */
+export function fichesDepuisHistorique(e: EtatDictee): Record<string, FicheMot> {
+  const fiches: Record<string, FicheMot> = { ...e.fiches };
+  const borne = (x: number): number => Math.min(10, Math.max(1, x));
+  const fautes = (erreurs: Record<string, number>, jour: Jour): FicheMot['essais'] =>
+    Object.entries(erreurs)
+      .slice(0, 8)
+      .map(([ecrit]) => ({ jour, note: 1 as const, juste: false, ms: 0, lettres: 0, indice: false, hesite: false, juge: 'enfant' as const, ecrit }));
+  for (const [w, p] of Object.entries(e.progres)) {
+    if (fiches[w]?.dernier || !p.vu) continue;
+    const base = ficheNeuve(w);
+    const total = p.reussites + p.echecs;
+    fiches[w] = {
+      d: borne(base.d + (total ? (p.echecs / total) * 3 - 0.5 : 0) + p.indices * 0.2),
+      s: p.boite === 3 ? 7 : p.boite === 2 ? 3 : 1,
+      dernier: p.vu,
+      reussites: p.reussites,
+      echecs: p.echecs,
+      essais: fautes(p.erreurs, p.vu),
+    };
+  }
+  for (const [w, m] of Object.entries(e.memoire)) {
+    if (fiches[w]?.dernier) continue;
+    const base = ficheNeuve(w);
+    // La facilité de Dictée-Blocs va de 1,3 (difficile) à 3 (facile).
+    fiches[w] = {
+      d: borne((base.d + (10 - ((m.facilite - 1.3) / 1.7) * 9)) / 2),
+      s: Math.max(1, m.intervalle),
+      dernier: m.vu ?? m.ajoute,
+      reussites: m.reussites,
+      echecs: m.echecs,
+      essais: [],
+    };
+  }
+  return fiches;
 }
