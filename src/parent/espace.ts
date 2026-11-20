@@ -29,6 +29,9 @@ export interface OptionsEspace {
   rejouerIntroduction?(): void;
   /** Remplace toute la sauvegarde par celle d'un fichier, puis relance le jeu. */
   remplacer(s: Sauvegarde): Promise<void>;
+  /** Les réglages de la ville (mots de la semaine, photos, statistiques…) : un bouton chacun ; on
+   *  ferme l'espace parent avant d'ouvrir le réglage. */
+  ville?: Array<{ titre: string; ouvrir(): void }>;
 }
 
 function el<K extends keyof HTMLElementTagNameMap>(balise: K, classe = '', texte = ''): HTMLElementTagNameMap[K] {
@@ -419,8 +422,18 @@ function construire(o: OptionsEspace, fermer: () => void): HTMLElement {
   const boutonsSecours = el('div', 'lecture-boutons');
   boutonsSecours.append(exporter, importer);
 
+  const ville = el('div', 'lecture-boutons parent-ville');
+  for (const v of o.ville ?? []) {
+    const b = el('button', 'bouton-secondaire', v.titre);
+    b.addEventListener('click', () => {
+      fermer();
+      v.ouvrir();
+    });
+    ville.append(b);
+  }
   panneau.append(
     tete,
+    ...(o.ville?.length ? [section('MiniVille', ville)] : []),
     section('Progression', resume, tableau),
     section('Éléments fragiles', liste),
     section('Dernier rêve', reve),

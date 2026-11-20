@@ -1,9 +1,8 @@
 // Une photo de la maison, en grand : elle s'agrandit depuis le cadre. Pour l'enfant, son prénom
-// dessous et le bouton pour le changer. Le parent change la photo par un appui long (1,5 s) sur
-// le petit bouton du bas : un toucher rapide de l'enfant ne fait rien.
+// dessous et le bouton pour le changer. Le parent change les photos dans l'espace parent.
 
 import { bruitage } from '../son/bruitages.ts';
-import { choisirPhoto, lirePhoto, type IdPhoto } from './photos.ts';
+import { lirePhoto, type IdPhoto } from './photos.ts';
 
 export interface VuePhoto {
   id: IdPhoto;
@@ -11,37 +10,10 @@ export interface VuePhoto {
   prenom?: string;
   /** Le bouton « Changer ton prénom » (photo de l'enfant). */
   changerPrenom?: () => Promise<string | null>;
-  /** Appelé quand le parent a mis une nouvelle photo. */
-  nouvelle(photo: Blob): void;
 }
 
 function bouton(classe: string, texte: string): HTMLButtonElement {
   return Object.assign(document.createElement('button'), { type: 'button', className: classe, textContent: texte });
-}
-
-/** Un appui long sur ce bouton (le parent) ; un toucher court ne fait rien. */
-function appuiLong(b: HTMLElement, action: () => void): void {
-  let minuterie = 0;
-  const annuler = (): void => {
-    window.clearTimeout(minuterie);
-    b.classList.remove('appui');
-  };
-  b.addEventListener('contextmenu', (e) => e.preventDefault());
-  b.addEventListener('pointerdown', (e) => {
-    e.preventDefault();
-    try {
-      b.setPointerCapture(e.pointerId);
-    } catch {
-      // Sans capture, l'appui long marche quand même si le doigt ne bouge pas.
-    }
-    b.classList.add('appui');
-    window.clearTimeout(minuterie);
-    minuterie = window.setTimeout(() => {
-      annuler();
-      action();
-    }, 1500);
-  });
-  for (const fin of ['pointerup', 'pointercancel'] as const) b.addEventListener(fin, annuler);
 }
 
 export async function voirPhoto(v: VuePhoto): Promise<void> {
@@ -90,15 +62,6 @@ export async function voirPhoto(v: VuePhoto): Promise<void> {
     actions.append(fermer);
     carte.append(actions);
 
-    const parent = bouton('photo-parent', 'Photo (parent : appui long)');
-    appuiLong(parent, () => {
-      void choisirPhoto(v.id).then((b) => {
-        if (!b) return;
-        montrer(b);
-        v.nouvelle(b);
-      });
-    });
-    carte.append(parent);
     fond.append(carte);
     document.body.append(fond);
   });

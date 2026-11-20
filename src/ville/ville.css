@@ -1447,3 +1447,109 @@ button.produit {
   font-size: 0.9rem;
   opacity: 0.85;
 }
+
+/* --- L'écriture au stylet : une bande de cahier à grands carreaux (Seyès) ---------------------- */
+.ecriture-ligne {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+}
+.zone-ecriture {
+  position: relative;
+  flex: 1;
+  height: 210px;
+  border-radius: 12px;
+  background-color: #fffdf6;
+  /* Les lignes : une ligne forte tous les 8 mm (ici 64 px), trois fines entre, une marge rouge. */
+  background-image:
+    linear-gradient(90deg, transparent 54px, rgba(214, 69, 80, 0.55) 54px, rgba(214, 69, 80, 0.55) 56px, transparent 56px),
+    repeating-linear-gradient(180deg, transparent 0 15px, rgba(120, 140, 210, 0.35) 15px 16px),
+    repeating-linear-gradient(180deg, transparent 0 63px, rgba(70, 90, 180, 0.6) 63px 65px);
+  box-shadow: inset 0 0 0 2px #d9cdb5;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.zone-ecriture.en-gomme {
+  box-shadow: inset 0 0 0 3px #f0a050;
+}
+.zone-ecriture-toile {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+}
+.zone-ecriture-aide {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  margin: 0;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: rgba(255, 250, 240, 0.95);
+  box-shadow: var(--ombre);
+  color: var(--encre);
+  font: 700 1.1rem var(--police);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+.zone-ecriture-aide[hidden] {
+  display: none;
+}
+.bouton-gomme.active {
+  background: #ffe2c2;
+}
+.ecriture-comparee {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-height: 80px;
+}
+.ecriture-comparee img {
+  max-height: 110px;
+  max-width: 70vw;
+  border-radius: 8px;
+  background: white;
+  box-shadow: inset 0 0 0 1px #e2d8c4;
+}
+.ecriture-etiquette {
+  min-width: 70px;
+  color: #8a5f38;
+  font: 700 1rem var(--police);
+}
+/* La comparaison de fin de concours : une ligne par mot. */
+.comparaisons {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: calc(100vh - 260px);
+  overflow-y: auto;
+}
+.comparaison {
+  display: grid;
+  grid-template-columns: minmax(120px, 1fr) minmax(100px, auto) auto auto;
+  align-items: center;
+  gap: 10px;
+}
+.comparaison-image {
+  max-height: 64px;
+  max-width: 100%;
+  background: white;
+  border-radius: 6px;
+}
+.comparaison-mot {
+  font: 700 1.3rem var(--police);
+}
+.choix-petit {
+  padding: 8px 14px;
+  border: 0;
+  border-radius: 14px;
+  background: white;
+  box-shadow: var(--ombre);
+  font: 700 1rem var(--police);
+}
+.choix-petit.choisi {
+  background: #ffd27a;
+}

@@ -5,7 +5,8 @@
 
 import * as THREE from 'three';
 import { aujourdhui } from '../dictee/leitner.ts';
-import { changerListe, estJourDeConcours, importerDicteeBlocs, jamaisVu, motsRestants, noter, noterConcours, phraseDe, revisionDuJour, type EtatDictee } from '../dictee/etat.ts';
+import { changerListe, estJourDeConcours, importerDicteeBlocs, jamaisVu, motsRestants, noter, noterConcours, phraseDe, revisionDuJour, type EtatDictee, type Reponse } from '../dictee/etat.ts';
+import { changerEcriture, toutesLesEcritures } from './ecritures.ts';
 import { detecter, LIEUX as PIEGES, type IdLieu } from '../dictee/pieges.ts';
 import { LIEUX } from './monde.ts';
 import type { Atelier, Peinture, Vec3 } from '../scene/atelier.ts';
@@ -163,19 +164,27 @@ async function revisionOuConcours(c: Contexte): Promise<void> {
   // La veille de la dictée : le concours d'écriture, une fois, sans aide.
   if (estJourDeConcours(e, jour) && !e.concours.some((x) => x.date === jour)) {
     await message(f, 'Le concours d’écriture !', 'Demain, c’est la dictée. Écris tous les mots de la semaine, sans aide. À la fin, on reprend ensemble ceux qui manquent.', 'C’est parti !');
-    const resultats: Array<{ w: string; juste: boolean }> = [];
+    const ecrits: Array<{ w: string; r: Reponse }> = [];
     let rang = 0;
     for (const m of e.mots) {
       rang++;
-      const r = await exercer(f, { mot: m.w, phrase: m.phrase, fiche: false, aide: false, rang: `${rang} / ${e.mots.length}` });
-      resultats.push({ w: m.w, juste: r.juste });
-      c.changer(noter(c.dictee(), m.w, r, jour).etat);
+      ecrits.push({ w: m.w, r: await exercer(f, { mot: m.w, phrase: m.phrase, fiche: false, aide: false, rang: `${rang} / ${e.mots.length}` }) });
     }
+    // À la fin du concours, il compare chaque écriture au mot juste.
+    const jugements = await comparerTout(f, ecrits.map((x) => ({ w: x.w, ecriture: x.r.ecriture ?? '' })));
+    const resultats = ecrits.map((x, i) => ({ w: x.w, juste: jugements[i] ?? false }));
+    for (const [i, x] of ecrits.entries()) c.changer(noter(c.dictee(), x.w, { ...x.r, juste: jugements[i] ?? false }, jour).etat);
     c.changer(noterConcours(c.dictee(), jour, resultats));
     const justes = resultats.filter((x) => x.juste).length;
     bruitage.finDeManche();
     confettis(60);
     await message(f, 'Bravo pour le concours !', `${justes} mot${justes > 1 ? 's' : ''} sur ${resultats.length} du premier coup.${justes < resultats.length ? ' On reprend les autres ensemble.' : ' Tout est juste !'}`, 'Continuer');
+    e = c.dictee();
+  }
+  // Ce que le rêve a trouvé faux alors qu'il l'avait jugé juste : il revoit son écriture d'hier.
+  if (e.aRevoir.length) {
+    for (const x of e.aRevoir) await revoirHier(f, x.w, x.ecriture);
+    c.changer({ ...c.dictee(), aRevoir: [] });
     e = c.dictee();
   }
   await serie(c, f, motsRestants(e), () => false);
@@ -186,6 +195,72 @@ async function revisionOuConcours(c: Contexte): Promise<void> {
     await message(f, 'Les mots du jour sont faits !', 'Tous les mots sont justes aujourd’hui. Ils reviendront au bon moment pour bien rester en mémoire.', 'Super !');
   }
   fermerFond(c);
+}
+
+/** Il compare chaque écriture du concours au mot juste ; rend ses réponses, dans l'ordre. */
+async function comparerTout(f: HTMLElement, ecrits: Array<{ w: string; ecriture: string }>): Promise<boolean[]> {
+  const images = new Map((await toutesLesEcritures()).map((x) => [x.id, x.image]));
+  return new Promise((ok) => {
+    const carte = creer('section', 'exercice');
+    const liste = creer('div', 'comparaisons');
+    const choix: Array<boolean | null> = ecrits.map(() => null);
+    const valider = bouton('bouton-principal', 'J’ai tout comparé');
+    valider.disabled = true;
+    ecrits.forEach((x, i) => {
+      const rangee = creer('div', 'comparaison');
+      const img = creer('img', 'comparaison-image');
+      const b = images.get(x.ecriture);
+      if (b) img.src = URL.createObjectURL(b);
+      const mot = creer('span', 'comparaison-mot', x.w);
+      const pareil = bouton('choix-petit', 'Pareil');
+      const faux = bouton('choix-petit', 'Trompé');
+      const choisir = (oui: boolean): void => {
+        bruitage.touche();
+        choix[i] = oui;
+        pareil.classList.toggle('choisi', oui);
+        faux.classList.toggle('choisi', !oui);
+        valider.disabled = choix.some((v) => v === null);
+      };
+      pareil.addEventListener('click', () => choisir(true));
+      faux.addEventListener('click', () => choisir(false));
+      rangee.append(img, mot, faux, pareil);
+      liste.append(rangee);
+    });
+    valider.addEventListener('click', () => {
+      bruitage.touche();
+      ecrits.forEach((x, i) => {
+        if (x.ecriture) void changerEcriture(x.ecriture, { enfant: choix[i] ?? false });
+      });
+      ok(choix.map((v) => v ?? false));
+    });
+    carte.append(creer('p', 'exercice-titre', 'Compare avec les mots justes'), creer('p', 'exercice-texte', 'Pour chaque mot : as-tu écrit exactement pareil ?'), liste, valider);
+    f.replaceChildren(carte);
+  });
+}
+
+/** Le retour du lendemain : son écriture d'hier, à côté du mot juste, puis il l'écrit encore. */
+async function revoirHier(f: HTMLElement, w: string, ecriture: string): Promise<void> {
+  const image = (await toutesLesEcritures()).find((x) => x.id === ecriture)?.image;
+  await new Promise<void>((ok) => {
+    const carte = creer('section', 'exercice');
+    const tienne = creer('div', 'ecriture-comparee');
+    if (image) {
+      const img = creer('img');
+      img.src = URL.createObjectURL(image);
+      img.alt = '';
+      tienne.append(creer('span', 'ecriture-etiquette', 'Hier'), img);
+    }
+    const juste = creer('p', 'fiche-mot', w);
+    const suite = bouton('bouton-principal', 'Je regarde, puis je l’écris');
+    suite.addEventListener('click', () => {
+      bruitage.touche();
+      ok();
+    });
+    carte.append(creer('p', 'exercice-titre', 'Regarde bien'), creer('p', 'exercice-texte', 'Hier, tu as écrit ceci. Regarde la bonne orthographe.'), tienne, juste, suite);
+    f.replaceChildren(carte);
+    dire(w, true);
+  });
+  await exercer(f, { mot: w, phrase: '', fiche: false, aide: true, rang: '' });
 }
 
 /** S'entraîner aux mots qui habitent ce lieu (sans récompense, mais leur mémoire avance). */
@@ -222,7 +297,7 @@ function murDesMots(c: Contexte): void {
   f.replaceChildren(carte);
 }
 
-// --- Le panneau parent provisoire (« ?parent ») -------------------------------------------------
+// --- La liste de la semaine : ouverte depuis l'espace parent -------------------------------------
 
 function panneauParent(c: Contexte): void {
   const f = ouvrirFond(c);
@@ -281,7 +356,12 @@ function panneauParent(c: Contexte): void {
   f.replaceChildren(carte);
 }
 
-export function installerDictee(c: Contexte): void {
+/** Ce que l'espace parent peut ouvrir. */
+export interface Dictee {
+  ouvrirLaListe(): void;
+}
+
+export function installerDictee(c: Contexte): Dictee {
   construireDecor(c);
   c.points.push(
     { verbe: 'Lire', nom: 'Le tableau des mots', x: LIEUX.tableau.x, z: LIEUX.tableau.z, action: () => void revisionOuConcours(c) },
@@ -289,5 +369,5 @@ export function installerDictee(c: Contexte): void {
     { verbe: 'Traverser', nom: PIEGES.mbp.nom, x: LIEUX.pont.x - 4.5, z: LIEUX.pont.z, action: () => void lieuDePiege(c, 'mbp') },
     { verbe: 'Regarder', nom: 'Le mur des mots', x: LIEUX.murDesMots.x, z: LIEUX.murDesMots.z, action: () => murDesMots(c) },
   );
-  if (new URLSearchParams(location.search).has('parent')) panneauParent(c);
+  return { ouvrirLaListe: () => panneauParent(c) };
 }

@@ -30,7 +30,9 @@ import { surveillerModeApp } from '../app/modeApp.ts';
 import { surveillerMiseAJour } from '../app/miseAJour.ts';
 import { ecrirePrenom } from '../ui/prenom.ts';
 import { avecPrenom, retenirPrenomEcrit } from './prenom-ecrit.ts';
-import { lirePhoto, type IdPhoto } from './photos.ts';
+import { choisirPhoto, lirePhoto, type IdPhoto } from './photos.ts';
+import { ecrituresDuSoir, statistiquesDictee } from './dictee-parent.ts';
+import { corrigerEssai } from '../dictee/etat.ts';
 import { voirPhoto } from './photo-vue.ts';
 import { echanger, installerParent } from './parent-ville.ts';
 import gazetteT from '../../content/ville/gazette.json';
@@ -922,7 +924,7 @@ boutonDiscuter.addEventListener('click', () => {
   choixPour?.action();
 });
 
-installerDictee({
+const dictee = installerDictee({
   atelier,
   ville,
   obstacles,
@@ -1068,7 +1070,23 @@ const feteInstallee = installerFete({
 // sur le cadenas), et l'échange du jour avec le dépôt privé du rêve, comme le faisait le jeu d'avant.
 void feteInstallee.then(() => {
   appliquerReglagesDuJeu();
-  installerParent(() => !occupe && !enDialogue);
+  installerParent(
+    () => !occupe && !enDialogue,
+    [
+      { titre: 'Les mots de la semaine', ouvrir: () => dictee.ouvrirLaListe() },
+      { titre: 'Statistiques de la dictée', ouvrir: () => void statistiquesDictee(etat.dictee) },
+      {
+        titre: 'Les écritures du soir',
+        ouvrir: () =>
+          void ecrituresDuSoir((x, juste) => {
+            etat.dictee = corrigerEssai(etat.dictee, x.mot, x.id, juste, 'parent');
+            void sauverEtat(etat);
+          }),
+      },
+      { titre: 'La photo de l’enfant', ouvrir: () => void choisirPhoto('enfant').then((b) => b && mettreDansLeCadre('enfant', b)) },
+      { titre: 'La photo de famille', ouvrir: () => void choisirPhoto('famille').then((b) => b && mettreDansLeCadre('famille', b)) },
+    ],
+  );
   void echanger();
 });
 
@@ -1323,7 +1341,6 @@ function regarderPhoto(id: IdPhoto): void {
   void voirPhoto({
     id,
     ...(id === 'enfant' ? { prenom: etat.prenom, changerPrenom: () => choisirPrenom().then(() => etat.prenom) } : {}),
-    nouvelle: (b) => void mettreDansLeCadre(id, b),
   }).then(() => {
     commandes.actives = avant;
   });
@@ -1705,6 +1722,7 @@ if (adresse.has('essai')) {
       tour: () => void faireUnTour(),
       prenom: () => void choisirPrenom(),
       gazette: () => void ouvrirLaGazette(),
+      liste: () => dictee.ouvrirLaListe(),
     },
   });
 }

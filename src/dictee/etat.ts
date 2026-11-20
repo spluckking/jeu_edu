@@ -219,3 +219,17 @@ export function importerDicteeBlocs(brut: unknown, jour: Jour): EtatDictee | nul
   }
   return e;
 }
+
+/** Corrige un essai après coup (le parent le soir, ou le rêve la nuit, qui relisent l'écriture) :
+ *  sa justesse change, puis la mémoire du mot est recalculée en rejouant tous ses essais. */
+export function corrigerEssai(e: EtatDictee, w: string, ecriture: string, juste: boolean, juge: 'parent' | 'reve', lu?: string): EtatDictee {
+  const f = e.fiches?.[w];
+  if (!f || !f.essais.some((x) => x.ecriture === ecriture)) return e;
+  const essais = f.essais.map((x) => (x.ecriture === ecriture ? { ...x, juste, juge, ...(lu ? { ecrit: lu } : {}) } : x));
+  let refaite = ficheNeuve(w);
+  for (const x of essais) {
+    const note = noterEssai({ juste: x.juste, indice: x.indice, hesite: x.hesite, ms: x.ms, lettres: x.lettres }, rythme(e.fiches));
+    refaite = reviserFiche(refaite, { ...x, note });
+  }
+  return { ...e, fiches: { ...e.fiches, [w]: refaite } };
+}
