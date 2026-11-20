@@ -340,6 +340,12 @@ function panneauParent(c: Contexte): void {
         etat.textContent = 'Ce fichier ne vient pas de Dictée-Blocs.';
         return;
       }
+      // La ville a déjà sa propre histoire de la dictée : on demande avant de la remplacer.
+      const deja = Object.values(c.dictee().fiches ?? {}).some((x) => x.essais.some((y) => y.ecriture));
+      if (deja && !window.confirm('La dictée de la ville a déjà des essais au stylet. Les remplacer par la progression de Dictée-Blocs ? (Les écritures restent gardées.)')) {
+        etat.textContent = 'Import annulé.';
+        return;
+      }
       c.changer(importe);
       etat.textContent = `Import réussi : ${importe.mots.length} mots de la semaine, ${Object.keys(importe.memoire).length} en mémoire, ${importe.retires.length} sus pour toujours.`;
       zone.value = [`# ${importe.titre}`, ...importe.mots.map((m) => (m.phrase ? `${m.w} | ${m.phrase}` : m.w))].join('\n');
