@@ -1101,12 +1101,13 @@ void feteInstallee.then(() => {
       { titre: 'Les mots de la semaine', ouvrir: () => dictee.ouvrirLaListe() },
       { titre: 'Statistiques de la dictée', ouvrir: () => void statistiquesDictee(etat.dictee) },
       {
-        titre: 'Les écritures du soir',
+        titre: 'Les écritures à vérifier',
         ouvrir: () =>
           void ecrituresDuSoir((x, juste) => {
             etat.dictee = corrigerEssai(etat.dictee, x.mot, x.id, juste, 'parent');
             void sauverEtat(etat);
-          }),
+            // Tes corrections partent au dépôt dès que l'écran se ferme : le rêve de la nuit les voit.
+          }).then(() => void echanger()),
       },
       { titre: 'La photo de l’enfant', ouvrir: () => void choisirPhoto('enfant').then((b) => b && mettreDansLeCadre('enfant', b)) },
       { titre: 'La photo de famille', ouvrir: () => void choisirPhoto('famille').then((b) => b && mettreDansLeCadre('famille', b)) },

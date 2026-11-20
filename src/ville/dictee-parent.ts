@@ -100,15 +100,25 @@ export async function ecrituresDuSoir(appliquer: (e: Ecriture, juste: boolean) =
   const toutes = (await toutesLesEcritures()).filter((x) => x.sorte !== 'reprise');
   const parJour = new Map<string, Ecriture[]>();
   for (const x of toutes) parJour.set(x.jour, [...(parJour.get(x.jour) ?? []), x]);
+  const aVerifier = toutes.filter((x) => x.parent === null && x.reve === null).length;
   const contenu: HTMLElement[] = [
-    creer('p', 'lecture-texte', 'Chaque mot écrit au stylet, avec ce que l’enfant a dit en comparant. Touche « Juste » ou « Faux » pour corriger : la mémoire du mot en tient compte, et le rêve aussi.'),
+    creer(
+      'p',
+      'lecture-texte',
+      'Chaque mot écrit au stylet, jour par jour (les 14 derniers jours), avec ce que l’enfant a dit en comparant. Touche « Juste » ou « Faux » pour corriger : ta correction passe avant celle du rêve et part dès que tu fermes cet écran. Ce que tu ne vérifies pas, le rêve le relira cette nuit.',
+    ),
+    creer('p', 'parent-a-verifier', aVerifier ? `${aVerifier} écriture${aVerifier > 1 ? 's' : ''} à vérifier (ni par toi, ni par le rêve).` : 'Tout est vérifié.'),
   ];
   if (!toutes.length) contenu.push(creer('p', 'lecture-texte', 'Aucune écriture pour l’instant.'));
+  const auj = aujourdhui();
+  const hier = new Date(Date.parse(auj) - 86400000).toISOString().slice(0, 10);
   for (const [jour, liste] of [...parJour].reverse()) {
     const s = creer('section', 'parent-section');
-    s.append(creer('h2', '', jour));
+    const restent = liste.filter((x) => x.parent === null && x.reve === null).length;
+    const nom = jour === auj ? 'Aujourd’hui' : jour === hier ? 'Hier' : new Date(`${jour}T12:00:00`).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+    s.append(creer('h2', '', `${nom} — ${liste.length} mot${liste.length > 1 ? 's' : ''}${restent ? `, ${restent} à vérifier` : ''}`));
     for (const x of liste) {
-      const rangee = creer('div', 'comparaison');
+      const rangee = creer('div', 'comparaison verification');
       const img = creer('img', 'comparaison-image');
       img.src = URL.createObjectURL(x.image);
       const mot = creer('span', 'comparaison-mot', x.mot);

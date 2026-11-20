@@ -32,7 +32,8 @@ Dans `preparation.json`, un champ `dictee` :
 }
 ```
 
-- `lectures` : une entrée par écriture pas encore relue (`reve` à `null`) : `juste` si le mot
+- `lectures` : une entrée par écriture que ni le parent ni le rêve n'ont encore relue (`parent` et
+  `reve` à `null`) : `juste` si le mot
   est écrit exactement (accents compris ; le déterminant n'est pas à écrire), `lu` : ce qui est
   écrit, lettre par lettre, quand c'est faux (ou illisible : `"?"`).
 - `prioritaires` : au plus 20 mots (de la liste ou anciens) à revoir en priorité le lendemain.
@@ -46,7 +47,8 @@ revoit son écriture d'hier à côté du mot juste.
 > ### La dictée (écritures au stylet)
 >
 > 1. Lis `dictee/etat.json` et, pour chaque jour récent, `dictee/ecritures/AAAA-MM-JJ.json`.
-> 2. Pour chaque écriture dont `reve` vaut `null`, regarde son image
+> 2. Pour chaque écriture dont `reve` **et** `parent` valent `null` (le parent a pu corriger
+>    avant toi : son avis compte, ne relis pas ces écritures), regarde son image
 >    (`dictee/ecritures/AAAA-MM-JJ/<id>.png`) et lis ce que l'enfant a écrit, lettre par lettre.
 >    Le déterminant (« le », « la », « un », « l' »…) n'est pas à écrire. Un accent manquant ou
 >    faux est une faute. Si tu hésites entre deux lectures, choisis la plus favorable seulement

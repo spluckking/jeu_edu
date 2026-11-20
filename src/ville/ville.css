@@ -1553,3 +1553,15 @@ button.produit {
 .choix-petit.choisi {
   background: #ffd27a;
 }
+.parent-a-verifier {
+  margin: 4px 0 8px;
+  font: 700 1.1rem var(--police);
+  color: #b84d22;
+}
+.comparaison.verification {
+  grid-template-columns: minmax(120px, 1fr) auto minmax(140px, 1fr) auto auto;
+}
+.comparaison.verification .lecture-texte {
+  margin: 0;
+  font-size: 0.95rem;
+}
