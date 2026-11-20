@@ -1,6 +1,6 @@
 {
   "_lisez-moi": "Les salutations des habitants de la ville : une phrase au hasard (jamais deux fois de suite) quand l'enfant leur parle, avec la voix de chacun (src/ville/voix-forains.ts, VOIX_FORAINS). nom : le nom affiché sur le bouton « Parler ». Les voix sont générées par scripts/generer-voix.mjs. valide=false : textes à relire (A_VALIDER.md).",
-  "valide": false,
+  "valide": true,
   "habitants": {
     "epiciere": {
       "nom": "L’épicière",

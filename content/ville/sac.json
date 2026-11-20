@@ -1,6 +1,6 @@
 {
   "_lisez-moi": "Le sac à dos : 8 cases, 10 objets d'une sorte par case (une lettre ou un colis par case). Ce qu'on jette, et ce qui ne rentre pas, est posé par terre et disparaît le lendemain. {n} : un nombre ; {objets} : « 3 pommes ». valide=false : textes à relire (A_VALIDER.md).",
-  "valide": false,
+  "valide": true,
   "titre": "Mon sac",
   "vide": "Ton sac est vide.",
   "aide": "Touche un objet pour le jeter. Il restera par terre jusqu’à demain.",
