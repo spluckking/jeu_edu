@@ -22,7 +22,7 @@ import { installerDemandes, majSeance, parlerA } from './demandes-ville.ts';
 import { installerEpicerie, rafraichirHud } from './epicerie-ville.ts';
 import { installerJardin } from './jardin-ville.ts';
 import { installerPoste } from './poste-ville.ts';
-import { essaiGrandDefi, installerFete, ouvrirStand, standFini } from './fete-ville.ts';
+import { appliquerReglagesDuJeu, essaiGrandDefi, installerFete, ouvrirStand, standFini } from './fete-ville.ts';
 import { chantierOuvert, ETAPES, etapesVisibles } from './attraction.ts';
 import attractions from '../../content/ville/attractions.json';
 import { jourDe } from '../memoire/jours.ts';
@@ -32,6 +32,7 @@ import { ecrirePrenom } from '../ui/prenom.ts';
 import { avecPrenom, retenirPrenomEcrit } from './prenom-ecrit.ts';
 import { lirePhoto, type IdPhoto } from './photos.ts';
 import { voirPhoto } from './photo-vue.ts';
+import { echanger, installerParent } from './parent-ville.ts';
 import { lieuxDeLaCarte, ouvrirCarte, photographierLaVille, type Plan } from './carte.ts';
 import { CADRE_FAMILLE, construirePiece, dedans, ENTREE_INTERIEUR, SORTIE_INTERIEUR, INTERIEUR, PANNEAU_PRENOM, resterDansLaPiece, tapis } from './maison-interieur.ts';
 import { bruitage, demarrerSon } from '../son/bruitages.ts';
@@ -1012,7 +1013,7 @@ points.push({
   visible: roueConstruite,
   action: () => void faireUnTour(),
 });
-void installerFete({
+const feteInstallee = installerFete({
   points,
   occupe: (oui) => {
     occupe = oui;
@@ -1032,6 +1033,13 @@ void installerFete({
   },
   stands: Object.fromEntries(Object.entries(FETE.stands).map(([id, s]) => [id, devantLeStand(s)])) as unknown as Record<IdStand, { x: number; z: number }>,
   maneges: Object.fromEntries(Object.entries(FETE.maneges).map(([id, m]) => [id, devantLeStand(m, id === 'autos' ? 5.6 : 4.6)])) as unknown as Record<IdManege, { x: number; z: number }>,
+});
+// La sauvegarde du jeu d'avant est lue : ses réglages (volumes, voix), l'espace parent (appui long
+// sur le cadenas), et l'échange du jour avec le dépôt privé du rêve, comme le faisait le jeu d'avant.
+void feteInstallee.then(() => {
+  appliquerReglagesDuJeu();
+  installerParent(() => !occupe && !enDialogue);
+  void echanger();
 });
 
 installerEpicerie({

@@ -1101,3 +1101,32 @@ button.produit {
 .carte-bulle[hidden] {
   display: none;
 }
+
+/* Le cadenas de l'espace parent : discret, en haut à droite, sous la carte (appui long). */
+.bouton-parent-ville {
+  position: fixed;
+  top: calc(76px + env(safe-area-inset-top));
+  right: calc(22px + env(safe-area-inset-right));
+  z-index: 4;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 250, 240, 0.55);
+  color: var(--encre);
+  opacity: 0.6;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.bouton-parent-ville svg {
+  width: 22px;
+  height: 22px;
+}
+.bouton-parent-ville.appui {
+  opacity: 1;
+  background: var(--jaune, #ffd27a);
+  transition: background 1.5s linear;
+}

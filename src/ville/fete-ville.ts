@@ -19,9 +19,9 @@ import { ordonner } from '../reve/preparation.ts';
 import type { Sauvegarde } from '../sauvegarde/format.ts';
 import { ecrireSauvegarde, lireSauvegarde } from '../sauvegarde/stockage.ts';
 import type { Fete, IdStand } from '../scene/fete.ts';
-import { bruitage } from '../son/bruitages.ts';
+import { bruitage, reglerVolumes } from '../son/bruitages.ts';
 import { musique } from '../son/musique.ts';
-import { dire, direEnregistre } from '../son/voix.ts';
+import { dire, direEnregistre, reglerVoix, reglerVolumeVoix } from '../son/voix.ts';
 import { chamboule } from '../stands/chamboule.ts';
 import { confiserie } from '../stands/confiserie.ts';
 import { creerDefis } from '../stands/defis.ts';
@@ -60,7 +60,10 @@ const aujourdhui = (): Jour => jourDe(new Date());
 // --- La sauvegarde du jeu d'avant, partagée ------------------------------------------------------
 let sauvegarde: Sauvegarde;
 let ecriture: Promise<void> = Promise.resolve();
+/** Pendant le remplacement par une copie de secours, plus rien n'écrit l'ancienne sauvegarde. */
+let remplacement = false;
 function sauver(): void {
+  if (remplacement) return;
   const copie = structuredClone(sauvegarde);
   ecriture = ecriture.then(() => ecrireSauvegarde(copie)).catch((e: unknown) => console.error(e));
 }
@@ -649,3 +652,22 @@ export async function installerFete(c: ContexteFete): Promise<void> {
 
 /** Essais seulement : le grand défi tout de suite, sans attendre le vendredi. */
 export const essaiGrandDefi = (): void => ouvrirEpreuve();
+
+// --- Pour l'espace parent, ouvert depuis la ville : la sauvegarde du jeu d'avant (la même que
+// celle des stands, jamais une copie), ses réglages, et l'échange avec le dépôt privé du rêve.
+export const sauvegardeDuJeu = (): Sauvegarde => sauvegarde;
+export const sauverLeJeu = (): void => sauver();
+export const standsDuJeu = (): Array<{ id: string; titre: string }> => (jeux ? Object.values(jeux).map((j) => ({ id: j.id, titre: j.titre })) : []);
+/** Les volumes et la voix choisis par le parent. */
+export function appliquerReglagesDuJeu(): void {
+  reglerVolumes(sauvegarde.reglages.volumeBruitages, sauvegarde.reglages.volumeMusique);
+  reglerVoix(sauvegarde.reglages.vitesseVoix);
+  reglerVolumeVoix(sauvegarde.reglages.volumeVoix ?? 1);
+}
+/** Remplace toute la sauvegarde (copie de secours du parent), puis relance. */
+export async function remplacerSauvegarde(nouvelle: Sauvegarde): Promise<void> {
+  remplacement = true;
+  await ecriture;
+  await ecrireSauvegarde(nouvelle);
+  location.reload();
+}

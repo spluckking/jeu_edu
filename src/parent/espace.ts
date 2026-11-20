@@ -25,7 +25,8 @@ export interface OptionsEspace {
   appliquer(): void;
   /** Lance un échange avec le dépôt privé ; renvoie un message pour le parent. */
   synchroniser(): Promise<string>;
-  rejouerIntroduction(): void;
+  /** Rejouer l'introduction du jeu d'avant (absent dans la ville : pas de bouton). */
+  rejouerIntroduction?(): void;
   /** Remplace toute la sauvegarde par celle d'un fichier, puis relance le jeu. */
   remplacer(s: Sauvegarde): Promise<void>;
 }
@@ -311,12 +312,15 @@ function construire(o: OptionsEspace, fermer: () => void): HTMLElement {
   });
   ligneQualite.append(el('span', 'parent-etiquette', 'Qualité graphique'), choixQualite);
   reglages.append(ligneCouleurs, ligneQualite);
-  const rejouer = el('button', 'bouton-secondaire', 'Rejouer l’introduction');
-  rejouer.addEventListener('click', () => {
-    fermer();
-    o.rejouerIntroduction();
-  });
-  reglages.append(rejouer);
+  if (o.rejouerIntroduction) {
+    const rejouerIntro = o.rejouerIntroduction;
+    const rejouer = el('button', 'bouton-secondaire', 'Rejouer l’introduction');
+    rejouer.addEventListener('click', () => {
+      fermer();
+      rejouerIntro();
+    });
+    reglages.append(rejouer);
+  }
 
   // Clé du dépôt privé.
   const acces = lireAcces();
