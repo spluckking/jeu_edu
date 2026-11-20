@@ -80,6 +80,19 @@ function rassemblerPhrases() {
     }
   }
 
+  // 2 bis. Les mots de la dictée de la ville (content/ville/mots-dictee.txt, la liste de la
+  // semaine copiée de Dictée-Blocs) : le mot seul, puis sa phrase, lus comme à la dictée.
+  const liste = join(RACINE, 'content', 'ville', 'mots-dictee.txt');
+  if (existsSync(liste)) {
+    for (const ligne of readFileSync(liste, 'utf8').split(/\r?\n/)) {
+      if (!ligne.trim() || ligne.startsWith('#')) continue;
+      const [mot, ...reste] = ligne.split('|');
+      const phrase = reste.join('|').trim();
+      ajouter(mot.trim(), 'dictee');
+      if (phrase) ajouter(phrase, 'dictee');
+    }
+  }
+
   // 3. Les tables de multiplication (chamboule-tout) : « 3 fois 8 ».
   for (let a = 0; a <= 10; a++) for (let b = 0; b <= 10; b++) ajouter(`${a} fois ${b}`);
 
