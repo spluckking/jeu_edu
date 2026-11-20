@@ -1742,3 +1742,158 @@ button.produit {
   width: 80px;
   height: 80px;
 }
+
+/* --- La pêche à la canne -------------------------------------------------------------------- */
+
+.eau-canne {
+  cursor: crosshair;
+  background: linear-gradient(#aee0f4, #4f9fd0);
+}
+
+.canne-compte {
+  margin: 0;
+  font-weight: 700;
+  opacity: 0.75;
+}
+
+.canne-message {
+  min-height: 3.2em;
+  text-align: center;
+}
+
+/* Le bouchon : rouge et blanc ; il tremble, puis plonge quand ça mord. */
+.bouchon {
+  position: absolute;
+  width: 26px;
+  height: 34px;
+  margin: -17px 0 0 -13px;
+  border-radius: 50% 50% 45% 45%;
+  background: linear-gradient(#e8473c 52%, #fff 52%);
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.35);
+  pointer-events: none;
+}
+
+.bouchon.tremble {
+  animation: trembler 0.35s ease-in-out 2;
+}
+
+.bouchon.plonge {
+  animation: plonger 0.5s ease-in-out infinite alternate;
+}
+
+@keyframes trembler {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(5px); }
+}
+
+@keyframes plonger {
+  from { transform: translateY(6px) scale(0.85); opacity: 0.8; }
+  to { transform: translateY(14px) scale(0.6); opacity: 0.45; }
+}
+
+/* La jauge : le curseur va et vient, il faut ferrer quand il est dans le vert. */
+.jauge {
+  position: relative;
+  align-self: stretch;
+  height: 34px;
+  border-radius: 17px;
+  background: #f1e7d6;
+  overflow: hidden;
+}
+
+.jauge-verte {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: var(--vert);
+}
+
+.jauge-curseur {
+  position: absolute;
+  top: -2px;
+  bottom: -2px;
+  width: 8px;
+  margin-left: -4px;
+  border-radius: 4px;
+  background: #3a2e22;
+}
+
+.canne-ferrer {
+  font-size: 1.6rem;
+}
+
+.canne-panier {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+  min-height: 40px;
+}
+
+.canne-panier .produit-icone,
+.canne-poisson .produit-icone {
+  height: auto;
+  object-fit: contain;
+  border-radius: 0;
+}
+
+/* Les espèces : une teinte chacune (l'image est la même). */
+.espece-ablette { filter: saturate(0.3) brightness(1.15); }
+.espece-perche { filter: hue-rotate(70deg) saturate(1.3); }
+
+.canne-table {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+}
+
+.canne-poisson {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  min-width: 96px;
+  padding: 8px;
+  border: 3px solid transparent;
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 3px 0 rgba(0, 0, 0, 0.08);
+}
+
+.canne-poisson:disabled {
+  opacity: 1;
+}
+
+.canne-poisson.relache {
+  border-color: #5fb0de;
+  background: #e3f3fb;
+  opacity: 0.55;
+}
+
+.canne-poids {
+  font-size: 1.3rem;
+  font-weight: 700;
+}
+
+.canne-question {
+  margin: 0;
+  font-size: 2rem;
+  font-weight: 700;
+}
+
+.canne-clavier {
+  flex: none;
+  width: min(320px, 100%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bouchon.tremble,
+  .bouchon.plonge {
+    animation: none;
+  }
+}
+
+.canne-unite {
+  margin-left: 0.3em;
+}
