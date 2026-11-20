@@ -1638,3 +1638,58 @@ button.produit {
   color: var(--encre);
   font: 700 1rem var(--police);
 }
+
+/* --- Le brouillon : un onglet sur le bord gauche, une feuille à petits carreaux ------------------ */
+.brouillon-onglet {
+  position: fixed;
+  left: 0;
+  top: 42%;
+  z-index: 40;
+  padding: 14px 10px;
+  border: 0;
+  border-radius: 0 14px 14px 0;
+  background: #fff6c8;
+  box-shadow: var(--ombre);
+  color: var(--encre);
+  font: 700 1rem var(--police);
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+}
+.brouillon-onglet[hidden] {
+  display: none;
+}
+.brouillon-onglet.ouvert {
+  left: min(50vw, 600px);
+}
+.brouillon {
+  position: fixed;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  z-index: 39;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: min(50vw, 600px);
+  padding: 12px;
+  background: #fffdf6;
+  box-shadow: 4px 0 18px rgba(0, 0, 0, 0.25);
+}
+.brouillon[hidden] {
+  display: none;
+}
+.brouillon-outils {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+.zone-ecriture.brouillon-zone {
+  flex: 1;
+  height: auto;
+  /* Petits carreaux de 5 mm (20 px), un trait plus fort tous les 5 carreaux. */
+  background-image:
+    repeating-linear-gradient(90deg, rgba(90, 120, 200, 0.22) 0 1px, transparent 1px 20px),
+    repeating-linear-gradient(180deg, rgba(90, 120, 200, 0.22) 0 1px, transparent 1px 20px),
+    repeating-linear-gradient(90deg, rgba(70, 90, 180, 0.38) 0 1px, transparent 1px 100px),
+    repeating-linear-gradient(180deg, rgba(70, 90, 180, 0.38) 0 1px, transparent 1px 100px);
+}

@@ -1767,6 +1767,7 @@ if (adresse.has('essai')) {
       prenom: () => void choisirPrenom(),
       gazette: () => void ouvrirLaGazette(),
       liste: () => dictee.ouvrirLaListe(),
+      stand: (id: IdStand) => ouvrirStand(id),
     },
   });
 }

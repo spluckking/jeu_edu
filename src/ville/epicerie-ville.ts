@@ -14,6 +14,7 @@ import { aUneQuete, nomDe, parlerA } from './demandes-ville.ts';
 import { enMots, type Ligne } from './demandes.ts';
 import type { EtatVille } from './etat.ts';
 import { bouton, carte, creer, icone, majuscule, piece, remplir, texteALire } from './interface.ts';
+import { brouillonDisponible } from './brouillon.ts';
 
 export interface ContexteEpicerie {
   points: PointInteret[];
@@ -64,11 +65,14 @@ function installerHud(c: ContexteEpicerie): void {
 
 function ouvrir(c: ContexteEpicerie): HTMLElement {
   c.occupe(true);
+  // Des calculs (payer, rendre, compter) : le brouillon est là.
+  brouillonDisponible(true);
   const f = creer('div', 'exercice-fond');
   document.body.append(f);
   return f;
 }
 function fermer(c: ContexteEpicerie, f: HTMLElement): void {
+  brouillonDisponible(false);
   f.remove();
   c.occupe(false);
   majHud(c);

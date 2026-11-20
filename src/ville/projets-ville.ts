@@ -15,6 +15,7 @@ import type { PointInteret } from './dictee-ville.ts';
 import type { EtatVille } from './etat.ts';
 import { bouton, carte, creer, icone, piece, remplir, texteALire } from './interface.ts';
 import { apporter, avancement, complet, ouvrir as ouvrirLieu, reste, terminer, verser } from './projets.ts';
+import { brouillonDisponible } from './brouillon.ts';
 
 export interface ContexteProjets {
   points: PointInteret[];
@@ -37,11 +38,14 @@ const projetDe = (id: string | null): Projet | undefined => projets.projets.find
 
 function ouvrir(c: ContexteProjets): HTMLElement {
   c.occupe(true);
+  // Des calculs (payer, rendre, compter) : le brouillon est là.
+  brouillonDisponible(true);
   const f = creer('div', 'exercice-fond');
   document.body.append(f);
   return f;
 }
 function fermer(c: ContexteProjets, f: HTMLElement): void {
+  brouillonDisponible(false);
   f.remove();
   c.occupe(false);
   c.apresUnChangement();
