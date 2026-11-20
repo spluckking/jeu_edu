@@ -30,7 +30,9 @@ import { surveillerModeApp } from '../app/modeApp.ts';
 import { surveillerMiseAJour } from '../app/miseAJour.ts';
 import { ecrirePrenom } from '../ui/prenom.ts';
 import { avecPrenom, retenirPrenomEcrit } from './prenom-ecrit.ts';
-import { construirePiece, dedans, ENTREE_INTERIEUR, SORTIE_INTERIEUR, INTERIEUR, PANNEAU_PRENOM, resterDansLaPiece, tapis } from './maison-interieur.ts';
+import { lirePhoto, type IdPhoto } from './photos.ts';
+import { voirPhoto } from './photo-vue.ts';
+import { CADRE_FAMILLE, construirePiece, dedans, ENTREE_INTERIEUR, SORTIE_INTERIEUR, INTERIEUR, PANNEAU_PRENOM, resterDansLaPiece, tapis } from './maison-interieur.ts';
 import { bruitage, demarrerSon } from '../son/bruitages.ts';
 import { musique, type Piste } from '../son/musique.ts';
 import type { IdStand } from '../scene/fete.ts';
@@ -1256,8 +1258,34 @@ function allerA(x: number, z: number, cap: number, maison: boolean): void {
     retenirPosition(performance.now(), true);
   });
 }
+/** Les cadres photo de la maison ; leurs photos sont lues sur la tablette. */
+let cadres: ReturnType<typeof construirePiece>['cadres'] | null = null;
+async function mettreDansLeCadre(id: IdPhoto, photo: Blob | null): Promise<void> {
+  if (!cadres) return;
+  try {
+    const image = photo ? await createImageBitmap(photo) : null;
+    cadres[id].montrer(image);
+    image?.close();
+  } catch {
+    cadres[id].montrer(null);
+  }
+}
+function regarderPhoto(id: IdPhoto): void {
+  const avant = commandes.actives;
+  commandes.actives = false;
+  void voirPhoto({
+    id,
+    ...(id === 'enfant' ? { prenom: etat.prenom, changerPrenom: () => choisirPrenom().then(() => etat.prenom) } : {}),
+    nouvelle: (b) => void mettreDansLeCadre(id, b),
+  }).then(() => {
+    commandes.actives = avant;
+  });
+}
 async function poserInterieur(): Promise<void> {
-  ville.add(construirePiece());
+  const piece = construirePiece();
+  ville.add(piece.piece);
+  cadres = piece.cadres;
+  for (const id of ['enfant', 'famille'] as const) void lirePhoto(id).then((b) => mettreDansLeCadre(id, b));
   const meubles: Array<{ id: string; longueur: number; x: number; z: number; cap: number; r: number }> = [
     { id: 'interieur-lit', longueur: 2.3, x: -2.9, z: -1.7, cap: 0, r: 1.1 },
     { id: 'interieur-armoire', longueur: 1.6, x: 2.9, z: -2.75, cap: 0, r: 0.9 },
@@ -1288,7 +1316,8 @@ const FACE_MEUBLES: Record<string, number> = { 'interieur-armoire': Math.PI / 2 
 points.push(
   { verbe: 'Entrer', nom: 'Ta maison', x: PORTE_MAISON.x, z: PORTE_MAISON.z, visible: () => !dansLaMaison, action: () => allerA(ENTREE_INTERIEUR.x, ENTREE_INTERIEUR.z, Math.PI, true) },
   { verbe: 'Sortir', nom: '', x: SORTIE_INTERIEUR.x, z: SORTIE_INTERIEUR.z, rayon: 1.4, visible: () => dansLaMaison, action: () => allerA(PORTE_MAISON.x, PORTE_MAISON.z + 1, 0, false) },
-  { verbe: 'Changer', nom: 'Ton prénom', x: PANNEAU_PRENOM.x, z: PANNEAU_PRENOM.z, rayon: 1.6, visible: () => dansLaMaison, action: () => void choisirPrenom() },
+  { verbe: 'Regarder', nom: 'Ta photo', x: PANNEAU_PRENOM.x, z: PANNEAU_PRENOM.z, rayon: 1.6, visible: () => dansLaMaison, action: () => regarderPhoto('enfant') },
+  { verbe: 'Regarder', nom: 'Ta famille', x: CADRE_FAMILLE.x, z: CADRE_FAMILLE.z, rayon: 1.8, visible: () => dansLaMaison, action: () => regarderPhoto('famille') },
 );
 
 await poserInterieur();

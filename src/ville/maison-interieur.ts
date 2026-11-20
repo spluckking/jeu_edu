@@ -12,6 +12,11 @@ export const INTERIEUR = { x: 0, z: -330, largeur: 9, profondeur: 7, hauteur: 2.
 export const SORTIE_INTERIEUR = { x: INTERIEUR.x, z: INTERIEUR.z + INTERIEUR.profondeur / 2 - 0.55 };
 export const ENTREE_INTERIEUR = { x: INTERIEUR.x, z: INTERIEUR.z + INTERIEUR.profondeur / 2 - 2.4 };
 
+/** Le cadre de l'enfant (mur de droite) et devant lui, où l'enfant se tient pour le regarder. */
+export const PANNEAU_PRENOM = { x: INTERIEUR.x + INTERIEUR.largeur / 2 - 1.1, z: INTERIEUR.z + INTERIEUR.profondeur / 2 - 1.8 };
+/** Le cadre de la famille, au milieu du mur du fond ; on le regarde de là. */
+export const CADRE_FAMILLE = { x: INTERIEUR.x + 0.2, z: INTERIEUR.z - INTERIEUR.profondeur / 2 + 1.6 };
+
 /** Dans la pièce, l'enfant reste entre les murs. */
 export function resterDansLaPiece(p: THREE.Vector3): void {
   const mx = INTERIEUR.largeur / 2 - 0.45;
@@ -50,7 +55,57 @@ function parquet(): THREE.CanvasTexture {
   return t;
 }
 
-export function construirePiece(): THREE.Group {
+/** Un cadre photo accroché au mur : un bord de bois et, dedans, la photo (ou un papier crème). */
+export interface Cadre {
+  objet: THREE.Object3D;
+  /** Met la photo dans le cadre, recadrée pour le remplir (null : papier crème). */
+  montrer(image: ImageBitmap | null): void;
+}
+
+function cadrePhoto(largeur: number, hauteur: number): Cadre {
+  const objet = new THREE.Group();
+  const bois = new THREE.MeshStandardMaterial({ color: 0xa8774a, roughness: 0.75 });
+  const fond = new THREE.Mesh(new THREE.BoxGeometry(largeur + 0.16, hauteur + 0.16, 0.06), bois);
+  fond.castShadow = true;
+  objet.add(fond);
+  const papier = new THREE.MeshStandardMaterial({ color: 0xfffaf0, roughness: 0.85 });
+  const photo = new THREE.Mesh(new THREE.PlaneGeometry(largeur, hauteur), papier);
+  photo.position.z = 0.035;
+  objet.add(photo);
+  return {
+    objet,
+    montrer(image) {
+      const ancien = papier.map;
+      papier.map = null;
+      if (image) {
+        // Copiée dans une toile (au plus 1024 px) : légère pour la carte graphique, et à l'endroit.
+        const k = Math.min(1, 1024 / Math.max(image.width, image.height));
+        const toile = document.createElement('canvas');
+        toile.width = Math.round(image.width * k);
+        toile.height = Math.round(image.height * k);
+        toile.getContext('2d')!.drawImage(image, 0, 0, toile.width, toile.height);
+        const t = new THREE.CanvasTexture(toile);
+        t.colorSpace = THREE.SRGBColorSpace;
+        // Recadrée au milieu, comme une photo glissée dans un cadre.
+        const a = image.width / image.height / (largeur / hauteur);
+        if (a > 1) {
+          t.repeat.set(1 / a, 1);
+          t.offset.set((1 - 1 / a) / 2, 0);
+        } else {
+          t.repeat.set(1, a);
+          t.offset.set(0, (1 - a) / 2);
+        }
+        t.needsUpdate = true;
+        papier.map = t;
+      }
+      papier.color.set(image ? 0xffffff : 0xfffaf0);
+      papier.needsUpdate = true;
+      ancien?.dispose();
+    },
+  };
+}
+
+export function construirePiece(): { piece: THREE.Group; cadres: { enfant: Cadre; famille: Cadre } } {
   const piece = new THREE.Group();
   piece.position.set(INTERIEUR.x, 0, INTERIEUR.z);
   const { largeur: L, profondeur: P, hauteur: H } = INTERIEUR;
@@ -101,7 +156,7 @@ export function construirePiece(): THREE.Group {
     b.position.set(x, y, 0.04);
     fenetre.add(b);
   }
-  fenetre.position.set(-0.6, 1.6, -P / 2 + 0.11);
+  fenetre.position.set(-2.4, 1.6, -P / 2 + 0.11);
   piece.add(fenetre);
 
   // Le paillasson, au bord ouvert : c'est par là qu'on sort.
@@ -110,19 +165,19 @@ export function construirePiece(): THREE.Group {
   paillasson.receiveShadow = true;
   piece.add(paillasson);
 
-  // Le panneau du prénom, au mur de droite, près de la sortie.
-  const panneau = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.7, 1), new THREE.MeshStandardMaterial({ color: 0xa8774a, roughness: 0.8 }));
-  panneau.position.set(L / 2 - 0.14, 1.4, P / 2 - 1.6);
-  piece.add(panneau);
-  const papier = new THREE.Mesh(new THREE.PlaneGeometry(0.85, 0.55), new THREE.MeshStandardMaterial({ color: 0xfffaf0, roughness: 0.9 }));
-  papier.rotation.y = -Math.PI / 2;
-  papier.position.set(L / 2 - 0.19, 1.4, P / 2 - 1.6);
-  piece.add(papier);
-  return piece;
+  // La photo de l'enfant, au mur de droite, près de la sortie (on y change aussi son prénom) ;
+  // la photo de famille, plus grande, au milieu du mur du fond.
+  const enfant = cadrePhoto(0.8, 1);
+  enfant.objet.rotation.y = -Math.PI / 2;
+  enfant.objet.position.set(L / 2 - 0.13, 1.5, PANNEAU_PRENOM.z - INTERIEUR.z);
+  piece.add(enfant.objet);
+  const famille = cadrePhoto(2.1, 1.4);
+  famille.objet.position.set(CADRE_FAMILLE.x - INTERIEUR.x, 1.7, -P / 2 + 0.13);
+  piece.add(famille.objet);
+  return { piece, cadres: { enfant, famille } };
 }
 
-/** Le panneau du prénom, et devant lui, où l'enfant se tient. */
-export const PANNEAU_PRENOM = { x: INTERIEUR.x + INTERIEUR.largeur / 2 - 1.1, z: INTERIEUR.z + INTERIEUR.profondeur / 2 - 1.6 };
+
 
 /** Le tapis : l'image Tripo posée à plat sur un disque (plus léger qu'un modèle 3D). */
 export function tapis(image: THREE.Texture, rx: number, rz: number): THREE.Mesh {
