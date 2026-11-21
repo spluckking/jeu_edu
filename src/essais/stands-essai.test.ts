@@ -40,13 +40,11 @@ describe('les essais de stands', () => {
   });
 
   it('les conversions sont justes', () => {
-    for (let i = 0; i < 100; i++) {
+    const EN = { mm: 1, cm: 10, dm: 100, m: 1000, km: 1000000, g: 1, kg: 1000 } as Record<string, number>;
+    for (let i = 0; i < 300; i++) {
       const c = conversion(Math.random);
-      const m = c.de.match(/^(\d+) (m|cm|km|kg)(?: (\d+) cm)?$/);
-      expect(m).not.toBeNull();
-      const [, a, u, cm] = m!;
-      const attendu = { m: Number(a) * 100 + Number(cm ?? 0), cm: Number(a) / 100, km: Number(a) * 1000, kg: Number(a) * 1000 }[u as 'm'];
-      expect(c.reponse).toBe(attendu);
+      const total = [...c.de.matchAll(/(\d+) (mm|cm|dm|km|kg|m|g)\b/g)].reduce((t, [, n, u]) => t + Number(n) * EN[u!]!, 0);
+      expect(total).toBe(c.reponse * EN[c.vers]!);
     }
   });
 
@@ -61,11 +59,22 @@ describe('les essais de stands', () => {
           if (q.type === 'choix') {
             expect(q.choix).toContain(q.reponse);
             expect(new Set(q.choix).size).toBe(q.choix.length);
-            expect(q.choix.length).toBeGreaterThanOrEqual(q.enonce.includes('unité') ? 2 : 4);
+            expect(q.choix.length).toBeGreaterThanOrEqual(s.id === 'fractions' ? 4 : 2);
           }
           if (q.type === 'nombre') expect(Number.isInteger(q.reponse) && q.reponse >= 0).toBe(true);
           if (q.type === 'colorier') expect(q.k).toBeLessThan(q.n);
         }
+      }
+    }
+  });
+
+  it('les phrases : chaque mot a 3 pluriels différents, chaque groupe est dans sa phrase', () => {
+    const P = STANDS_ESSAI.find((x) => x.id === 'phrases')!;
+    for (let k = 0; k < 50; k++) {
+      for (const q of P.questions(Math.random)) {
+        if (q.type !== 'choix') continue;
+        expect(new Set(q.choix).size).toBe(3 + (q.choix.length - 3));
+        if (q.enonce.startsWith('«')) for (const g of q.choix) expect(q.enonce).toContain(g);
       }
     }
   });

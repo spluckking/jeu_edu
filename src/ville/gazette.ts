@@ -5,6 +5,7 @@
 // Les textes sont dans content/ville/gazette.json ; ici, seulement les règles (testées).
 
 import T from '../../content/ville/gazette.json';
+import L from '../../content/ville/lecons.json';
 import { ajouterJours, jourDeSemaine, type Jour } from '../memoire/jours.ts';
 import { REUSSIS_POUR_FINIR, type EtatAttraction } from './attraction.ts';
 import type { EtatDictee } from '../dictee/etat.ts';
@@ -18,9 +19,11 @@ export interface EtatGazette {
   histoiresLues: Jour[];
   /** La chronique : ce qui s'est passé, jour par jour (pour s'en souvenir plus tard). */
   chronique: Array<{ jour: Jour; texte: string }>;
+  /** La leçon du jour : le dernier jour où chaque carte a été lue. */
+  lecons: Record<string, Jour>;
 }
 
-export const gazetteNeuve = (): EtatGazette => ({ valideLe: '', premiere: '', histoiresLues: [], chronique: [] });
+export const gazetteNeuve = (): EtatGazette => ({ valideLe: '', premiere: '', histoiresLues: [], chronique: [], lecons: {} });
 
 export function lireGazette(brut: unknown): EtatGazette {
   if (typeof brut !== 'object' || brut === null) return gazetteNeuve();
@@ -30,6 +33,7 @@ export function lireGazette(brut: unknown): EtatGazette {
     valideLe: texte(o.valideLe),
     premiere: texte(o.premiere),
     histoiresLues: Array.isArray(o.histoiresLues) ? o.histoiresLues.filter((x): x is string => typeof x === 'string') : [],
+    lecons: typeof o.lecons === 'object' && o.lecons !== null ? Object.fromEntries(Object.entries(o.lecons).filter((e): e is [string, string] => typeof e[1] === 'string')) : {},
     chronique: Array.isArray(o.chronique) ? o.chronique.filter((c): c is { jour: Jour; texte: string } => typeof c?.jour === 'string' && typeof c?.texte === 'string') : [],
   };
 }
@@ -184,6 +188,31 @@ export function quetesDuJour(m: Monde): Quete[] {
   return quetes;
 }
 
+/** La leçon du jour (une carte reprise d'une leçon de la classe). */
+export interface Lecon {
+  id: string;
+  titre: string;
+  /** « Histoire », « Sciences ». */
+  matiere: string;
+  phrases: string[];
+  questions: Question[];
+}
+
+/** La carte du jour : celle déjà lue aujourd'hui, sinon jamais lue, sinon lue il y a le plus
+ *  longtemps (dans l'ordre des leçons). */
+export function leconDuJour(vues: Readonly<Record<string, Jour>>, jour: Jour): Lecon | null {
+  const cartes = L.lecons;
+  const brute = cartes.find((c) => vues[c.id] === jour) ?? [...cartes].sort((a, b) => (vues[a.id] ?? '').localeCompare(vues[b.id] ?? ''))[0];
+  if (!brute) return null;
+  return {
+    id: brute.id,
+    titre: brute.titre,
+    matiere: (L.matieres as Record<string, string>)[brute.matiere] ?? '',
+    phrases: brute.phrases,
+    questions: brute.questions.map((q) => ({ question: q.question, choix: q.choix as [string, string, string], indice: brute.phrases[q.indice - 1] ?? null })),
+  };
+}
+
 /** L'ancien nom (les quêtes changent maintenant chaque jour). */
 export const quetesDeLaSemaine = quetesDuJour;
 
@@ -198,12 +227,12 @@ export type Edition = (
   | { type: 'histoire'; histoire: Histoire; quetes: Quete[] }
   | { type: 'quetes'; quetes: Quete[] }
   | { type: 'bilan'; quetes: Quete[] }
-) & { aventure?: Aventure };
+) & { aventure?: Aventure; lecon?: Lecon };
 
 /** L'édition du jour. premiere : le lundi de la semaine 1 (celle de la première lecture). */
-export function editionDuJour(g: EtatGazette, quetes: Quete[], jour: Jour, prenom: string, aventure?: Aventure): Edition {
+export function editionDuJour(g: EtatGazette, quetes: Quete[], jour: Jour, prenom: string, aventure?: Aventure, lecon?: Lecon): Edition {
   const e = editionSansAventure(g, quetes, jour, prenom);
-  return aventure ? { ...e, aventure } : e;
+  return { ...e, ...(aventure ? { aventure } : {}), ...(lecon ? { lecon } : {}) };
 }
 
 function editionSansAventure(g: EtatGazette, quetes: Quete[], jour: Jour, prenom: string): Edition {
@@ -224,6 +253,11 @@ function editionSansAventure(g: EtatGazette, quetes: Quete[], jour: Jour, prenom
 /** Les questions du jour : 3 tirées au hasard (moins s'il n'y en a pas assez). Pour l'histoire,
  *  au moins deux sur l'histoire. */
 export function questionnaire(e: Edition, hasard: () => number, nombre = 3): Question[] {
+  if (e.lecon) {
+    const { lecon, ...sans } = e;
+    const autres = questionnaire(sans as Edition, hasard, nombre - 1);
+    return [...autres, lecon.questions[Math.floor(hasard() * lecon.questions.length)]!].filter(Boolean);
+  }
   const tirer = (liste: Question[], k: number): Question[] => {
     const reste = [...liste];
     const pris: Question[] = [];
@@ -246,7 +280,7 @@ export function questionnaire(e: Edition, hasard: () => number, nombre = 3): Que
 /** Les autres questions de l'édition (pas déjà posées), dans le désordre : à la deuxième erreur,
  *  la question est remplacée par l'une d'elles. */
 export function reserve(e: Edition, posees: readonly Question[], hasard: () => number): Question[] {
-  const aventure = e.aventure && !e.aventure.morale ? e.aventure.questions : [];
+  const aventure = [...(e.aventure && !e.aventure.morale ? e.aventure.questions : []), ...(e.lecon?.questions ?? [])];
   const toutes = aventure.concat(e.type === 'histoire' ? [...e.histoire.questions, ...e.quetes.flatMap((q) => q.questions)] : e.type === 'quetes' ? e.quetes.flatMap((q) => q.questions) : e.quetes.flatMap((q) => q.bilan));
   const reste = toutes.filter((q) => !posees.includes(q));
   for (let i = reste.length - 1; i > 0; i--) {

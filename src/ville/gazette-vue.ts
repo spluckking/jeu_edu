@@ -4,6 +4,7 @@
 // réponse s'allume dans l'article et on réessaie.
 
 import T from '../../content/ville/gazette.json';
+import L from '../../content/ville/lecons.json';
 import { bruitage } from '../son/bruitages.ts';
 import type { Edition, Question } from './gazette.ts';
 import { remplir, texteALire } from './interface.ts';
@@ -49,6 +50,12 @@ export function lireLaGazette(v: VueGazette): Promise<boolean> {
     const e = v.edition;
     // La grande aventure d'abord : le chapitre du jour (ou la fin).
     if (e.aventure) article.append(creer('h2', 'gazette-rubrique', T.textes.aventure), creer('h3', 'gazette-titre', e.aventure.titre), creer('p', 'gazette-sous-titre', e.aventure.sousTitre), paragraphe(e.aventure.phrases));
+    // La leçon du jour, dans un encadré.
+    if (e.lecon) {
+      const encadre = creer('section', 'gazette-lecon');
+      encadre.append(creer('h2', 'gazette-rubrique', `${L.rubrique} — ${e.lecon.matiere}`), creer('h3', 'gazette-titre', e.lecon.titre), paragraphe(e.lecon.phrases));
+      article.append(encadre);
+    }
     if (e.type === 'histoire') article.append(creer('h2', 'gazette-rubrique', T.textes.histoire), creer('h3', 'gazette-titre', e.histoire.titre), paragraphe(e.histoire.phrases));
     if (e.type === 'bilan') article.append(paragraphe([T.textes.bilan]));
     if (e.type !== 'bilan' && e.quetes.length) {

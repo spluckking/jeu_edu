@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { dicteeNeuve } from '../dictee/etat.ts';
 import { attractionNeuve, passerEpreuve } from './attraction.ts';
-import { editionDuJour, gazetteNeuve, lundiDe, questionnaire, quetesDuJour, remplir, type Aventure, type Monde } from './gazette.ts';
+import L from '../../content/ville/lecons.json';
+import { editionDuJour, gazetteNeuve, leconDuJour, lundiDe, questionnaire, quetesDuJour, remplir, type Aventure, type Monde } from './gazette.ts';
 
 const monde = (m: Partial<Monde> = {}): Monde => ({
   jour: '2026-11-18',
@@ -107,5 +108,36 @@ describe('la Gazette', () => {
     const lue = { ...gazetteNeuve(), premiere: '2026-11-16', histoiresLues: ['2026-11-16'] };
     const q = questionnaire(editionDuJour(lue, quetesDuJour(monde()), '2026-11-19', 'Zoé', fin), () => 0.5);
     expect(q[0]!.question).toBe('Et toi ?');
+  });
+
+  it('la leçon du jour : la même toute la journée, puis la moins récemment lue', () => {
+    const un = leconDuJour({}, '2026-11-23')!;
+    expect(un.id).toBe(L.lecons[0]!.id);
+    expect(leconDuJour({ [un.id]: '2026-11-23' }, '2026-11-23')!.id).toBe(un.id);
+    const deux = leconDuJour({ [un.id]: '2026-11-23' }, '2026-11-24')!;
+    expect(deux.id).toBe(L.lecons[1]!.id);
+    // Toutes lues : on recommence par la plus ancienne.
+    const toutes = Object.fromEntries(L.lecons.map((c, i) => [c.id, `2026-11-${10 + i}`]));
+    expect(leconDuJour(toutes, '2026-12-01')!.id).toBe(L.lecons[0]!.id);
+  });
+
+  it('chaque carte de leçon est bien formée', () => {
+    for (const c of L.lecons) {
+      expect(c.phrases.length).toBeGreaterThanOrEqual(2);
+      for (const q of c.questions) {
+        expect(new Set(q.choix).size).toBe(3);
+        expect(c.phrases[q.indice - 1]).toBeTruthy();
+      }
+    }
+  });
+
+  it('le questionnaire pose une question sur la leçon du jour', () => {
+    const lue = { ...gazetteNeuve(), premiere: '2026-11-16', histoiresLues: ['2026-11-16'] };
+    const lecon = leconDuJour({}, '2026-11-19')!;
+    const e = editionDuJour(lue, quetesDuJour(monde()), '2026-11-19', 'Zoé', aventure, lecon);
+    const q = questionnaire(e, () => 0.5);
+    expect(q).toHaveLength(3);
+    expect(q.filter((x) => lecon.questions.includes(x))).toHaveLength(1);
+    expect(q.filter((x) => aventure.questions.includes(x))).toHaveLength(2);
   });
 });

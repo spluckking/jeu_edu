@@ -24,7 +24,16 @@
   "monnaie": {
     "titre": "La caisse du marchand",
     "consigne": "Rends la monnaie ou donne la somme exacte.",
-    "objets": ["Le ballon", "La toupie", "Le moulin à vent", "La peluche", "Le sucre d’orge", "Le yoyo", "La balle rebondissante", "Le sifflet"],
+    "objets": [
+      "Le ballon",
+      "La toupie",
+      "Le moulin à vent",
+      "La peluche",
+      "Le sucre d’orge",
+      "Le yoyo",
+      "La balle rebondissante",
+      "Le sifflet"
+    ],
     "rendre": "{objet} coûte {prix} €. Tu paies avec un billet de {billet} €. Combien le marchand te rend-il ?",
     "aideRendre": "{billet} − {prix} = {rendu} : le marchand te rend {rendu} €.",
     "donner": "{objet} coûte {prix}. Donne la somme exacte au marchand.",
@@ -34,22 +43,85 @@
   },
   "mesures": {
     "titre": "Le stand des mesures",
-    "consigne": "Les mètres, les centimètres, les grammes, les kilos…",
+    "consigne": "Les millimètres, les centimètres, les décimètres, les mètres, les kilomètres… et les grammes et les kilos.",
     "convertir": "{de} = combien de {vers} ?",
-    "aideConvertir": "1 m = 100 cm, 1 km = 1 000 m, 1 kg = 1 000 g. Donc {de} = {reponse} {vers}.",
+    "aideConvertir": "À retenir : 1 km = 1 000 m, 1 m = 100 cm, 1 dm = 10 cm, 1 cm = 10 mm, 1 kg = 1 000 g. Donc {de} = {reponse} {vers}.",
     "unite": "{phrase} … Quelle est la bonne unité ?",
     "aideUnite": "{phrase} {reponse}.",
     "phrases": [
-      { "phrase": "Une règle d’école mesure 20", "reponse": "cm", "sorte": "longueur" },
-      { "phrase": "Un crayon mesure 15", "reponse": "cm", "sorte": "longueur" },
-      { "phrase": "Une porte mesure 2", "reponse": "m", "sorte": "longueur" },
-      { "phrase": "Une voiture mesure 4", "reponse": "m", "sorte": "longueur" },
-      { "phrase": "Pour aller à la ville voisine, on fait 30", "reponse": "km", "sorte": "longueur" },
-      { "phrase": "Une pomme pèse 150", "reponse": "g", "sorte": "masse" },
-      { "phrase": "Un sac de pommes de terre pèse 5", "reponse": "kg", "sorte": "masse" },
-      { "phrase": "Un vélo pèse 12", "reponse": "kg", "sorte": "masse" },
-      { "phrase": "Une lettre pèse 20", "reponse": "g", "sorte": "masse" }
-    ]
+      {
+        "phrase": "Un lit mesure entre 1 et 2",
+        "reponse": "m",
+        "sorte": "longueur"
+      },
+      {
+        "phrase": "On mesure la taille d’une fourmi en",
+        "reponse": "mm",
+        "sorte": "longueur"
+      },
+      {
+        "phrase": "La tour Eiffel mesure 324",
+        "reponse": "m",
+        "sorte": "longueur"
+      },
+      {
+        "phrase": "Un stylo à bille mesure environ 15",
+        "reponse": "cm",
+        "sorte": "longueur"
+      },
+      {
+        "phrase": "On mesure la distance entre 2 villes en",
+        "reponse": "km",
+        "sorte": "longueur"
+      },
+      {
+        "phrase": "Une girafe peut mesurer 4",
+        "reponse": "m",
+        "sorte": "longueur"
+      },
+      {
+        "phrase": "Une règle peut mesurer 2",
+        "reponse": "dm",
+        "sorte": "longueur"
+      },
+      {
+        "phrase": "Une gomme peut mesurer 3",
+        "reponse": "cm",
+        "sorte": "longueur"
+      },
+      {
+        "phrase": "Une coccinelle peut mesurer 5",
+        "reponse": "mm",
+        "sorte": "longueur"
+      },
+      {
+        "phrase": "La distance entre Paris et Marseille est de 661",
+        "reponse": "km",
+        "sorte": "longueur"
+      },
+      {
+        "phrase": "Une pomme pèse 150",
+        "reponse": "g",
+        "sorte": "masse"
+      },
+      {
+        "phrase": "Un sac de pommes de terre pèse 5",
+        "reponse": "kg",
+        "sorte": "masse"
+      },
+      {
+        "phrase": "Un vélo pèse 12",
+        "reponse": "kg",
+        "sorte": "masse"
+      },
+      {
+        "phrase": "Une lettre pèse 20",
+        "reponse": "g",
+        "sorte": "masse"
+      }
+    ],
+    "pas": "Combien de pas de {pas} cm faut-il faire pour parcourir 1 m ?",
+    "aidePas": "1 m = 100 cm. Avec des pas de {pas} cm, il en faut {reponse} : {addition} = 100."
   },
   "fractions": {
     "titre": "Le stand des parts",
@@ -58,7 +130,36 @@
     "aideNommer": "{k} part(s) coloriée(s) sur {n} parts égales : {nom}.",
     "colorier": "Colorie {fraction} de la figure.",
     "aideColorier": "{fraction} : la figure a {n} parts égales, on en colorie {k}.",
-    "noms": { "2": ["un demi", "demis"], "3": ["un tiers", "tiers"], "4": ["un quart", "quarts"], "5": ["un cinquième", "cinquièmes"], "6": ["un sixième", "sixièmes"], "8": ["un huitième", "huitièmes"], "10": ["un dixième", "dixièmes"] }
+    "noms": {
+      "2": [
+        "un demi",
+        "demis"
+      ],
+      "3": [
+        "un tiers",
+        "tiers"
+      ],
+      "4": [
+        "un quart",
+        "quarts"
+      ],
+      "5": [
+        "un cinquième",
+        "cinquièmes"
+      ],
+      "6": [
+        "un sixième",
+        "sixièmes"
+      ],
+      "8": [
+        "un huitième",
+        "huitièmes"
+      ],
+      "10": [
+        "un dixième",
+        "dixièmes"
+      ]
+    }
   },
   "nombres": {
     "titre": "Le stand des grands nombres",
@@ -69,7 +170,12 @@
     "aideDecomposer": "{somme} = {reponse}.",
     "chiffreDes": "Dans {nombre}, quel est le chiffre des {rang} ?",
     "aideChiffreDes": "{nombre} : {detail}. Le chiffre des {rang} est {reponse}.",
-    "rangs": ["unités", "dizaines", "centaines", "milliers"],
+    "rangs": [
+      "unités",
+      "dizaines",
+      "centaines",
+      "milliers"
+    ],
     "plusGrand": "Quel est le plus grand nombre ?",
     "aidePlusGrand": "On compare d’abord les milliers, puis les centaines, puis les dizaines. Le plus grand est {reponse}."
   },
@@ -83,14 +189,46 @@
     "anglesDroits": "Combien d’angles droits a cette figure ?",
     "aideAnglesDroits": "{article} {nom} a {n} angle(s) droit(s).",
     "figures": {
-      "carre": { "nom": "carré", "article": "un", "pourquoi": "4 côtés égaux et 4 angles droits." },
-      "rectangle": { "nom": "rectangle", "article": "un", "pourquoi": "4 côtés, 4 angles droits, les côtés opposés sont égaux." },
-      "losange": { "nom": "losange", "article": "un", "pourquoi": "4 côtés égaux, mais pas d’angle droit." },
-      "triangle": { "nom": "triangle", "article": "un", "pourquoi": "3 côtés." },
-      "triangleRectangle": { "nom": "triangle rectangle", "article": "un", "pourquoi": "3 côtés et un angle droit." },
-      "cercle": { "nom": "cercle", "article": "un", "pourquoi": "il est tout rond, sans côté." },
-      "pentagone": { "nom": "pentagone", "article": "un", "pourquoi": "5 côtés." },
-      "hexagone": { "nom": "hexagone", "article": "un", "pourquoi": "6 côtés." }
+      "carre": {
+        "nom": "carré",
+        "article": "un",
+        "pourquoi": "4 côtés égaux et 4 angles droits."
+      },
+      "rectangle": {
+        "nom": "rectangle",
+        "article": "un",
+        "pourquoi": "4 côtés, 4 angles droits, les côtés opposés sont égaux."
+      },
+      "losange": {
+        "nom": "losange",
+        "article": "un",
+        "pourquoi": "4 côtés égaux, mais pas d’angle droit."
+      },
+      "triangle": {
+        "nom": "triangle",
+        "article": "un",
+        "pourquoi": "3 côtés."
+      },
+      "triangleRectangle": {
+        "nom": "triangle rectangle",
+        "article": "un",
+        "pourquoi": "3 côtés et un angle droit."
+      },
+      "cercle": {
+        "nom": "cercle",
+        "article": "un",
+        "pourquoi": "il est tout rond, sans côté."
+      },
+      "pentagone": {
+        "nom": "pentagone",
+        "article": "un",
+        "pourquoi": "5 côtés."
+      },
+      "hexagone": {
+        "nom": "hexagone",
+        "article": "un",
+        "pourquoi": "6 côtés."
+      }
     }
   },
   "carrousel": {
@@ -117,5 +255,213 @@
     "titre": "Le petit grand huit",
     "consigne": "Le wagon saute en haut des bosses. Appuie pour freiner : moins vite, il saute moins haut. Attrape les étoiles !",
     "bilan": "Tu as attrapé {n} étoiles !"
+  },
+  "phrases": {
+    "titre": "Le stand des phrases",
+    "consigne": "Le pluriel des noms et des adjectifs, et les groupes de mots dans la phrase.",
+    "pluriel": "Mets au pluriel : {singulier}.",
+    "aidePluriel": "{regle} Au pluriel : {reponse}.",
+    "regles": {
+      "s": "Le s est généralement la marque du pluriel des noms et des adjectifs.",
+      "x": "Pour les mots en -al, -au et -eu, la marque du pluriel est un x.",
+      "sxz": "Les noms en -s, -x et -z ne changent pas au pluriel."
+    },
+    "mots": [
+      {
+        "singulier": "un chat",
+        "choix": [
+          "des chats",
+          "des chat",
+          "des chatx"
+        ],
+        "regle": "s"
+      },
+      {
+        "singulier": "noir",
+        "choix": [
+          "noirs",
+          "noir",
+          "noirx"
+        ],
+        "regle": "s"
+      },
+      {
+        "singulier": "un animal",
+        "choix": [
+          "des animaux",
+          "des animals",
+          "des animauxs"
+        ],
+        "regle": "x"
+      },
+      {
+        "singulier": "un oiseau",
+        "choix": [
+          "des oiseaux",
+          "des oiseaus",
+          "des oiseau"
+        ],
+        "regle": "x"
+      },
+      {
+        "singulier": "un cheveu",
+        "choix": [
+          "des cheveux",
+          "des cheveus",
+          "des cheveu"
+        ],
+        "regle": "x"
+      },
+      {
+        "singulier": "original",
+        "choix": [
+          "originaux",
+          "originals",
+          "originauxs"
+        ],
+        "regle": "x"
+      },
+      {
+        "singulier": "beau",
+        "choix": [
+          "beaux",
+          "beaus",
+          "beau"
+        ],
+        "regle": "x"
+      },
+      {
+        "singulier": "une souris",
+        "choix": [
+          "des souris",
+          "des sourises",
+          "des sourix"
+        ],
+        "regle": "sxz"
+      },
+      {
+        "singulier": "le prix",
+        "choix": [
+          "les prix",
+          "les prixs",
+          "les prixes"
+        ],
+        "regle": "sxz"
+      },
+      {
+        "singulier": "le nez",
+        "choix": [
+          "les nez",
+          "les nezs",
+          "les nezx"
+        ],
+        "regle": "sxz"
+      },
+      {
+        "singulier": "un journal",
+        "choix": [
+          "des journaux",
+          "des journals",
+          "des journauxs"
+        ],
+        "regle": "x"
+      },
+      {
+        "singulier": "le magazine",
+        "choix": [
+          "les magazines",
+          "les magazinex",
+          "les magazine"
+        ],
+        "regle": "s"
+      },
+      {
+        "singulier": "un manteau neuf",
+        "choix": [
+          "des manteaux neufs",
+          "des manteaus neufs",
+          "des manteaux neuf"
+        ],
+        "regle": "x"
+      },
+      {
+        "singulier": "un nouveau camarade",
+        "choix": [
+          "des nouveaux camarades",
+          "des nouveaus camarades",
+          "des nouveaux camarade"
+        ],
+        "regle": "x"
+      }
+    ],
+    "groupe": "« {phrase} » {question}",
+    "aideGroupe": "La bonne réponse : « {reponse} ».",
+    "aideSupprimer": "Certains groupes sont indispensables pour que la phrase ait du sens ; on peut supprimer les autres, comme « {reponse} ».",
+    "questions": {
+      "quand": "Quel groupe répond à « Quand ? »",
+      "sujet": "Quel est le sujet ?",
+      "action": "Quel groupe dit ce que fait le sujet ?",
+      "ou": "Quel groupe répond à « Où ? »",
+      "supprimer": "Quel groupe peut-on supprimer ?"
+    },
+    "exemples": [
+      {
+        "phrase": "Aujourd’hui ma sœur fait un château de sable sur la plage.",
+        "groupes": [
+          "Aujourd’hui",
+          "ma sœur",
+          "fait un château de sable",
+          "sur la plage"
+        ],
+        "roles": {
+          "quand": 0,
+          "sujet": 1,
+          "action": 2,
+          "ou": 3
+        }
+      },
+      {
+        "phrase": "Gabriel et Salima jouent au ballon dans le jardin.",
+        "groupes": [
+          "Gabriel et Salima",
+          "jouent au ballon",
+          "dans le jardin"
+        ],
+        "roles": {
+          "sujet": 0,
+          "action": 1,
+          "ou": 2,
+          "supprimer": 2
+        }
+      },
+      {
+        "phrase": "Pendant ce temps, la mère de Salima taille ses rosiers.",
+        "groupes": [
+          "Pendant ce temps",
+          "la mère de Salima",
+          "taille ses rosiers"
+        ],
+        "roles": {
+          "quand": 0,
+          "sujet": 1,
+          "action": 2,
+          "supprimer": 0
+        }
+      },
+      {
+        "phrase": "Sur le mur, le petit chat dort.",
+        "groupes": [
+          "Sur le mur",
+          "le petit chat",
+          "dort"
+        ],
+        "roles": {
+          "ou": 0,
+          "sujet": 1,
+          "action": 2,
+          "supprimer": 0
+        }
+      }
+    ]
   }
 }

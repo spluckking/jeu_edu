@@ -1,0 +1,145 @@
+{
+  "_lisez-moi": "La leçon du jour, dans la Gazette : une carte par jour (la moins récemment lue d'abord), reprise des leçons de la classe (photos du parent), sans rien ajouter. matiere : histoire ou sciences. questions : 3 choix, la bonne réponse en premier, indice = rang de la phrase qui contient la réponse. valide=false : textes à relire (A_VALIDER.md, point 32).",
+  "valide": false,
+  "rubrique": "La leçon du jour",
+  "matieres": { "histoire": "Histoire", "sciences": "Sciences" },
+  "lecons": [
+    {
+      "id": "revolution-date",
+      "matiere": "histoire",
+      "titre": "La Révolution française",
+      "phrases": [
+        "La date de la Révolution française, c’est le 14 juillet 1789.",
+        "Le 14 juillet 1789 était une journée de conflit.",
+        "Le roi qui gouverne en 1789 s’appelle Louis XVI (Louis 16)."
+      ],
+      "questions": [
+        { "question": "Quelle est la date de la Révolution française ?", "choix": ["le 14 juillet 1789", "le 14 juillet 1889", "le 1er janvier 1789"], "indice": 1 },
+        { "question": "Comment s’appelle le roi qui gouverne en 1789 ?", "choix": ["Louis XVI", "Louis XIV", "Louis IX"], "indice": 3 }
+      ]
+    },
+    {
+      "id": "revolution-liberte",
+      "matiere": "histoire",
+      "titre": "Pourquoi le peuple se révolte",
+      "phrases": [
+        "Le peuple se révolte car il veut que le roi ait moins de pouvoir.",
+        "Il veut que le roi ne décide pas de tout.",
+        "Il veut plus de liberté !"
+      ],
+      "questions": [
+        { "question": "Que veut le peuple ?", "choix": ["plus de liberté", "un roi plus fort", "moins de fêtes"], "indice": 3 },
+        { "question": "Le peuple veut que le roi ait…", "choix": ["moins de pouvoir", "plus de pouvoir", "plus de châteaux"], "indice": 1 }
+      ]
+    },
+    {
+      "id": "fete-nationale",
+      "matiere": "histoire",
+      "titre": "Le 14 juillet aujourd’hui",
+      "phrases": [
+        "Depuis cette période et encore aujourd’hui, le 14 juillet est une journée de fête.",
+        "Dans le calendrier, à la date du 14 juillet, on voit écrit « Fête nationale »."
+      ],
+      "questions": [
+        { "question": "Qu’est-ce qui est écrit dans le calendrier le 14 juillet ?", "choix": ["Fête nationale", "Fête des pères", "Jour de l’an"], "indice": 2 },
+        { "question": "Aujourd’hui, le 14 juillet est une journée de…", "choix": ["fête", "conflit", "travail"], "indice": 1 }
+      ]
+    },
+    {
+      "id": "epoque-contemporaine",
+      "matiere": "histoire",
+      "titre": "L’époque contemporaine",
+      "phrases": [
+        "La Révolution française marque le début de l’époque contemporaine.",
+        "C’est la période dans laquelle nous sommes encore aujourd’hui.",
+        "La Révolution française, c’est aussi le début du temps des conflits."
+      ],
+      "questions": [
+        { "question": "Quelle époque commence avec la Révolution française ?", "choix": ["l’époque contemporaine", "la Préhistoire", "l’Antiquité"], "indice": 1 },
+        { "question": "Sommes-nous encore dans l’époque contemporaine ?", "choix": ["oui, encore aujourd’hui", "non, elle est finie", "elle n’a pas commencé"], "indice": 2 }
+      ]
+    },
+    {
+      "id": "millenaire",
+      "matiere": "histoire",
+      "titre": "Le millénaire d’une année",
+      "phrases": [
+        "Pour trouver le millénaire d’une année, on repère le nombre de milliers (comme mille ans).",
+        "Puis on ajoute 1.",
+        "Par exemple, pour 1850 : 1 + 1 = 2. C’est le 2e millénaire."
+      ],
+      "questions": [
+        { "question": "En quel millénaire est l’année 1850 ?", "choix": ["le 2e millénaire", "le 1er millénaire", "le 18e millénaire"], "indice": 3 },
+        { "question": "En quel millénaire est l’année 1789 ?", "choix": ["le 2e millénaire", "le 1er millénaire", "le 17e millénaire"], "indice": 2 }
+      ]
+    },
+    {
+      "id": "coude-charniere",
+      "matiere": "sciences",
+      "titre": "Le coude, une charnière",
+      "phrases": [
+        "Au coude, l’articulation est une charnière, pour plier et déplier.",
+        "Comme une porte sur ses gonds, l’avant-bras fait un aller-retour autour du même axe."
+      ],
+      "questions": [
+        { "question": "Quelle articulation y a-t-il au coude ?", "choix": ["une charnière", "une rotule", "un pivot"], "indice": 1 },
+        { "question": "L’avant-bras bouge comme…", "choix": ["une porte sur ses gonds", "une roue qui tourne", "une balle qui rebondit"], "indice": 2 }
+      ]
+    },
+    {
+      "id": "epaule-rotule",
+      "matiere": "sciences",
+      "titre": "L’épaule, une rotule",
+      "phrases": [
+        "À l’épaule, c’est une articulation à rotule.",
+        "Le haut de l’os du bras est arrondi comme une boule.",
+        "Il bouge dans un creux de l’omoplate."
+      ],
+      "questions": [
+        { "question": "Quelle articulation y a-t-il à l’épaule ?", "choix": ["une rotule", "une charnière", "un pivot"], "indice": 1 },
+        { "question": "Le haut de l’os du bras est arrondi comme…", "choix": ["une boule", "un carré", "une étoile"], "indice": 2 }
+      ]
+    },
+    {
+      "id": "pivot",
+      "matiere": "sciences",
+      "titre": "Une articulation pivot",
+      "phrases": [
+        "Dans ton avant-bras, un os tourne autour de l’autre.",
+        "Des articulations appelées pivots permettent cette rotation."
+      ],
+      "questions": [
+        { "question": "Que fait un os de l’avant-bras ?", "choix": ["il tourne autour de l’autre", "il se plie en deux", "il devient plus long"], "indice": 1 },
+        { "question": "Comment s’appellent les articulations qui permettent de tourner ?", "choix": ["des pivots", "des charnières", "des tendons"], "indice": 2 }
+      ]
+    },
+    {
+      "id": "mots-du-mouvement",
+      "matiere": "sciences",
+      "titre": "Les mots du mouvement",
+      "phrases": [
+        "Les os forment le squelette.",
+        "Les articulations relient les os et permettent certains mouvements.",
+        "Les muscles se contractent et tirent sur les os pour les faire bouger.",
+        "Les tendons relient les muscles aux os."
+      ],
+      "questions": [
+        { "question": "Qu’est-ce qui relie les muscles aux os ?", "choix": ["les tendons", "les articulations", "le squelette"], "indice": 4 },
+        { "question": "Que forment les os ?", "choix": ["le squelette", "les muscles", "les tendons"], "indice": 1 }
+      ]
+    },
+    {
+      "id": "flexion-extension",
+      "matiere": "sciences",
+      "titre": "Flexion et extension",
+      "phrases": [
+        "La flexion plie le coude, par exemple quand tu portes une cuillère à ta bouche.",
+        "L’extension déplie le coude, comme quand tu tends le bras."
+      ],
+      "questions": [
+        { "question": "Quel mouvement plie le coude ?", "choix": ["la flexion", "l’extension", "la rotation"], "indice": 1 },
+        { "question": "Quand tu tends le bras, c’est…", "choix": ["une extension", "une flexion", "une rotation"], "indice": 2 }
+      ]
+    }
+  ]
+}

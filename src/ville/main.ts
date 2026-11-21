@@ -49,7 +49,7 @@ import { ajouterALEchange, echanger, installerParent } from './parent-ville.ts';
 import { apresEnvoi, envoisDictee, lireRetourDictee } from './dictee-reve.ts';
 import { changerEcriture, toutesLesEcritures } from './ecritures.ts';
 import gazetteT from '../../content/ville/gazette.json';
-import { editionDuJour, gazetteNeuve, lundiDe, questionnaire, quetesDuJour as quetesDeLaGazette, reserve, type Quete } from './gazette.ts';
+import { editionDuJour, gazetteNeuve, leconDuJour, lundiDe, questionnaire, quetesDuJour as quetesDeLaGazette, reserve, type Quete } from './gazette.ts';
 import { lireLaGazette } from './gazette-vue.ts';
 import { lieuxDeLaCarte, ouvrirCarte, photographierLaVille, type Plan, type QueteCarte } from './carte.ts';
 import carteT from '../../content/ville/carte.json';
@@ -1659,7 +1659,8 @@ async function ouvrirLaGazette(): Promise<void> {
   if (change) void sauverEtat(etat);
   const aventure = aventurePourLaGazette(etat, quete);
   const quetes = quetesDuJour();
-  const edition = editionDuJour(etat.gazette, quetes, jour, etat.prenom, aventure ?? undefined);
+  const lecon = leconDuJour(etat.gazette.lecons, jour);
+  const edition = editionDuJour(etat.gazette, quetes, jour, etat.prenom, aventure ?? undefined, lecon ?? undefined);
   const lundi = lundiDe(jour);
   const premiere = etat.gazette.premiere || lundi;
   const semaine = Math.round((Date.parse(lundi) - Date.parse(premiere)) / (7 * 86400000)) + 1;
@@ -1682,6 +1683,7 @@ async function ouvrirLaGazette(): Promise<void> {
   g.premiere = premiere;
   g.valideLe = jour;
   if (edition.type === 'histoire') g.histoiresLues = [...new Set([...g.histoiresLues, lundi])];
+  if (lecon) g.lecons = { ...g.lecons, [lecon.id]: jour };
   // La fin de l'aventure lue (et sa morale) : la suivante commencera demain.
   if (aventure?.morale) etat.grandeQuete = { ...etat.grandeQuete, finLue: true };
   const resume =
