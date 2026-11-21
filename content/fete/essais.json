@@ -5,7 +5,8 @@
     "titre": "Essais pour la fête",
     "aide": "Choisis un stand ou un manège à essayer.",
     "stands": "Les stands",
-    "maneges": "Les manèges"
+    "maneges": "Les manèges",
+    "attention": "Le jeu d’attention"
   },
   "commun": {
     "questionN": "Question {n} sur {total}",
