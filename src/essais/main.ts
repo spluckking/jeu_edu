@@ -7,6 +7,8 @@ import './essais.css';
 import T from '../../content/fete/essais.json';
 import { bruitage } from '../son/bruitages.ts';
 import { bouton, creer } from '../ville/interface.ts';
+import G from '../../content/fete/golem-express.json';
+import { jouerGolem, voirResultats } from './golem-express-vue.ts';
 import { jouerManege } from './manege-cadre.ts';
 import { MANEGES_ESSAI } from './maneges-essai.ts';
 import { jouerStand } from './stand-vue.ts';
@@ -40,4 +42,8 @@ menu.append(
   creer('p', 'essais-aide', T.page.aide),
   rangee(T.page.stands, STANDS_ESSAI.map((s) => ({ titre: s.titre, jouer: (f) => jouerStand(f, s) }))),
   rangee(T.page.maneges, MANEGES_ESSAI.map((m) => ({ titre: m.titre, jouer: (f) => jouerManege(f, m) }))),
+  rangee(T.page.attention, [
+    { titre: G.titre, jouer: jouerGolem },
+    { titre: G.parent.titre, jouer: voirResultats },
+  ]),
 );

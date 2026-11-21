@@ -1,0 +1,51 @@
+{
+  "_lisez-moi": "Le Golem Express, un jeu d'attention en essai : piloter le train sur le chemin (en continu) et n'attraper que les bonnes caisses (en se retenant pour les autres). Chaque tâche a son niveau, qui monte au-dessus de 80 % de réussite et descend sous 70 %. valide=false : textes à relire (A_VALIDER.md, point 30).",
+  "valide": false,
+  "titre": "Le Golem Express",
+  "presentation": "Ton golem pose les rails devant la locomotive. Garde le train sur le chemin de cailloux avec ton doigt, et attrape seulement les caisses que le chef de gare demande !",
+  "cestParti": "C’est parti !",
+  "sortir": "Sortir",
+  "attraper": "Attraper",
+  "echauffement": "Échauffement",
+  "echauffePilotage": "D’abord, seulement le chemin : garde le train sur les cailloux.",
+  "echauffeCaisses": "Maintenant, seulement les caisses : le train roule tout seul. Attrape les bonnes !",
+  "mancheN": "Manche {n} sur {total}",
+  "chefDeGare": "Le chef de gare demande :",
+  "regle": "Attrape {cible} !",
+  "jamaisTnt": "Jamais la TNT !",
+  "matieres": {
+    "fer": "fer",
+    "or": "or",
+    "cuivre": "cuivre",
+    "emeraude": "émeraude",
+    "diamant": "diamant",
+    "charbon": "charbon",
+    "pierreRouge": "pierre rouge"
+  },
+  "formes": {
+    "bloc": ["le bloc de {matiere}", "les blocs de {matiere}"],
+    "pepite": ["la pépite de {matiere}", "les pépites de {matiere}"]
+  },
+  "bilanManche": "Le chemin : {pilotage} %. Les caisses : {caisses} %.",
+  "etoile": "Une étoile ! Un wagon de plus pour ton train.",
+  "presque": "Bien joué ! Pour l’étoile, il faut 8 sur 10 pour le chemin et pour les caisses.",
+  "plusVite": "Le train va aller plus vite !",
+  "plusMalin": "Les caisses vont se ressembler davantage !",
+  "plusDoux": "On ralentit un peu, pour bien réussir.",
+  "fin": "Bravo, conducteur ! Ton train a maintenant {wagons} wagons.",
+  "finUn": "Bravo, conducteur ! Ton train a maintenant 1 wagon.",
+  "finZero": "Bravo, conducteur ! Encore un effort pour gagner ton premier wagon.",
+  "continuer": "Continuer",
+  "parent": {
+    "titre": "Le Golem Express : résultats",
+    "manches": "Manches par partie",
+    "aucun": "Pas encore de manche jouée.",
+    "effacer": "Tout effacer",
+    "colonnes": ["Date", "Niv. chemin", "Niv. caisses", "Chemin", "Caisses", "Oubliées", "Attrapées par erreur", "Réaction", "Régularité"],
+    "aide": "Chemin : part du temps sur les cailloux. Caisses : moyenne des bonnes caisses attrapées et des pièges laissés passer. Réaction : temps moyen pour attraper. Régularité : écart-type de ce temps (plus il est petit, plus l’attention est stable). Échauffement : chaque tâche seule, pour comparer.",
+    "niveaux": "Niveaux actuels : chemin {pilotage}, caisses {caisses}. Wagons : {wagons}.",
+    "seulChemin": "échauffement, chemin seul",
+    "seulesCaisses": "échauffement, caisses seules",
+    "fermer": "Fermer"
+  }
+}

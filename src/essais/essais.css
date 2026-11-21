@@ -223,3 +223,65 @@ svg.essai-figure {
 svg.essai-parts[viewBox^='0 0'] {
   width: min(440px, 80vw);
 }
+
+/* Le Golem Express : le bouton « Attraper », en bas à droite, pour l'autre main. */
+.golem {
+  position: relative;
+}
+
+.golem-attraper {
+  position: absolute;
+  right: 3%;
+  bottom: 5%;
+  width: clamp(110px, 16%, 170px);
+  aspect-ratio: 1;
+  border: 0;
+  border-radius: 50%;
+  background: var(--jaune);
+  color: var(--encre);
+  font: 700 1.3rem var(--police);
+  box-shadow: 0 6px 0 #d9a52a, var(--ombre);
+  touch-action: none;
+  user-select: none;
+}
+
+.golem-attraper:active {
+  translate: 0 4px;
+  box-shadow: 0 2px 0 #d9a52a;
+}
+
+.golem-chef {
+  margin: 0;
+  font-weight: 700;
+}
+
+.golem-objet {
+  width: 100px;
+  height: 100px;
+}
+
+.golem-resultats {
+  width: min(1000px, 100%);
+}
+
+.golem-tableau {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+
+.golem-tableau :is(th, td) {
+  padding: 4px 6px;
+  border-bottom: 1px solid #e3dccd;
+}
+
+.golem-tableau tr.echauffement {
+  color: var(--encre-douce);
+  font-style: italic;
+}
+
+.golem-aide {
+  margin: 0;
+  font-size: 0.95rem;
+  text-align: left;
+}
