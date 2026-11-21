@@ -18,6 +18,7 @@ import { attractionNeuve, lireAttraction, type EtatAttraction } from './attracti
 import attractions from '../../content/ville/attractions.json';
 import { gazetteNeuve, lireGazette, type EtatGazette } from './gazette.ts';
 import type { ObjetAuSol } from './sac.ts';
+import { grandeQueteNeuve, lireEtatGrandeQuete, type EtatGrandeQuete } from './grande-quete.ts';
 
 /** La première attraction construite à la fête foraine. */
 export const PREMIERE_ATTRACTION = attractions.attractions[0]?.id ?? null;
@@ -26,7 +27,7 @@ export const PREMIERE_ATTRACTION = attractions.attractions[0]?.id ?? null;
 export const PARCELLES = 4;
 
 export interface EtatVille {
-  version: 11;
+  version: 12;
   /** Le prénom que l'enfant a donné à son personnage (vide : pas encore choisi). */
   prenom: string;
   /** Où se trouve le personnage, et vers où il regarde. */
@@ -64,11 +65,19 @@ export interface EtatVille {
   sol: ObjetAuSol[];
   /** Le dernier jour où le sac a été rangé (objets de quête du jour, sol vidé). */
   sacJour: string;
+  /** La grande aventure en cours (un chapitre par jour). */
+  grandeQuete: EtatGrandeQuete;
+  /** Les grandes quêtes et les demandes écrites par le rêve, validées par le parent (relues à
+   *  chaque usage, comme des données venues du réseau). */
+  quetesRecues: unknown[];
+  demandesRecues: unknown[];
+  /** Le sujet que le parent propose pour la prochaine grande quête (envoyé au rêve). */
+  sujet: { texte: string; date: string };
 }
 
 export function etatNeuf(): EtatVille {
   return {
-    version: 11,
+    version: 12,
     prenom: '',
     position: { x: 0, z: 6, cap: Math.PI },
     lus: [],
@@ -88,6 +97,10 @@ export function etatNeuf(): EtatVille {
     gazette: gazetteNeuve(),
     sol: [],
     sacJour: '',
+    grandeQuete: grandeQueteNeuve(),
+    quetesRecues: [],
+    demandesRecues: [],
+    sujet: { texte: '', date: '' },
   };
 }
 
@@ -97,7 +110,7 @@ function compteur(v: unknown): Record<string, number> {
   return Object.fromEntries(Object.entries(v).filter((e): e is [string, number] => Number.isInteger(e[1]) && e[1] > 0));
 }
 
-/** Relit un état brut (versions 1 à 11) ; un état illisible repart de zéro plutôt que de bloquer le jeu. */
+/** Relit un état brut (versions 1 à 12) ; un état illisible repart de zéro plutôt que de bloquer le jeu. */
 export function lireEtat(brut: unknown): EtatVille {
   const neuf = etatNeuf();
   if (typeof brut !== 'object' || brut === null) return neuf;
@@ -114,7 +127,7 @@ export function lireEtat(brut: unknown): EtatVille {
   const pj = o.projets;
   const entier = (x: unknown): number => (Number.isInteger(x) && (x as number) >= 0 ? (x as number) : 0);
   return {
-    version: 11,
+    version: 12,
     // Avant la version 9, pas de prénom : il est demandé à l'arrivée.
     prenom: typeof o.prenom === 'string' ? nettoyerPrenom(o.prenom) : '',
     position: p && nombre(p.x) && nombre(p.z) && nombre(p.cap) ? { x: p.x, z: p.z, cap: p.cap } : neuf.position,
@@ -172,6 +185,11 @@ export function lireEtat(brut: unknown): EtatVille {
       ? o.sol.filter((x): x is ObjetAuSol => typeof x?.id === 'string' && typeof x.produit === 'string' && Number.isInteger(x.nombre) && x.nombre > 0 && typeof x.x === 'number' && typeof x.z === 'number' && typeof x.jour === 'string')
       : [],
     sacJour: typeof o.sacJour === 'string' ? o.sacJour : '',
+    // Avant la version 12, pas de grande aventure ni de propositions du rêve.
+    grandeQuete: lireEtatGrandeQuete(o.grandeQuete),
+    quetesRecues: Array.isArray(o.quetesRecues) ? o.quetesRecues.slice(0, 60) : [],
+    demandesRecues: Array.isArray(o.demandesRecues) ? o.demandesRecues.slice(0, 200) : [],
+    sujet: typeof o.sujet?.texte === 'string' && typeof o.sujet.date === 'string' ? { texte: o.sujet.texte.slice(0, 300), date: o.sujet.date } : { texte: '', date: '' },
   };
 }
 

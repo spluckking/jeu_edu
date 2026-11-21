@@ -1,0 +1,22 @@
+{
+  "_lisez-moi": "L'espace parent, côté aventures : les grandes quêtes et les demandes écrites par le rêve (à valider ou refuser), et le sujet de la prochaine grande quête. Textes pour le parent. valide=false : à relire (A_VALIDER.md, point 31).",
+  "valide": false,
+  "titre": "Les propositions du rêve",
+  "aucune": "Rien à valider pour l’instant : le rêve propose ses quêtes et ses demandes pendant la nuit.",
+  "titreQuete": "Grande quête : {titre}",
+  "titreDemande": "Demande : {besoin}",
+  "chapitre": "Chapitre {n} : {titre}",
+  "fin": "La fin : {titre}",
+  "question": "Question :",
+  "tache": "Tâche :",
+  "morale": "Morale :",
+  "merci": "Merci :",
+  "illisible": "Mal formée, ignorée ({raison}).",
+  "valider": "Valider",
+  "refuser": "Refuser",
+  "fermer": "Fermer",
+  "sujetTitre": "Le sujet de la prochaine grande quête",
+  "sujetAide": "Une idée, un thème, une valeur à faire passer : le rêve s’en servira pour écrire la prochaine grande quête (5 chapitres et une morale), que tu valideras avant qu’elle soit jouée.",
+  "sujetExemple": "Par exemple : le partage, un trésor perdu, un nouveau voisin, les saisons…",
+  "enregistrer": "Enregistrer"
+}

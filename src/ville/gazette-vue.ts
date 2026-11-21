@@ -4,6 +4,7 @@
 // réponse s'allume dans l'article et on réessaie.
 
 import T from '../../content/ville/gazette.json';
+import L from '../../content/ville/lecons.json';
 import { bruitage } from '../son/bruitages.ts';
 import type { Edition, Question } from './gazette.ts';
 import { remplir, texteALire } from './interface.ts';
@@ -47,6 +48,14 @@ export function lireLaGazette(v: VueGazette): Promise<boolean> {
       return p;
     };
     const e = v.edition;
+    // La grande aventure d'abord : le chapitre du jour (ou la fin).
+    if (e.aventure) article.append(creer('h2', 'gazette-rubrique', T.textes.aventure), creer('h3', 'gazette-titre', e.aventure.titre), creer('p', 'gazette-sous-titre', e.aventure.sousTitre), paragraphe(e.aventure.phrases));
+    // La leçon du jour, dans un encadré.
+    if (e.lecon) {
+      const encadre = creer('section', 'gazette-lecon');
+      encadre.append(creer('h2', 'gazette-rubrique', `${L.rubrique} — ${e.lecon.matiere}`), creer('h3', 'gazette-titre', e.lecon.titre), paragraphe(e.lecon.phrases));
+      article.append(encadre);
+    }
     if (e.type === 'histoire') article.append(creer('h2', 'gazette-rubrique', T.textes.histoire), creer('h3', 'gazette-titre', e.histoire.titre), paragraphe(e.histoire.phrases));
     if (e.type === 'bilan') article.append(paragraphe([T.textes.bilan]));
     if (e.type !== 'bilan' && e.quetes.length) {
@@ -61,7 +70,7 @@ export function lireLaGazette(v: VueGazette): Promise<boolean> {
       });
       article.append(carte);
     }
-    if (e.type !== 'histoire' && !e.quetes.length) article.append(paragraphe([T.textes.rien]));
+    if (e.type !== 'histoire' && !e.quetes.length && !e.aventure) article.append(paragraphe([T.textes.rien]));
 
     // Le questionnaire, dans la colonne de droite.
     const cote = creer('aside', 'gazette-cote');
@@ -74,6 +83,8 @@ export function lireLaGazette(v: VueGazette): Promise<boolean> {
     });
     const terminer = (): void => {
       cote.replaceChildren(texteALire(T.textes.fini, 'gazette-bravo texte-a-lire'));
+      // À la fin d'une grande aventure, la morale, après la question pour réfléchir.
+      if (e.aventure?.morale) cote.append(texteALire(remplir(T.textes.morale, { morale: e.aventure.morale }), 'gazette-morale texte-a-lire'));
       const b = creer('button', 'bouton-principal', T.textes.sortir);
       b.type = 'button';
       b.addEventListener('click', () => {

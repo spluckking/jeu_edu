@@ -30,7 +30,38 @@ export interface ContexteDemandes {
   apresUnChangement(): void;
 }
 
-type Demande = (typeof demandes.demandes)[number];
+/** Une demande d'habitant : celles du jeu, celles du rêve (validées), la tâche de la grande quête. */
+export interface Demande {
+  id: string;
+  donneur: string;
+  destinataire: string;
+  fournit: Ligne[];
+  besoin: Ligne[];
+  recompense: number[];
+  texte: string;
+  rappel: string;
+  merci: string;
+  retour?: { destinataire: string; fournit: Ligne[]; merci: string; recompense: number[] };
+}
+
+/** D'où viennent les autres demandes : le rêve (validées par le parent) et la grande quête. */
+let sources: () => { recues: Demande[]; imposees: Demande[] } = () => ({ recues: [], imposees: [] });
+export function sourcesDeDemandes(f: () => { recues: Demande[]; imposees: Demande[] }): void {
+  sources = f;
+}
+/** Toutes les demandes possibles : imposées, reçues du rêve, puis celles du jeu. */
+function toutes(): Demande[] {
+  const s = sources();
+  const vues = new Set<string>();
+  return [...s.imposees, ...s.recues, ...(demandes.demandes as Demande[])].filter((d) => !vues.has(d.id) && vues.add(d.id));
+}
+/** Les demandes du jour (la tâche de la grande quête passe devant). */
+export function duJour(e: EtatDemandes, jour: string): EtatDemandes {
+  const s = sources();
+  const imposees = s.imposees.map((d) => d.id);
+  const autres = toutes().filter((d) => !imposees.includes(d.id)).map((d) => d.id);
+  return demandesDuJour(e, autres, jour, demandes.parJour, imposees);
+}
 const T = demandes.textes;
 
 /** Le nom et le pluriel d'un produit ou d'un objet. */
@@ -55,7 +86,7 @@ interface Etape {
   confie: Ligne[];
 }
 function etapeDe(d: Demande, etat: EtatDemandes): Etape {
-  const retour = 'retour' in d ? d.retour : undefined;
+  const retour = d.retour;
   if (!retour || (etat.etapes[d.id] ?? 0) === 0) {
     return { destinataire: d.destinataire, besoin: d.besoin, merci: d.merci, recompense: d.recompense, rappel: d.rappel, confie: retour?.fournit ?? [] };
   }
@@ -85,7 +116,7 @@ export function majSeance(): void {
     pastille = creer('div', 'hud-seance');
     (document.querySelector('.hud-ville') ?? document.body).append(pastille);
   }
-  const d = demandesDuJour(e.demandes, demandes.demandes.map((x) => x.id), jour, demandes.parJour);
+  const d = duJour(e.demandes, jour);
   const mots = motsFaits(e, jour);
   const faites = d.ids.filter((id) => d.faites.includes(id)).length;
   pastille.replaceChildren(
@@ -250,8 +281,8 @@ export function aUneQuete(habitant: string): boolean {
   if (!c) return false;
   if (attentes.some((f) => f(habitant))) return true;
   const e = c.etat();
-  const dj = demandesDuJour(e.demandes, demandes.demandes.map((x) => x.id), aujourdhui(), demandes.parJour);
-  return demandes.demandes.some((d) => {
+  const dj = duJour(e.demandes, aujourdhui());
+  return toutes().some((d) => {
     if (!dj.ids.includes(d.id) || dj.faites.includes(d.id)) return false;
     if (d.donneur === habitant && !dj.acceptees.includes(d.id)) return motsFaits(e, aujourdhui());
     return dj.acceptees.includes(d.id) && (etapeDe(d, dj).destinataire === habitant || d.donneur === habitant);
@@ -264,12 +295,12 @@ export async function parlerA(habitant: string, boutique = false): Promise<boole
   for (const f of avantDeParler) await f(habitant, c.noms[habitant] ?? '');
   const jour = aujourdhui();
   let e = c.etat();
-  const dj = demandesDuJour(e.demandes, demandes.demandes.map((x) => x.id), jour, demandes.parJour);
+  const dj = duJour(e.demandes, jour);
   if (dj !== e.demandes) c.changer((e = { ...e, demandes: dj }));
-  const duJour = demandes.demandes.filter((d) => dj.ids.includes(d.id) && !dj.faites.includes(d.id));
-  const aLivrer = duJour.find((d) => etapeDe(d, dj).destinataire === habitant && dj.acceptees.includes(d.id));
-  const aDonner = duJour.find((d) => d.donneur === habitant && !dj.acceptees.includes(d.id));
-  const enCours = duJour.find((d) => d.donneur === habitant && etapeDe(d, dj).destinataire !== habitant && dj.acceptees.includes(d.id));
+  const duJourListe = toutes().filter((d) => dj.ids.includes(d.id) && !dj.faites.includes(d.id));
+  const aLivrer = duJourListe.find((d) => etapeDe(d, dj).destinataire === habitant && dj.acceptees.includes(d.id));
+  const aDonner = duJourListe.find((d) => d.donneur === habitant && !dj.acceptees.includes(d.id));
+  const enCours = duJourListe.find((d) => d.donneur === habitant && etapeDe(d, dj).destinataire !== habitant && dj.acceptees.includes(d.id));
   const nom = c.noms[habitant] ?? '';
   if (aLivrer) {
     const f = ouvrir(c);
@@ -301,6 +332,17 @@ export async function parlerA(habitant: string, boutique = false): Promise<boole
     return !boutique;
   }
   return false;
+}
+
+/** Les habitants qui ont une demande aujourd'hui (leur nom), pour les annonces de la Gazette. */
+export function donneursDuJour(): string[] {
+  const c = ctx;
+  if (!c) return [];
+  const dj = duJour(c.etat().demandes, aujourdhui());
+  return toutes()
+    .filter((d) => dj.ids.includes(d.id) && !dj.faites.includes(d.id))
+    .map((d) => c.noms[d.donneur] ?? '')
+    .filter(Boolean);
 }
 
 /** À appeler après l'épicerie : la séance du jour se range à côté du porte-monnaie. */

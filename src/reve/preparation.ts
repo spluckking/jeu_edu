@@ -23,6 +23,10 @@ export interface Preparation {
    * « chapeau-pilote »…). Facultatif ; un cadeau impossible est remplacé par l'ordre prévu.
    */
   recompenses?: Partial<Record<IdManege, string>>;
+  /** La ville : grandes quêtes et demandes proposées (vérifiées en détail par la ville, puis
+   *  validées par le parent). */
+  quetes?: unknown[];
+  demandes?: unknown[];
 }
 
 const JOUR = /^\d{4}-\d{2}-\d{2}$/;
@@ -50,7 +54,18 @@ export function lirePreparation(brut: unknown): Preparation | null {
       if (typeof code === 'string' && /^[a-z-]{1,40}$/.test(code)) recompenses[id] = code;
     }
   }
-  return { jour: o.jour, resume, niveaux, focus, feuilleton, ...(Object.keys(recompenses).length > 0 ? { recompenses } : {}) };
+  const quetes = Array.isArray(o.quetes) ? o.quetes.slice(0, 2) : [];
+  const demandes = Array.isArray(o.demandes) ? o.demandes.slice(0, 8) : [];
+  return {
+    jour: o.jour,
+    resume,
+    niveaux,
+    focus,
+    feuilleton,
+    ...(Object.keys(recompenses).length > 0 ? { recompenses } : {}),
+    ...(quetes.length ? { quetes } : {}),
+    ...(demandes.length ? { demandes } : {}),
+  };
 }
 
 /** Les éléments du focus passent devant, les autres gardent leur ordre. */

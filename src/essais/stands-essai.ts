@@ -99,16 +99,17 @@ interface Conversion {
   reponse: number;
 }
 
-/** Les conversions de CE2 : m et cm, km et m, kg et g. */
+/** Les conversions des leçons (mm, cm, dm, m, km), et les kilos en grammes. */
 export function conversion(hasard: Hasard): Conversion {
-  switch (entier(hasard, 0, 4)) {
+  switch (entier(hasard, 0, 8)) {
     case 0: {
       const m = entier(hasard, 1, 9);
       return { de: `${m} m`, vers: 'cm', reponse: m * 100 };
     }
     case 1: {
+      // 136 cm = 1 m 36 cm : la mesure mixte, en centimètres.
       const m = entier(hasard, 1, 5);
-      const cm = entier(hasard, 1, 9) * 10;
+      const cm = entier(hasard, 1, 99);
       return { de: `${m} m ${cm} cm`, vers: 'cm', reponse: m * 100 + cm };
     }
     case 2: {
@@ -119,12 +120,33 @@ export function conversion(hasard: Hasard): Conversion {
       const km = entier(hasard, 1, 5);
       return { de: `${km} km`, vers: 'm', reponse: km * 1000 };
     }
+    case 4: {
+      // 1 km 500 m = 1 500 m.
+      const km = entier(hasard, 1, 4);
+      const m = entier(hasard, 1, 9) * 50;
+      return { de: `${km} km ${m} m`, vers: 'm', reponse: km * 1000 + m };
+    }
+    case 5: {
+      const dm = entier(hasard, 1, 9);
+      return { de: `${dm} dm`, vers: 'cm', reponse: dm * 10 };
+    }
+    case 6: {
+      const cm = entier(hasard, 1, 9);
+      return { de: `${cm} cm`, vers: 'mm', reponse: cm * 10 };
+    }
+    case 7: {
+      const cm = entier(hasard, 2, 9);
+      return { de: `${cm * 10} mm`, vers: 'cm', reponse: cm };
+    }
     default: {
       const kg = entier(hasard, 1, 5);
       return { de: `${kg} kg`, vers: 'g', reponse: kg * 1000 };
     }
   }
 }
+
+/** Les pas pour parcourir 1 m (la leçon : 20 cm). */
+export const PAS = [20, 25, 50] as const;
 
 export const mesures: StandEssai = {
   id: 'mesures',
@@ -134,12 +156,19 @@ export const mesures: StandEssai = {
   questions(hasard) {
     const phrases = melanger(hasard, T.mesures.phrases);
     return Array.from({ length: QUESTIONS }, (_, i): Question => {
+      // Une fois par partie, le problème des pas.
+      if (i === 4) {
+        const pas = parmi(hasard, PAS);
+        const reponse = 100 / pas;
+        const v = { pas, reponse, addition: Array.from({ length: reponse }, () => pas).join(' + ') };
+        return { type: 'nombre', enonce: remplir(T.mesures.pas, v), reponse, aide: remplir(T.mesures.aidePas, v) };
+      }
       if (i % 2 === 0) {
         const c = conversion(hasard);
         return { type: 'nombre', enonce: remplir(T.mesures.convertir, { ...c, de: c.de.replace(/\d+/g, (x) => ecrire(Number(x))) }), reponse: c.reponse, unite: c.vers, aide: remplir(T.mesures.aideConvertir, { ...c, reponse: ecrire(c.reponse) }) };
       }
       const p = phrases[i % phrases.length]!;
-      const choix = p.sorte === 'longueur' ? ['cm', 'm', 'km'] : ['g', 'kg'];
+      const choix = p.sorte === 'longueur' ? ['mm', 'cm', 'dm', 'm', 'km'] : ['g', 'kg'];
       return { type: 'choix', enonce: remplir(T.mesures.unite, p), choix, reponse: p.reponse, aide: remplir(T.mesures.aideUnite, p) };
     });
   },
@@ -297,4 +326,38 @@ export const formes: StandEssai = {
   },
 };
 
-export const STANDS_ESSAI: readonly StandEssai[] = [monnaie, mesures, fractions, nombres, formes];
+// --- Les phrases : le pluriel, les groupes de mots ---------------------------------------------
+
+type Role = keyof typeof T.phrases.questions;
+
+export const phrases: StandEssai = {
+  id: 'phrases',
+  titre: T.phrases.titre,
+  consigne: T.phrases.consigne,
+  brouillon: false,
+  questions(hasard) {
+    const mots = melanger(hasard, T.phrases.mots);
+    const exemples = melanger(hasard, T.phrases.exemples);
+    return Array.from({ length: QUESTIONS }, (_, i): Question => {
+      if (i % 2 === 0) {
+        const m = mots[i % mots.length]!;
+        const regle = (T.phrases.regles as Record<string, string>)[m.regle] ?? '';
+        return { type: 'choix', enonce: remplir(T.phrases.pluriel, { singulier: m.singulier }), choix: melanger(hasard, m.choix), reponse: m.choix[0]!, aide: remplir(T.phrases.aidePluriel, { regle, reponse: m.choix[0]! }) };
+      }
+      // Les groupes : une phrase de la leçon, une question sur un de ses groupes.
+      const ex = exemples[Math.floor(i / 2) % exemples.length]!;
+      const roles = Object.entries(ex.roles) as Array<[Role, number]>;
+      const [role, k] = parmi(hasard, roles);
+      const reponse = ex.groupes[k]!;
+      return {
+        type: 'choix',
+        enonce: remplir(T.phrases.groupe, { phrase: ex.phrase, question: T.phrases.questions[role] }),
+        choix: [...ex.groupes],
+        reponse,
+        aide: remplir(role === 'supprimer' ? T.phrases.aideSupprimer : T.phrases.aideGroupe, { reponse }),
+      };
+    });
+  },
+};
+
+export const STANDS_ESSAI: readonly StandEssai[] = [monnaie, mesures, fractions, nombres, formes, phrases];
