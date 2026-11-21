@@ -1,0 +1,225 @@
+/* La page d'essais pour la fête. */
+
+body.essais-fete {
+  overflow: auto;
+  background: linear-gradient(#cfeeff, #fff1d6);
+}
+
+.essais-menu {
+  width: min(900px, 100%);
+  margin: 0 auto;
+  padding: 24px 16px 48px;
+  color: var(--encre);
+  font-family: var(--police);
+  text-align: center;
+}
+
+.essais-menu h1 {
+  margin: 0 0 4px;
+}
+
+.essais-aide {
+  margin: 0 0 18px;
+}
+
+.essais-grille {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 14px;
+}
+
+.essais-carte {
+  min-height: 90px;
+  padding: 12px;
+  border: 0;
+  border-radius: 22px;
+  background: var(--papier);
+  color: var(--encre);
+  font: 700 1.2rem var(--police);
+  box-shadow: var(--ombre);
+  cursor: pointer;
+}
+
+.essais-carte:active {
+  translate: 0 2px;
+}
+
+/* Les stands. */
+.essai-stand .exercice-texte {
+  font-size: 1.35rem;
+  text-align: center;
+}
+
+.essai-corps {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+}
+
+.essai-compte {
+  margin: 0;
+  font-weight: 700;
+  opacity: 0.7;
+}
+
+.essai-reponse {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.essai-ligne {
+  margin: 0;
+  font-size: 2.2rem;
+  font-weight: 700;
+}
+
+.essai-unite {
+  margin-left: 0.3em;
+}
+
+.essai-clavier {
+  flex: none;
+  width: min(320px, 100%);
+}
+
+.essai-choix {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+}
+
+.essai-choix-bouton {
+  min-width: 110px;
+  font-size: 1.5rem;
+}
+
+.essai-choix-bouton.juste {
+  background: var(--vert);
+  color: white;
+}
+
+.essai-choix-bouton.faux {
+  opacity: 0.4;
+}
+
+.essai-retour {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  min-height: 2.6em;
+}
+
+.essai-retour.juste {
+  color: #4ea832;
+}
+
+svg.essai-parts {
+  flex: none;
+  width: min(260px, 60vw);
+  height: auto;
+  max-height: 220px;
+}
+
+.essai-parts .part {
+  fill: #fff8ee;
+  stroke: var(--encre);
+  stroke-width: 3;
+  cursor: pointer;
+}
+
+.essai-parts .part.coloree {
+  fill: var(--rouge);
+}
+
+svg.essai-figure {
+  flex: none;
+  width: min(240px, 55vw);
+  height: auto;
+  max-height: 200px;
+}
+
+.essai-figure :is(polygon, circle) {
+  fill: var(--jaune);
+  stroke: var(--encre);
+  stroke-width: 4;
+  stroke-linejoin: round;
+}
+
+.essai-plateau {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+  min-height: 70px;
+  width: min(520px, 90vw);
+  padding: 8px;
+  border: 3px dashed #e3dccd;
+  border-radius: 18px;
+}
+
+.essai-plateau .petite {
+  scale: 0.8;
+}
+
+.essai-somme {
+  margin: 0;
+  font-weight: 700;
+}
+
+.essai-pieces {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+/* Les centimes : des pièces cuivrées ou dorées, plus petites. */
+.argent-50,
+.argent-20,
+.argent-10 {
+  background: #e2b75a;
+  font-size: 0.95rem;
+}
+
+.argent-50 {
+  width: 58px;
+  height: 58px;
+}
+
+.argent-20 {
+  width: 54px;
+  height: 54px;
+}
+
+.argent-10 {
+  width: 48px;
+  height: 48px;
+}
+
+/* Les manèges : la toile prend presque tout l'écran, en 5/3. */
+.manege {
+  width: min(96vw, calc(92vh * 5 / 3));
+  aspect-ratio: 5 / 3;
+  border-radius: 24px;
+  overflow: hidden;
+  box-shadow: var(--ombre);
+}
+
+.manege-toile {
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+}
+
+/* La barre (tablette de chocolat) : plus large que le disque. */
+svg.essai-parts[viewBox^='0 0'] {
+  width: min(440px, 80vw);
+}

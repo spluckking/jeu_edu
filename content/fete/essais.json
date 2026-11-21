@@ -1,0 +1,120 @@
+{
+  "_lisez-moi": "Les essais de nouveaux stands et manèges pour la fête (le parent choisit ceux qu'on met en place). Stands : 6 questions par partie, deux essais par question, l'aide après le 2e essai. Manèges : des jeux de détente en 2D, sans perdre. valide=false : textes à relire (A_VALIDER.md, point 29).",
+  "valide": false,
+  "page": {
+    "titre": "Essais pour la fête",
+    "aide": "Choisis un stand ou un manège à essayer.",
+    "stands": "Les stands",
+    "maneges": "Les manèges"
+  },
+  "commun": {
+    "questionN": "Question {n} sur {total}",
+    "valider": "Valider",
+    "bravo": "Bravo !",
+    "pasJuste": "Pas tout à fait. Essaie encore !",
+    "suivant": "Suivant",
+    "bilan": "Tu as trouvé {n} réponses sur {total} !",
+    "bilanUn": "Tu as trouvé {n} réponse sur {total} !",
+    "encore": "Encore une partie",
+    "sortir": "Sortir",
+    "cestParti": "C’est parti !",
+    "temps": "Temps"
+  },
+  "monnaie": {
+    "titre": "La caisse du marchand",
+    "consigne": "Rends la monnaie ou donne la somme exacte.",
+    "objets": ["Le ballon", "La toupie", "Le moulin à vent", "La peluche", "Le sucre d’orge", "Le yoyo", "La balle rebondissante", "Le sifflet"],
+    "rendre": "{objet} coûte {prix} €. Tu paies avec un billet de {billet} €. Combien le marchand te rend-il ?",
+    "aideRendre": "{billet} − {prix} = {rendu} : le marchand te rend {rendu} €.",
+    "donner": "{objet} coûte {prix}. Donne la somme exacte au marchand.",
+    "aideDonner": "Par exemple : {pieces}.",
+    "tonArgent": "Tu donnes : {somme}",
+    "reprendre": "Tout reprendre"
+  },
+  "mesures": {
+    "titre": "Le stand des mesures",
+    "consigne": "Les mètres, les centimètres, les grammes, les kilos…",
+    "convertir": "{de} = combien de {vers} ?",
+    "aideConvertir": "1 m = 100 cm, 1 km = 1 000 m, 1 kg = 1 000 g. Donc {de} = {reponse} {vers}.",
+    "unite": "{phrase} … Quelle est la bonne unité ?",
+    "aideUnite": "{phrase} {reponse}.",
+    "phrases": [
+      { "phrase": "Une règle d’école mesure 20", "reponse": "cm", "sorte": "longueur" },
+      { "phrase": "Un crayon mesure 15", "reponse": "cm", "sorte": "longueur" },
+      { "phrase": "Une porte mesure 2", "reponse": "m", "sorte": "longueur" },
+      { "phrase": "Une voiture mesure 4", "reponse": "m", "sorte": "longueur" },
+      { "phrase": "Pour aller à la ville voisine, on fait 30", "reponse": "km", "sorte": "longueur" },
+      { "phrase": "Une pomme pèse 150", "reponse": "g", "sorte": "masse" },
+      { "phrase": "Un sac de pommes de terre pèse 5", "reponse": "kg", "sorte": "masse" },
+      { "phrase": "Un vélo pèse 12", "reponse": "kg", "sorte": "masse" },
+      { "phrase": "Une lettre pèse 20", "reponse": "g", "sorte": "masse" }
+    ]
+  },
+  "fractions": {
+    "titre": "Le stand des parts",
+    "consigne": "Les gâteaux et les tablettes coupés en parts égales.",
+    "nommer": "Quelle part est coloriée ?",
+    "aideNommer": "{k} part(s) coloriée(s) sur {n} parts égales : {nom}.",
+    "colorier": "Colorie {fraction} de la figure.",
+    "aideColorier": "{fraction} : la figure a {n} parts égales, on en colorie {k}.",
+    "noms": { "2": ["un demi", "demis"], "3": ["un tiers", "tiers"], "4": ["un quart", "quarts"], "5": ["un cinquième", "cinquièmes"], "6": ["un sixième", "sixièmes"], "8": ["un huitième", "huitièmes"], "10": ["un dixième", "dixièmes"] }
+  },
+  "nombres": {
+    "titre": "Le stand des grands nombres",
+    "consigne": "Les nombres jusqu’à 10 000.",
+    "enChiffres": "Écris ce nombre en chiffres : {lettres}.",
+    "aideEnChiffres": "{lettres} s’écrit {chiffres}.",
+    "decomposer": "{somme} = ?",
+    "aideDecomposer": "{somme} = {reponse}.",
+    "chiffreDes": "Dans {nombre}, quel est le chiffre des {rang} ?",
+    "aideChiffreDes": "{nombre} : {detail}. Le chiffre des {rang} est {reponse}.",
+    "rangs": ["unités", "dizaines", "centaines", "milliers"],
+    "plusGrand": "Quel est le plus grand nombre ?",
+    "aidePlusGrand": "On compare d’abord les milliers, puis les centaines, puis les dizaines. Le plus grand est {reponse}."
+  },
+  "formes": {
+    "titre": "Le stand des formes",
+    "consigne": "Les carrés, les rectangles, les triangles…",
+    "nom": "Comment s’appelle cette figure ?",
+    "aideNom": "C’est {article} {nom} : {pourquoi}",
+    "cotes": "Combien de côtés a cette figure ?",
+    "aideCotes": "{article} {nom} a {n} côtés.",
+    "anglesDroits": "Combien d’angles droits a cette figure ?",
+    "aideAnglesDroits": "{article} {nom} a {n} angle(s) droit(s).",
+    "figures": {
+      "carre": { "nom": "carré", "article": "un", "pourquoi": "4 côtés égaux et 4 angles droits." },
+      "rectangle": { "nom": "rectangle", "article": "un", "pourquoi": "4 côtés, 4 angles droits, les côtés opposés sont égaux." },
+      "losange": { "nom": "losange", "article": "un", "pourquoi": "4 côtés égaux, mais pas d’angle droit." },
+      "triangle": { "nom": "triangle", "article": "un", "pourquoi": "3 côtés." },
+      "triangleRectangle": { "nom": "triangle rectangle", "article": "un", "pourquoi": "3 côtés et un angle droit." },
+      "cercle": { "nom": "cercle", "article": "un", "pourquoi": "il est tout rond, sans côté." },
+      "pentagone": { "nom": "pentagone", "article": "un", "pourquoi": "5 côtés." },
+      "hexagone": { "nom": "hexagone", "article": "un", "pourquoi": "6 côtés." }
+    }
+  },
+  "carrousel": {
+    "titre": "Le carrousel",
+    "consigne": "Ton cheval monte et descend. Touche l’écran pour attraper les anneaux quand ta main passe à leur hauteur. Les anneaux dorés valent 3 points !",
+    "bilan": "Tu as attrapé {n} points d’anneaux !"
+  },
+  "chaises": {
+    "titre": "Les chaises volantes",
+    "consigne": "Appuie pour voler plus haut, lâche pour descendre. Éclate les ballons !",
+    "bilan": "Tu as éclaté {n} ballons !"
+  },
+  "tasses": {
+    "titre": "Les tasses",
+    "consigne": "Fais tourner ta tasse en dessinant des ronds autour d’elle. Garde la vitesse dans le vert : ni trop lent, ni trop vite !",
+    "bilan": "Ta tasse a tourné {n} secondes dans le vert !"
+  },
+  "bateau": {
+    "titre": "Le bateau pirate",
+    "consigne": "Touche l’écran quand le bateau est tout en haut d’un côté : il se balance de plus en plus fort. Monte jusqu’aux mouettes !",
+    "bilan": "Tu as touché {n} mouettes !"
+  },
+  "grandHuit": {
+    "titre": "Le petit grand huit",
+    "consigne": "Le wagon saute en haut des bosses. Appuie pour freiner : moins vite, il saute moins haut. Attrape les étoiles !",
+    "bilan": "Tu as attrapé {n} étoiles !"
+  }
+}
