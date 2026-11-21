@@ -10,8 +10,11 @@ import { bouton, creer, remplir, texteALire } from '../ville/interface.ts';
 import {
   ajuster,
   cheminY,
+  avecRappel,
+  cout,
   DUREE_ECHAUFFEMENT,
   DUREE_MANCHE,
+  DUREES_MANCHE,
   estLaCible,
   mesuresVides,
   prochainObjet,
@@ -41,12 +44,13 @@ interface Sauvegarde {
   niveaux: Niveaux;
   wagons: number;
   manches: number;
+  duree: number;
   difficiles: number;
   echauffement: string;
   resultats: Resultat[];
 }
 
-const neuve = (): Sauvegarde => ({ niveaux: { pilotage: 1, caisses: 1 }, wagons: 0, manches: 3, difficiles: 0, echauffement: '', resultats: [] });
+const neuve = (): Sauvegarde => ({ niveaux: { pilotage: 1, caisses: 1 }, wagons: 0, manches: 3, duree: DUREE_MANCHE, difficiles: 0, echauffement: '', resultats: [] });
 
 export function lire(): Sauvegarde {
   try {
@@ -403,7 +407,7 @@ function courir(f: HTMLElement, mode: Mode, n: Niveaux, cible: Cible, duree: num
       c.fillRect(32, 50, 296, 8);
       c.fillStyle = '#8acb52';
       c.fillRect(32, 50, 296 * Math.max(0, 1 - t / duree), 8);
-      if (mode !== 'pilotage') {
+      if (mode !== 'pilotage' && avecRappel(n.caisses)) {
         c.fillStyle = 'rgba(255,248,238,0.9)';
         c.beginPath();
         c.roundRect(L - 120, 14, 104, 74, 18);
@@ -461,7 +465,7 @@ export async function jouerGolem(f: HTMLElement): Promise<void> {
     await carte(f, [texteALire(T.echauffePilotage)], [T.cestParti]);
     const mp = await courir(f, 'pilotage', s.niveaux, cible, DUREE_ECHAUFFEMENT, s.wagons, T.echauffement);
     s.resultats.push(resultat(jour, 'pilotage', s.niveaux, mp));
-    await carte(f, [texteALire(T.echauffeCaisses), texteALire(remplir(T.regle, { cible: nomCible(cible) })), imageObjet({ sorte: 'minerai', ...cible })], [T.cestParti]);
+    await carte(f, [texteALire(T.echauffeCaisses), texteALire(remplir(T.regle, { cible: nomCible(cible) })), imageObjet({ sorte: 'minerai', ...cible }), ...(avecRappel(s.niveaux.caisses) ? [] : [texteALire(T.retiens)])], [T.cestParti]);
     const mc = await courir(f, 'caisses', s.niveaux, cible, DUREE_ECHAUFFEMENT, s.wagons, T.echauffement);
     s.resultats.push(resultat(jour, 'caisses', s.niveaux, mc));
     s.echauffement = jour;
@@ -471,11 +475,12 @@ export async function jouerGolem(f: HTMLElement): Promise<void> {
     const cible = tireCible(Math.random);
     const entete = remplir(T.mancheN, { n: i, total: s.manches });
     const regle = [creer('p', 'golem-chef', T.chefDeGare), imageObjet({ sorte: 'minerai', ...cible }), texteALire(remplir(T.regle, { cible: nomCible(cible) })), texteALire(T.jamaisTnt)];
+    if (!avecRappel(s.niveaux.caisses)) regle.push(texteALire(T.retiens));
     if ((await carte(f, regle, [T.sortir, T.cestParti])) === 0) return;
-    const m = await courir(f, 'double', s.niveaux, cible, DUREE_MANCHE, s.wagons, entete);
+    const m = await courir(f, 'double', s.niveaux, cible, s.duree, s.wagons, entete);
     const a = ajuster(s.niveaux, m, s.difficiles);
     s = lire();
-    s.resultats.push(resultat(jour, 'double', s.niveaux, m));
+    s.resultats.push(resultat(jour, 'double', s.niveaux, m, s.duree));
     s.niveaux = a.niveaux;
     s.difficiles = a.difficiles;
     if (a.etoile) s.wagons = Math.min(WAGONS_MAX, s.wagons + 1);
@@ -515,14 +520,34 @@ export function voirResultats(f: HTMLElement): Promise<void> {
       ecrire(s2);
     });
     reglage.append(choix);
+    const reglageDuree = creer('label', 'golem-reglage', `${T.parent.duree} : `);
+    const choixDuree = creer('select');
+    for (const d of DUREES_MANCHE) {
+      const o = creer('option', '', d === 90 ? T.parent.duree90 : T.parent.duree180);
+      o.value = String(d);
+      o.selected = d === s.duree;
+      choixDuree.append(o);
+    }
+    choixDuree.addEventListener('change', () => {
+      const s2 = lire();
+      s2.duree = Number(choixDuree.value);
+      ecrire(s2);
+    });
+    reglageDuree.append(choixDuree);
     const tableau = creer('table', 'golem-tableau');
     const tete = creer('tr');
     for (const col of T.parent.colonnes) tete.append(creer('th', '', col));
     tableau.append(tete);
+    const echauffe = (date: string, sorte: 'pilotage' | 'caisses'): Resultat | undefined => s.resultats.find((x) => x.date === date && x.sorte === sorte);
+    const pourcent = (v: number | null): string => (v === null ? '–' : `${v} %`);
     for (const r of [...s.resultats].reverse().slice(0, 40)) {
       const l = creer('tr', r.sorte === 'double' ? '' : 'echauffement');
+      const seulC = r.sorte === 'double' ? echauffe(r.date, 'caisses') : undefined;
+      const seulP = r.sorte === 'double' ? echauffe(r.date, 'pilotage') : undefined;
+      const coutCaisses = seulC?.dprime !== undefined && r.dprime !== undefined ? cout(seulC.dprime, r.dprime) : null;
+      const coutChemin = seulP ? cout(seulP.pilotage, r.pilotage) : null;
       const date = r.sorte === 'double' ? r.date : `${r.date} (${r.sorte === 'pilotage' ? T.parent.seulChemin : T.parent.seulesCaisses})`;
-      for (const v of [date, r.niveaux.pilotage, r.niveaux.caisses, r.sorte === 'caisses' ? '–' : `${r.pilotage} %`, r.sorte === 'pilotage' ? '–' : `${r.caisses} %`, r.oubliees, r.erreurs, r.reaction ? `${r.reaction} ms` : '–', r.regularite ? `${r.regularite} ms` : '–']) l.append(creer('td', '', String(v)));
+      for (const v of [date, r.niveaux.pilotage, r.niveaux.caisses, r.sorte === 'caisses' ? '–' : `${r.pilotage} %`, r.sorte === 'pilotage' ? '–' : `${r.caisses} %`, r.oubliees, r.erreurs, r.reaction ? `${r.reaction} ms` : '–', r.regularite ? `${r.regularite} ms` : '–', r.dprime === undefined ? '–' : r.dprime.toFixed(2), pourcent(coutChemin), pourcent(coutCaisses)]) l.append(creer('td', '', String(v)));
       tableau.append(l);
     }
     const effacer = bouton('bouton-secondaire', T.parent.effacer);
@@ -543,6 +568,7 @@ export function voirResultats(f: HTMLElement): Promise<void> {
     carteR.append(
       creer('p', 'exercice-titre', T.parent.titre),
       reglage,
+      reglageDuree,
       s.resultats.length ? tableau : creer('p', '', T.parent.aucun),
       creer('p', 'golem-aide', T.parent.aide),
       creer('p', 'golem-aide', remplir(T.parent.niveaux, { ...s.niveaux, wagons: s.wagons })),

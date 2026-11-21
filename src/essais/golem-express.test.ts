@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ajuster, ecartType, estLaCible, mesuresVides, NIVEAU_MAX, piege, prochainObjet, reglageCaisses, reglagePilotage, reussiteCaisses, tireCible, type Mesures } from './golem-express.ts';
+import { ajuster, avecRappel, cout, dPrime, ecartType, NIVEAU_SANS_RAPPEL, zNormale, estLaCible, mesuresVides, NIVEAU_MAX, piege, prochainObjet, reglageCaisses, reglagePilotage, reussiteCaisses, tireCible, type Mesures } from './golem-express.ts';
 
 const manche = (surChemin: number, attrapees: number, piegesAttrapes: number): Mesures => ({
   ...mesuresVides(),
@@ -74,5 +74,28 @@ describe('le Golem Express', () => {
   it('la régularité des réactions', () => {
     expect(ecartType([500, 500, 500])).toBe(0);
     expect(ecartType([400, 600])).toBeCloseTo(141.4, 0);
+  });
+
+  it('le d′ : distinguer les cibles des pièges', () => {
+    expect(zNormale(0.5)).toBeCloseTo(0, 6);
+    expect(zNormale(0.975)).toBeCloseTo(1.96, 2);
+    expect(zNormale(0.01)).toBeCloseTo(-2.326, 2);
+    // Tout attraper, pièges compris : aucune distinction.
+    expect(Math.abs(dPrime(manche(100, 20, 10)))).toBeLessThan(0.5);
+    // Les bonnes caisses, et presque aucun piège : un bon d′.
+    expect(dPrime(manche(100, 19, 1))).toBeGreaterThan(2);
+    expect(dPrime(manche(100, 19, 1))).toBeGreaterThan(dPrime(manche(100, 15, 4)));
+  });
+
+  it('le coût de la double tâche', () => {
+    expect(cout(2, 1.5)).toBe(25);
+    expect(cout(100, 90)).toBe(10);
+    expect(cout(1, 1.2)).toBe(-20);
+    expect(cout(0, 1)).toBeNull();
+  });
+
+  it('la cible n’est plus rappelée aux hauts niveaux', () => {
+    expect(avecRappel(1)).toBe(true);
+    expect(avecRappel(NIVEAU_SANS_RAPPEL)).toBe(false);
   });
 });

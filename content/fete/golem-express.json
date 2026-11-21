@@ -13,6 +13,7 @@
   "chefDeGare": "Le chef de gare demande :",
   "regle": "Attrape {cible} !",
   "jamaisTnt": "Jamais la TNT !",
+  "retiens": "Retiens-la bien : pendant la course, elle ne sera plus affichée !",
   "matieres": {
     "fer": "fer",
     "or": "or",
@@ -39,10 +40,13 @@
   "parent": {
     "titre": "Le Golem Express : résultats",
     "manches": "Manches par partie",
+    "duree": "Durée d’une manche",
+    "duree90": "1 min 30",
+    "duree180": "3 minutes (comme dans la recherche)",
     "aucun": "Pas encore de manche jouée.",
     "effacer": "Tout effacer",
-    "colonnes": ["Date", "Niv. chemin", "Niv. caisses", "Chemin", "Caisses", "Oubliées", "Attrapées par erreur", "Réaction", "Régularité"],
-    "aide": "Chemin : part du temps sur les cailloux. Caisses : moyenne des bonnes caisses attrapées et des pièges laissés passer. Réaction : temps moyen pour attraper. Régularité : écart-type de ce temps (plus il est petit, plus l’attention est stable). Échauffement : chaque tâche seule, pour comparer.",
+    "colonnes": ["Date", "Niv. chemin", "Niv. caisses", "Chemin", "Caisses", "Oubliées", "Attrapées par erreur", "Réaction", "Régularité", "d′", "Coût chemin", "Coût caisses"],
+    "aide": "Chemin : part du temps sur les cailloux. Caisses : moyenne des bonnes caisses attrapées et des pièges laissés passer. Réaction : temps moyen pour attraper. Régularité : écart-type de ce temps (plus il est petit, plus l’attention est stable). d′ (« d prime ») : comme dans la recherche, savoir distinguer les bonnes caisses des pièges (0 : au hasard ; 1 : correct ; 2 et plus : très bien). Coûts : de combien le chemin et le d′ baissent quand l’enfant fait les deux à la fois, par rapport à chaque tâche seule (l’échauffement du jour) ; plus le coût est petit, mieux il partage son attention. Au niveau 7 des caisses, la cible n’est plus rappelée pendant la course : il faut la retenir.",
     "niveaux": "Niveaux actuels : chemin {pilotage}, caisses {caisses}. Wagons : {wagons}.",
     "seulChemin": "échauffement, chemin seul",
     "seulesCaisses": "échauffement, caisses seules",
