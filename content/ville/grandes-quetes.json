@@ -1,0 +1,411 @@
+{
+  "_lisez-moi": "Les grandes quêtes : une histoire en 5 chapitres (un par jour, dans la Gazette), chacun avec un rebondissement et une tâche dans la ville (une demande d'habitant : donneur, destinataire, fournit, besoin, recompense en centimes, texte, rappel, merci). Puis la fin : une question pour réfléchir (la meilleure réponse en premier) et la morale. Habitants possibles : epiciere, forain-chamboule, postiere. Les suivantes sont écrites par le rêve et validées par le parent. valide=false : textes à relire (A_VALIDER.md, point 31).",
+  "valide": false,
+  "quetes": [
+    {
+      "id": "colis-sans-adresse",
+      "titre": "Le colis sans adresse",
+      "chapitres": [
+        {
+          "titre": "Un colis mystérieux",
+          "phrases": [
+            "Ce matin, la postière a trouvé un colis bleu devant la poste.",
+            "Il n’y a pas d’adresse dessus, seulement le dessin d’une carotte.",
+            "« Une carotte ? C’est sûrement pour l’épicière, elle vend des carottes ! » dit la postière.",
+            "Elle a besoin de toi pour porter le colis."
+          ],
+          "questions": [
+            { "question": "Qu’y a-t-il de dessiné sur le colis ?", "choix": ["une carotte", "une pomme", "un poisson"], "indice": 2 },
+            { "question": "Où la postière a-t-elle trouvé le colis ?", "choix": ["devant la poste", "sous le pont", "à la fête foraine"], "indice": 1 }
+          ],
+          "tache": {
+            "donneur": "postiere",
+            "destinataire": "epiciere",
+            "fournit": [{ "produit": "colis", "nombre": 1 }],
+            "besoin": [{ "produit": "colis", "nombre": 1 }],
+            "recompense": [200],
+            "texte": "Regarde ce colis bleu : pas d’adresse, juste une carotte dessinée. Tu veux bien l’apporter à l’épicière ?",
+            "rappel": "Le colis bleu, c’est pour l’épicière. Elle est à l’épicerie.",
+            "merci": "Un colis pour moi ? Comme c’est étrange… Merci ! Je le garde à l’abri. Tiens, 2 € pour toi."
+          }
+        },
+        {
+          "titre": "Toc, toc !",
+          "phrases": [
+            "Pendant la nuit, le colis bleu s’est mis à faire « toc, toc » !",
+            "L’épicière a un peu peur : elle n’ose pas l’ouvrir.",
+            "« Ce n’est peut-être pas à moi, dit-elle. On n’ouvre pas les paquets des autres. »",
+            "Le forain connaît toutes les surprises : il saura écouter ce bruit."
+          ],
+          "questions": [
+            { "question": "Quel bruit fait le colis ?", "choix": ["toc, toc", "miaou", "ding, dong"], "indice": 1 },
+            { "question": "Pourquoi l’épicière n’ouvre-t-elle pas le colis ?", "choix": ["il n’est peut-être pas à elle", "il est trop lourd", "elle n’a pas de ciseaux"], "indice": 3 }
+          ],
+          "tache": {
+            "donneur": "epiciere",
+            "destinataire": "forain-chamboule",
+            "fournit": [{ "produit": "colis", "nombre": 1 }],
+            "besoin": [{ "produit": "colis", "nombre": 1 }],
+            "recompense": [200],
+            "texte": "Ce colis fait « toc, toc » toute la nuit… Apporte-le au forain, s’il te plaît : il saura écouter.",
+            "rappel": "Le colis qui fait « toc, toc », c’est pour le forain, à la fête foraine.",
+            "merci": "Toc, toc ? Fais voir… Je vais bien l’écouter. Merci ! Voilà 2 €."
+          }
+        },
+        {
+          "titre": "Un indice en couleurs",
+          "phrases": [
+            "Le forain a écouté le colis toute la soirée.",
+            "« Ce n’est pas méchant, dit-il : on dirait du bois qui roule. »",
+            "Puis il regarde le dessin de près : la carotte est coloriée aux crayons, comme le ferait un enfant.",
+            "La postière connaît tous les enfants qui envoient des lettres : il faut lui demander !"
+          ],
+          "questions": [
+            { "question": "Selon le forain, qu’y a-t-il dans le colis ?", "choix": ["du bois qui roule", "un chat", "de l’eau"], "indice": 2 },
+            { "question": "Qui a sûrement dessiné la carotte ?", "choix": ["un enfant", "le forain", "un oiseau"], "indice": 3 }
+          ],
+          "tache": {
+            "donneur": "forain-chamboule",
+            "destinataire": "postiere",
+            "fournit": [{ "produit": "lettre", "nombre": 1 }],
+            "besoin": [{ "produit": "lettre", "nombre": 1 }],
+            "recompense": [200],
+            "texte": "J’ai écrit une lettre à la postière pour lui parler du dessin. Tu peux la lui porter ?",
+            "rappel": "Ma lettre, c’est pour la postière, à la poste.",
+            "merci": "Une lettre du forain ? Un dessin d’enfant… Je vais chercher dans mon carnet. Merci, voilà 2 € !"
+          }
+        },
+        {
+          "titre": "Le carnet de la postière",
+          "phrases": [
+            "La postière a feuilleté son carnet pendant des heures.",
+            "Un seul enfant dessine des carottes sur toutes ses lettres : Léon, le petit voisin de la ferme.",
+            "Mais Léon est parti en vacances : il rentre demain !",
+            "Pour l’accueillir, l’épicière prépare un goûter avec des mûres."
+          ],
+          "questions": [
+            { "question": "Comment s’appelle l’enfant qui dessine des carottes ?", "choix": ["Léon", "Paul", "Hugo"], "indice": 2 },
+            { "question": "Quand Léon rentre-t-il de vacances ?", "choix": ["demain", "dans un mois", "jamais"], "indice": 3 }
+          ],
+          "tache": {
+            "donneur": "epiciere",
+            "destinataire": "epiciere",
+            "fournit": [],
+            "besoin": [{ "produit": "mure", "nombre": 4 }],
+            "recompense": [200, 200],
+            "texte": "Léon rentre demain ! Pour son goûter, il me faut 4 mûres. Tu peux en cueillir au bois ?",
+            "rappel": "Pour le goûter de Léon, il me faut 4 mûres.",
+            "merci": "4 belles mûres, c’est parfait ! Le goûter sera délicieux. Voilà 4 € pour toi."
+          }
+        },
+        {
+          "titre": "Le retour de Léon",
+          "phrases": [
+            "Léon est rentré ! Il a tout de suite vu le colis chez le forain.",
+            "« Oh non, j’ai oublié d’écrire l’adresse ! » dit-il en rougissant.",
+            "Le colis était un cadeau pour l’épicière, pour la remercier de ses pommes.",
+            "Il faut rendre le colis à la bonne personne."
+          ],
+          "questions": [
+            { "question": "Qu’est-ce que Léon a oublié d’écrire ?", "choix": ["l’adresse", "son prénom", "la date"], "indice": 2 },
+            { "question": "Pour qui était le colis ?", "choix": ["l’épicière", "la postière", "le forain"], "indice": 3 }
+          ],
+          "tache": {
+            "donneur": "forain-chamboule",
+            "destinataire": "epiciere",
+            "fournit": [{ "produit": "colis", "nombre": 1 }],
+            "besoin": [{ "produit": "colis", "nombre": 1 }],
+            "recompense": [200, 200],
+            "texte": "Le mystère est résolu ! Rends ce colis à l’épicière, c’est un cadeau de Léon pour elle.",
+            "rappel": "Le colis de Léon, c’est pour l’épicière.",
+            "merci": "Un cadeau de Léon, pour moi ? Je suis si émue ! Merci, voilà 4 €."
+          }
+        }
+      ],
+      "fin": {
+        "titre": "Une carotte en bois",
+        "phrases": [
+          "L’épicière ouvre enfin le colis : une carotte en bois, sculptée par Léon, qui roule en faisant « toc, toc » !",
+          "Elle la pose fièrement sur son étal.",
+          "La postière a trouvé le nom, le forain a trouvé le bruit, et toi, tu as tout porté.",
+          "Grâce à chacun, le colis a trouvé sa maison."
+        ],
+        "reflexion": {
+          "question": "Comment a-t-on trouvé à qui était le colis ?",
+          "choix": ["chacun a donné un indice", "on l’a ouvert tout de suite", "on a deviné au hasard"]
+        },
+        "morale": "Seul, on cherche longtemps ; ensemble, chacun apporte un indice et on trouve."
+      }
+    },
+    {
+      "id": "riviere-qui-chante",
+      "titre": "La rivière qui chante",
+      "chapitres": [
+        {
+          "titre": "Un drôle de chant",
+          "phrases": [
+            "Chaque soir, la rivière chante une petite mélodie.",
+            "Le forain est sûr de lui : « C’est un poisson musicien ! »",
+            "La postière rit : « Les poissons ne chantent pas ! »",
+            "Le forain veut parier, et il l’écrit dans une lettre."
+          ],
+          "questions": [
+            { "question": "Quand la rivière chante-t-elle ?", "choix": ["chaque soir", "chaque matin", "le dimanche"], "indice": 1 },
+            { "question": "Qui croit à un poisson musicien ?", "choix": ["le forain", "la postière", "l’épicière"], "indice": 2 }
+          ],
+          "tache": {
+            "donneur": "forain-chamboule",
+            "destinataire": "postiere",
+            "fournit": [{ "produit": "lettre", "nombre": 1 }],
+            "besoin": [{ "produit": "lettre", "nombre": 1 }],
+            "recompense": [200],
+            "texte": "La postière ne me croit pas ? Porte-lui cette lettre : je lui propose un pari !",
+            "rappel": "Ma lettre de pari, c’est pour la postière.",
+            "merci": "Un pari ? D’accord ! Si c’est un poisson, j’offre des crêpes à toute la ville. Merci, voilà 2 €."
+          }
+        },
+        {
+          "titre": "Le pari",
+          "phrases": [
+            "La postière a accepté le pari.",
+            "Pour savoir qui a raison, il faut un poisson de la rivière.",
+            "« Je l’écouterai de près », dit-elle.",
+            "Le soir, la rivière chante encore plus fort."
+          ],
+          "questions": [
+            { "question": "De quoi la postière a-t-elle besoin ?", "choix": ["d’un poisson", "d’une pomme", "d’une lettre"], "indice": 2 },
+            { "question": "Que fera la postière avec le poisson ?", "choix": ["l’écouter", "le manger", "le peindre"], "indice": 3 }
+          ],
+          "tache": {
+            "donneur": "postiere",
+            "destinataire": "postiere",
+            "fournit": [],
+            "besoin": [{ "produit": "poisson", "nombre": 1 }],
+            "recompense": [200, 200],
+            "texte": "Pour notre pari, il me faut 1 poisson de la rivière. Tu peux en pêcher un au ponton ?",
+            "rappel": "Pour le pari, il me faut 1 poisson.",
+            "merci": "Le voilà ! Je vais bien l’écouter… Merci, voilà 4 €."
+          }
+        },
+        {
+          "titre": "Le poisson muet",
+          "phrases": [
+            "La postière a écouté le poisson toute la journée : il n’a pas chanté une seule note.",
+            "Pourtant, le soir, la rivière a chanté de nouveau !",
+            "Le forain se gratte la tête : « Bon… ce n’est peut-être pas un poisson. »",
+            "Il décide de passer la soirée au bord de l’eau pour écouter."
+          ],
+          "questions": [
+            { "question": "Le poisson a-t-il chanté ?", "choix": ["non, pas une note", "oui, très fort", "oui, une chanson"], "indice": 1 },
+            { "question": "Où le forain veut-il passer la soirée ?", "choix": ["au bord de l’eau", "à la poste", "dans sa maison"], "indice": 4 }
+          ],
+          "tache": {
+            "donneur": "forain-chamboule",
+            "destinataire": "forain-chamboule",
+            "fournit": [],
+            "besoin": [{ "produit": "pain", "nombre": 1 }, { "produit": "tomate", "nombre": 2 }],
+            "recompense": [200, 200, 200],
+            "texte": "Ce soir, je surveille la rivière. Pour mon pique-nique, il me faut 1 pain et 2 tomates. Tu peux les acheter à l’épicerie ?",
+            "rappel": "Pour mon pique-nique : 1 pain et 2 tomates.",
+            "merci": "Parfait, je ne mourrai pas de faim cette nuit ! Merci, voilà 6 €."
+          }
+        },
+        {
+          "titre": "La cachette sous le pont",
+          "phrases": [
+            "Pendant son pique-nique, le forain a remarqué une chose :",
+            "la rivière chante plus fort quand le vent souffle.",
+            "Sous le pont, une vieille bouteille est coincée entre deux pierres !",
+            "Pour l’attraper sans glisser, il faut la corde de la postière."
+          ],
+          "questions": [
+            { "question": "Quand la rivière chante-t-elle plus fort ?", "choix": ["quand le vent souffle", "quand il pleut", "quand il fait nuit noire"], "indice": 2 },
+            { "question": "Qu’y a-t-il sous le pont ?", "choix": ["une vieille bouteille", "un trésor", "un golem"], "indice": 3 }
+          ],
+          "tache": {
+            "donneur": "postiere",
+            "destinataire": "forain-chamboule",
+            "fournit": [{ "produit": "colis", "nombre": 1 }],
+            "besoin": [{ "produit": "colis", "nombre": 1 }],
+            "recompense": [200],
+            "texte": "Ma corde est rangée dans ce colis. Apporte-la au forain, qu’il attrape la bouteille sans tomber à l’eau !",
+            "rappel": "Le colis avec la corde, c’est pour le forain.",
+            "merci": "La corde ! Avec elle, je ne glisserai pas. Merci, voilà 2 €."
+          }
+        },
+        {
+          "titre": "Le secret de la bouteille",
+          "phrases": [
+            "Le forain a sorti la bouteille de l’eau.",
+            "Quand le vent souffle dans le goulot, elle chante : c’était elle, la musique !",
+            "Dedans, il y a un vieux papier écrit par un enfant de MiniVille, il y a très longtemps.",
+            "Personne n’a gagné le pari… alors l’épicière propose des crêpes pour tout le monde."
+          ],
+          "questions": [
+            { "question": "Qui faisait la musique ?", "choix": ["la bouteille et le vent", "un poisson", "un oiseau"], "indice": 2 },
+            { "question": "Qui a gagné le pari ?", "choix": ["personne", "le forain", "la postière"], "indice": 4 }
+          ],
+          "tache": {
+            "donneur": "epiciere",
+            "destinataire": "postiere",
+            "fournit": [{ "produit": "crepes", "nombre": 3 }],
+            "besoin": [{ "produit": "crepes", "nombre": 3 }],
+            "recompense": [200, 200],
+            "texte": "Personne n’a gagné ? Alors tout le monde aura des crêpes ! Porte ces 3 crêpes à la postière, elle les partagera.",
+            "rappel": "Les 3 crêpes, c’est pour la postière.",
+            "merci": "Des crêpes ! Je vais les partager au bord de l’eau. Merci, voilà 4 €."
+          }
+        }
+      ],
+      "fin": {
+        "titre": "Personne n’a perdu",
+        "phrases": [
+          "Sur le vieux papier, on peut lire : « Écoute la rivière : elle chante pour ceux qui prennent le temps. »",
+          "La postière et le forain éclatent de rire : aucun des deux n’avait raison !",
+          "Ils partagent les crêpes au bord de l’eau, puis remettent la bouteille sous le pont.",
+          "Depuis, chaque soir de vent, la rivière chante pour toute la ville."
+        ],
+        "reflexion": {
+          "question": "Qu’ont fait la postière et le forain quand ils ont compris qu’ils s’étaient trompés ?",
+          "choix": ["ils ont ri et partagé", "ils se sont fâchés", "ils sont partis chacun chez soi"]
+        },
+        "morale": "Ce n’est pas grave de se tromper : chercher ensemble, c’est déjà gagner."
+      }
+    },
+    {
+      "id": "golem-du-pont",
+      "titre": "Le golem du pont",
+      "chapitres": [
+        {
+          "titre": "Une ombre géante",
+          "phrases": [
+            "Cette nuit, une grande ombre est passée près de la fête foraine.",
+            "Ce matin, il y a de grosses traces carrées dans la boue.",
+            "« Un golem ! » s’écrie le forain.",
+            "L’épicière a peur pour ses pommes : elle veut demander au forain de surveiller."
+          ],
+          "questions": [
+            { "question": "Quelle forme ont les traces dans la boue ?", "choix": ["carrée", "ronde", "pointue"], "indice": 2 },
+            { "question": "Pour quoi l’épicière a-t-elle peur ?", "choix": ["pour ses pommes", "pour son chat", "pour sa maison"], "indice": 4 }
+          ],
+          "tache": {
+            "donneur": "epiciere",
+            "destinataire": "forain-chamboule",
+            "fournit": [{ "produit": "lettre", "nombre": 1 }],
+            "besoin": [{ "produit": "lettre", "nombre": 1 }],
+            "recompense": [200],
+            "texte": "Un golem, près de mes pommes ! Porte cette lettre au forain : je lui demande de surveiller cette nuit.",
+            "rappel": "Ma lettre, c’est pour le forain.",
+            "merci": "Surveiller le golem ? Promis, j’ouvrirai l’œil ! Merci, voilà 2 €."
+          }
+        },
+        {
+          "titre": "Les pommes ont disparu",
+          "phrases": [
+            "Le lendemain, trois pommes manquent à l’étal !",
+            "« C’est le golem, j’en suis sûre ! » dit l’épicière, fâchée.",
+            "Mais le forain a remarqué un détail : les traces ne vont pas vers l’épicerie.",
+            "Elles vont vers la rivière."
+          ],
+          "questions": [
+            { "question": "Combien de pommes manquent ?", "choix": ["trois", "dix", "une"], "indice": 1 },
+            { "question": "Vers où vont les traces ?", "choix": ["vers la rivière", "vers l’épicerie", "vers la poste"], "indice": 4 }
+          ],
+          "tache": {
+            "donneur": "epiciere",
+            "destinataire": "epiciere",
+            "fournit": [],
+            "besoin": [{ "produit": "pomme", "nombre": 3 }],
+            "recompense": [200, 200],
+            "texte": "Il me manque 3 pommes pour mon étal ! Tu peux en cueillir 3 au pommier ?",
+            "rappel": "Il me faut 3 pommes du pommier.",
+            "merci": "Mon étal est complet ! Merci, voilà 4 €."
+          }
+        },
+        {
+          "titre": "Le gardien du pont",
+          "phrases": [
+            "Tu as suivi les traces jusqu’au pont.",
+            "Là, un golem de pierre moussue est assis, tout triste.",
+            "Dans ses grandes mains, il tient un petit oiseau blessé.",
+            "Il n’a pas volé les pommes : ce sont des corbeaux, il les a vus !"
+          ],
+          "questions": [
+            { "question": "Que tient le golem dans ses mains ?", "choix": ["un petit oiseau", "une pomme", "une lettre"], "indice": 3 },
+            { "question": "Qui a volé les pommes ?", "choix": ["des corbeaux", "le golem", "le forain"], "indice": 4 }
+          ],
+          "tache": {
+            "donneur": "forain-chamboule",
+            "destinataire": "forain-chamboule",
+            "fournit": [],
+            "besoin": [{ "produit": "mure", "nombre": 4 }],
+            "recompense": [200, 200],
+            "texte": "Le golem m’a confié l’oiseau blessé : je vais le soigner. Pour le nourrir, il me faut 4 mûres.",
+            "rappel": "Pour l’oiseau, il me faut 4 mûres.",
+            "merci": "Miam, l’oiseau a déjà meilleure mine ! Merci, voilà 4 €."
+          }
+        },
+        {
+          "titre": "Le golem n’ose pas",
+          "phrases": [
+            "Le golem voudrait venir à la fête, mais il a peur.",
+            "Tout le monde croit qu’il est un voleur !",
+            "La postière a une idée : écrire une lettre pour raconter la vérité.",
+            "La première à la lire sera l’épicière."
+          ],
+          "questions": [
+            { "question": "Pourquoi le golem a-t-il peur de venir ?", "choix": ["on croit qu’il est un voleur", "il n’aime pas la musique", "il est trop petit"], "indice": 2 },
+            { "question": "Qui a l’idée d’écrire une lettre ?", "choix": ["la postière", "le forain", "le golem"], "indice": 3 }
+          ],
+          "tache": {
+            "donneur": "postiere",
+            "destinataire": "epiciere",
+            "fournit": [{ "produit": "lettre", "nombre": 1 }],
+            "besoin": [{ "produit": "lettre", "nombre": 1 }],
+            "recompense": [200],
+            "texte": "J’ai écrit toute la vérité sur le golem. Porte cette lettre à l’épicière, s’il te plaît.",
+            "rappel": "La lettre de la vérité, c’est pour l’épicière.",
+            "merci": "Une lettre de la postière… Je la lis tout de suite. Merci, voilà 2 €."
+          }
+        },
+        {
+          "titre": "Le panier de l’épicière",
+          "phrases": [
+            "L’épicière a lu la lettre. Elle est devenue toute rouge.",
+            "« J’ai accusé le golem trop vite », dit-elle doucement.",
+            "Elle prépare un panier pour lui demander pardon.",
+            "Ce soir, le golem viendra peut-être à la fête."
+          ],
+          "questions": [
+            { "question": "Qu’a fait l’épicière trop vite ?", "choix": ["accuser le golem", "fermer l’épicerie", "manger les pommes"], "indice": 2 },
+            { "question": "Pourquoi prépare-t-elle un panier ?", "choix": ["pour demander pardon", "pour faire un pique-nique", "pour vendre des fruits"], "indice": 3 }
+          ],
+          "tache": {
+            "donneur": "epiciere",
+            "destinataire": "forain-chamboule",
+            "fournit": [{ "produit": "poire", "nombre": 2 }, { "produit": "pain", "nombre": 1 }],
+            "besoin": [{ "produit": "poire", "nombre": 2 }, { "produit": "pain", "nombre": 1 }],
+            "recompense": [200, 200],
+            "texte": "Voici 2 poires et 1 pain pour le golem. Apporte-les au forain : le golem le retrouvera à la fête ce soir.",
+            "rappel": "Les 2 poires et le pain, c’est pour le forain, qui les donnera au golem.",
+            "merci": "Le golem sera si content ! Je lui donnerai ce soir. Merci, voilà 4 €."
+          }
+        }
+      ],
+      "fin": {
+        "titre": "Un ami à la fête",
+        "phrases": [
+          "Le soir, le golem est entré dans la fête foraine, tout timide.",
+          "L’épicière lui a dit : « Pardon. »",
+          "Le golem a souri, puis l’a soulevée doucement pour qu’elle voie toute la fête depuis son épaule.",
+          "Depuis, il garde le pont, et plus aucun corbeau ne vole de pommes."
+        ],
+        "reflexion": {
+          "question": "Pourquoi l’épicière a-t-elle dit pardon ?",
+          "choix": ["elle avait accusé le golem trop vite", "le golem avait volé ses pommes", "elle avait cassé le pont"]
+        },
+        "morale": "Avant d’accuser quelqu’un, on cherche la vérité ; et quand on s’est trompé, on dit pardon."
+      }
+    }
+  ]
+}

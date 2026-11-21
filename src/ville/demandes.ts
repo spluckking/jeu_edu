@@ -24,11 +24,16 @@ export interface EtatDemandes {
 
 export const demandesNeuves = (): EtatDemandes => ({ jour: '', ids: [], acceptees: [], faites: [], historique: {}, etapes: {} });
 
-/** Les demandes du jour : on ne change rien en cours de journée. */
-export function demandesDuJour(e: EtatDemandes, toutes: readonly string[], jour: string, parJour: number): EtatDemandes {
-  if (e.jour === jour) return e;
-  const ordre = [...toutes].sort((a, b) => (e.historique[a] ?? '').localeCompare(e.historique[b] ?? ''));
-  return { ...e, jour, ids: ordre.slice(0, parJour), acceptees: [], faites: [], etapes: {} };
+/** Les demandes du jour : on ne change rien en cours de journée. imposees : celles qui passent
+ *  avant les autres (la tâche de la grande quête), en plus des parJour. */
+export function demandesDuJour(e: EtatDemandes, toutes: readonly string[], jour: string, parJour: number, imposees: readonly string[] = []): EtatDemandes {
+  if (e.jour === jour) {
+    // Une tâche imposée apparue en cours de journée (un chapitre commencé) : elle s'ajoute.
+    const manquent = imposees.filter((id) => !e.ids.includes(id));
+    return manquent.length ? { ...e, ids: [...manquent, ...e.ids] } : e;
+  }
+  const ordre = [...toutes].filter((id) => !imposees.includes(id)).sort((a, b) => (e.historique[a] ?? '').localeCompare(e.historique[b] ?? ''));
+  return { ...e, jour, ids: [...imposees, ...ordre.slice(0, parJour)], acceptees: [], faites: [], etapes: {} };
 }
 
 export function accepter(e: EtatDemandes, id: string): EtatDemandes {

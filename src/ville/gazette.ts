@@ -50,7 +50,7 @@ export interface Question {
 }
 
 export interface Quete {
-  id: 'attraction' | 'mots';
+  id: 'attraction' | 'mots' | 'annonces';
   titre: string;
   phrases: string[];
   /** Où elle se passe, pour la visite sur la carte. */
@@ -81,7 +81,21 @@ export interface Monde {
   /** Les prénoms proposés pour le forain de chaque attraction. */
   prenomsProposes: Record<string, readonly string[]>;
   dictee: EtatDictee;
+  /** Les mots à revoir aujourd'hui, et s'ils sont faits. */
+  motsDuJour: { mots: string[]; fini: boolean };
+  /** Les habitants qui ont une demande aujourd'hui (leur nom, « L'épicière »). */
+  annonces: string[];
   hasard: () => number;
+}
+
+/** La grande aventure du jour, dans la Gazette : un chapitre, ou la fin et sa morale. */
+export interface Aventure {
+  titre: string;
+  sousTitre: string;
+  phrases: string[];
+  questions: Question[];
+  /** Seulement à la fin : dite après le questionnaire. */
+  morale?: string;
 }
 
 function questionsDe(brutes: ReadonlyArray<{ question: string; choix: string[]; indice?: number }>, phrases: string[], v: Record<string, string | number>): Question[] {
@@ -94,8 +108,9 @@ function questionsDe(brutes: ReadonlyArray<{ question: string; choix: string[]; 
 
 const reussie = (reussis: number, total: number): boolean => reussis >= (total === 1 ? 1 : REUSSIS_POUR_FINIR);
 
-/** Les quêtes de la semaine de ce jour (sans le grand projet). */
-export function quetesDeLaSemaine(m: Monde): Quete[] {
+/** Les quêtes du jour (sans le grand projet) : l'attraction et son étape du jour, les mots du
+ *  jour, les annonces des habitants. */
+export function quetesDuJour(m: Monde): Quete[] {
   const lundi = lundiDe(m.jour);
   const dimanche = ajouterJours(lundi, 6);
   const quetes: Quete[] = [];
@@ -109,7 +124,8 @@ export function quetesDeLaSemaine(m: Monde): Quete[] {
     const nom = minuscule(m.nomsAttractions[id] ?? id);
     const forain = a.prenoms[id] ?? Q.forainSansNom;
     const v = { attraction: nom, forain };
-    const phrases = Q.phrases.map((p) => remplir(p, v));
+    const etape = Math.min(5, a.compteLe === m.jour ? a.etapes : a.etapes + 1);
+    const phrases = [...(terminee ? [] : [remplir(Q.etapeDuJour, { etape })]), ...Q.phrases.map((p) => remplir(p, v))];
     const proposes = (m.prenomsProposes[id] ?? []).filter((p) => p !== forain);
     const bilanForain = a.prenoms[id] && proposes.length >= 2;
     quetes.push({
@@ -129,30 +145,47 @@ export function quetesDeLaSemaine(m: Monde): Quete[] {
     });
   }
 
-  // Les mots de la semaine : finie quand le concours d'écriture est passé cette semaine.
-  const n = m.dictee.mots.length;
-  if (n > 0) {
-    const Q = T.quetes.mots;
-    const v = { n };
-    const phrases = Q.phrases.map((p) => remplir(p, v));
-    const faite = m.dictee.concours.some((c) => c.date >= lundi && c.date <= dimanche);
-    const mot = m.dictee.mots[Math.floor(m.hasard() * n)]?.w ?? '';
-    const dansLaListe = new Set(m.dictee.mots.map((x) => x.w.toLocaleLowerCase('fr')));
+  // Les mots du jour : ceux que la mémoire propose aujourd'hui, et un mot mis en avant.
+  if (m.dictee.mots.length) {
+    const Q = T.quetes.motsDuJour;
+    const n = m.motsDuJour.mots.length;
+    const mot = n ? m.motsDuJour.mots[Math.floor(m.hasard() * n)]! : '';
+    const dansLaListe = new Set([...m.dictee.mots.map((x) => x.w), ...m.motsDuJour.mots].map((x) => x.toLocaleLowerCase('fr')));
     const leurres = T.bilan.leurres.filter((l) => !dansLaListe.has(l));
     const l1 = leurres[Math.floor(m.hasard() * leurres.length)] ?? '';
     const l2 = leurres.filter((l) => l !== l1)[Math.floor(m.hasard() * (leurres.length - 1))] ?? '';
-    quetes.push({
-      id: 'mots',
-      titre: remplir(Q.titre, v),
-      phrases,
-      lieu: 'tableau',
-      faite,
-      questions: questionsDe(Q.questions, phrases, v),
-      bilan: faite ? questionsDe(T.bilan.mots, [], { n, mot, leurre1: l1, leurre2: l2 }) : [],
+    const v = { n, mot, leurre1: l1, leurre2: l2 };
+    const phrases = n === 0 ? [Q.aucun, Q.phrases[2]!] : [n === 1 ? Q.un : remplir(Q.phrases[0]!, v), remplir(Q.phrases[1]!, v), Q.phrases[2]!];
+    // Les questions (sans majuscule forcée : le mot du jour garde son orthographe), chacune avec
+    // la phrase qui contient la réponse.
+    const valeur = (k: string, plus?: string): string => String(plus ? Number(v.n) + Number(plus) : (v as Record<string, string | number>)[k]);
+    const avec = (q: (typeof Q.questions)[number], indice: string | undefined): Question => ({
+      question: q.question,
+      choix: q.choix.map((c) => c.replace(/\{(\w+)(\+(\d+))?\}/g,(_, k: string, __, plus?: string) => valeur(k, plus))) as [string, string, string],
+      indice: indice ?? null,
     });
+    const questions = n === 0 ? [] : [...(n > 1 ? [avec(Q.questions[0]!, phrases[0])] : []), avec(Q.questions[1]!, phrases[1]), avec(Q.questions[2]!, phrases[0])];
+    quetes.push({ id: 'mots', titre: Q.titre, phrases, lieu: 'tableau', faite: m.motsDuJour.fini, questions, bilan: [] });
+  }
+
+  // Les annonces : qui a besoin de toi aujourd'hui.
+  const noms = [...new Set(m.annonces)];
+  if (noms.length) {
+    const Q = T.quetes.annonces;
+    const phrases = noms.map((nom) => remplir(Q.phrase, { nom }));
+    const leurres = Q.leurres.filter((l) => !noms.includes(l));
+    const questions: Question[] = noms.slice(0, 2).map((nom, i) => ({
+      question: Q.question,
+      choix: [nom, leurres[i % leurres.length]!, leurres[(i + 1) % leurres.length]!],
+      indice: phrases[i] ?? null,
+    }));
+    quetes.push({ id: 'annonces', titre: Q.titre, phrases, lieu: 'tableau', faite: false, questions: questions.slice(0, 1), bilan: [] });
   }
   return quetes;
 }
+
+/** L'ancien nom (les quêtes changent maintenant chaque jour). */
+export const quetesDeLaSemaine = quetesDuJour;
 
 export interface Histoire {
   numero: number;
@@ -161,13 +194,19 @@ export interface Histoire {
   questions: Question[];
 }
 
-export type Edition =
+export type Edition = (
   | { type: 'histoire'; histoire: Histoire; quetes: Quete[] }
   | { type: 'quetes'; quetes: Quete[] }
-  | { type: 'bilan'; quetes: Quete[] };
+  | { type: 'bilan'; quetes: Quete[] }
+) & { aventure?: Aventure };
 
 /** L'édition du jour. premiere : le lundi de la semaine 1 (celle de la première lecture). */
-export function editionDuJour(g: EtatGazette, quetes: Quete[], jour: Jour, prenom: string): Edition {
+export function editionDuJour(g: EtatGazette, quetes: Quete[], jour: Jour, prenom: string, aventure?: Aventure): Edition {
+  const e = editionSansAventure(g, quetes, jour, prenom);
+  return aventure ? { ...e, aventure } : e;
+}
+
+function editionSansAventure(g: EtatGazette, quetes: Quete[], jour: Jour, prenom: string): Edition {
   const lundi = lundiDe(jour);
   const premiere = g.premiere || lundi;
   const numero = Math.round((Date.parse(lundi) - Date.parse(premiere)) / (7 * 86400000)) + 1;
@@ -191,6 +230,11 @@ export function questionnaire(e: Edition, hasard: () => number, nombre = 3): Que
     while (pris.length < k && reste.length) pris.push(reste.splice(Math.floor(hasard() * reste.length), 1)[0]!);
     return pris;
   };
+  if (e.aventure) {
+    const surAventure = e.aventure.morale ? e.aventure.questions.slice(0, 1) : tirer(e.aventure.questions, 2);
+    const autres = e.type === 'bilan' ? e.quetes.flatMap((q) => q.bilan) : e.quetes.flatMap((q) => q.questions);
+    return [...surAventure, ...tirer(autres, nombre - surAventure.length)];
+  }
   if (e.type === 'histoire') {
     const surQuetes = tirer(e.quetes.flatMap((q) => q.questions), 1);
     return [...tirer(e.histoire.questions, nombre - surQuetes.length), ...surQuetes];
@@ -202,7 +246,8 @@ export function questionnaire(e: Edition, hasard: () => number, nombre = 3): Que
 /** Les autres questions de l'édition (pas déjà posées), dans le désordre : à la deuxième erreur,
  *  la question est remplacée par l'une d'elles. */
 export function reserve(e: Edition, posees: readonly Question[], hasard: () => number): Question[] {
-  const toutes = e.type === 'histoire' ? [...e.histoire.questions, ...e.quetes.flatMap((q) => q.questions)] : e.type === 'quetes' ? e.quetes.flatMap((q) => q.questions) : e.quetes.flatMap((q) => q.bilan);
+  const aventure = e.aventure && !e.aventure.morale ? e.aventure.questions : [];
+  const toutes = aventure.concat(e.type === 'histoire' ? [...e.histoire.questions, ...e.quetes.flatMap((q) => q.questions)] : e.type === 'quetes' ? e.quetes.flatMap((q) => q.questions) : e.quetes.flatMap((q) => q.bilan));
   const reste = toutes.filter((q) => !posees.includes(q));
   for (let i = reste.length - 1; i > 0; i--) {
     const j = Math.floor(hasard() * (i + 1));

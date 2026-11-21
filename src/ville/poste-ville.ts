@@ -9,7 +9,7 @@ import { bruitage } from '../son/bruitages.ts';
 import { confettis } from '../ui/confettis.ts';
 import { ajouter } from './argent.ts';
 import { enlever, mettre } from './commerce.ts';
-import { quandOnParle } from './demandes-ville.ts';
+import { aUneQuete, parlerA, quandOnParle } from './demandes-ville.ts';
 import type { PointInteret } from './dictee-ville.ts';
 import type { EtatVille } from './etat.ts';
 import { bouton, carte, creer, icone, piece, remplir, texteALire } from './interface.ts';
@@ -199,7 +199,14 @@ async function recevoir(c: ContextePoste, habitant: string, nom: string): Promis
 }
 
 export function installerPoste(c: ContextePoste): void {
-  c.points.push({ verbe: T.trier, nom: T.nom, x: c.postiere.x, z: c.postiere.z, action: () => void aLaPoste(c) });
+  c.points.push({
+    verbe: T.trier,
+    nom: T.nom,
+    x: c.postiere.x,
+    z: c.postiere.z,
+    action: () => void aLaPoste(c),
+    quete: { visible: () => aUneQuete('postiere'), action: () => void parlerA('postiere') },
+  });
   quandOnParle(
     (habitant, nom) => recevoir(c, habitant, nom),
     (habitant) => c.etat().poste.aLivrer.includes(habitant),

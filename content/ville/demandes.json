@@ -80,6 +80,277 @@
           200
         ]
       }
+    },
+    {
+      "id": "chocolat-de-la-postiere",
+      "valide": false,
+      "donneur": "postiere",
+      "destinataire": "postiere",
+      "fournit": [],
+      "besoin": [
+        {
+          "produit": "lait",
+          "nombre": 1
+        }
+      ],
+      "recompense": [
+        200,
+        200
+      ],
+      "texte": "Brrr, il fait froid à la poste ! Pour mon chocolat chaud, il me faut 1 lait. Tu peux aller me l’acheter à l’épicerie ?",
+      "rappel": "Pour mon chocolat chaud, il me faut 1 lait. Je suis à la poste.",
+      "merci": "Merci ! Mon chocolat chaud va me réchauffer. Tiens, voilà 4 €."
+    },
+    {
+      "id": "tarte-aux-pommes",
+      "valide": false,
+      "donneur": "epiciere",
+      "destinataire": "epiciere",
+      "fournit": [],
+      "besoin": [
+        {
+          "produit": "pomme",
+          "nombre": 4
+        }
+      ],
+      "recompense": [
+        200,
+        200
+      ],
+      "texte": "Je voudrais faire une tarte aux pommes, mais mon panier est vide ! Tu peux cueillir 4 pommes au pommier ?",
+      "rappel": "Pour ma tarte, il me faut 4 pommes du pommier.",
+      "merci": "4 pommes bien rouges ! Ma tarte sera parfaite. Merci, voilà 4 €."
+    },
+    {
+      "id": "lettre-pour-le-forain",
+      "valide": false,
+      "donneur": "postiere",
+      "destinataire": "forain-chamboule",
+      "fournit": [
+        {
+          "produit": "lettre",
+          "nombre": 1
+        }
+      ],
+      "besoin": [
+        {
+          "produit": "lettre",
+          "nombre": 1
+        }
+      ],
+      "recompense": [
+        200
+      ],
+      "texte": "Une lettre est arrivée pour le forain de la fête. Tu peux la lui porter ?",
+      "rappel": "La lettre, c’est pour le forain, à la fête foraine.",
+      "merci": "Une lettre pour moi ? Merci beaucoup ! Voilà 2 €."
+    },
+    {
+      "id": "colis-de-l-epiciere",
+      "valide": false,
+      "donneur": "postiere",
+      "destinataire": "epiciere",
+      "fournit": [
+        {
+          "produit": "colis",
+          "nombre": 1
+        }
+      ],
+      "besoin": [
+        {
+          "produit": "colis",
+          "nombre": 1
+        }
+      ],
+      "recompense": [
+        200
+      ],
+      "texte": "Ce gros colis, c’est la commande de l’épicière. Tu veux bien le lui apporter ?",
+      "rappel": "Le colis, c’est pour l’épicière, à l’épicerie.",
+      "merci": "Ma commande ! Je l’attendais. Merci, voilà 2 €."
+    },
+    {
+      "id": "soupe-de-legumes",
+      "valide": false,
+      "donneur": "forain-chamboule",
+      "destinataire": "forain-chamboule",
+      "fournit": [],
+      "besoin": [
+        {
+          "produit": "carotte",
+          "nombre": 2
+        },
+        {
+          "produit": "tomate",
+          "nombre": 1
+        }
+      ],
+      "recompense": [
+        200,
+        200,
+        200
+      ],
+      "texte": "Ce soir, je fais une soupe de légumes ! Il me faut 2 carottes et 1 tomate. Tu peux me les acheter à l’épicerie ?",
+      "rappel": "Pour ma soupe : 2 carottes et 1 tomate.",
+      "merci": "Ma soupe va sentir bon dans toute la fête ! Merci, voilà 6 €."
+    },
+    {
+      "id": "confiture-de-mures",
+      "valide": false,
+      "donneur": "epiciere",
+      "destinataire": "epiciere",
+      "fournit": [],
+      "besoin": [
+        {
+          "produit": "mure",
+          "nombre": 5
+        }
+      ],
+      "recompense": [
+        200,
+        200
+      ],
+      "texte": "Je veux faire de la confiture de mûres. Il m’en faut 5. Tu peux en cueillir au bois ?",
+      "rappel": "Pour ma confiture, il me faut 5 mûres.",
+      "merci": "Quelle belle cueillette ! Je te garderai un pot de confiture. Merci, voilà 4 €."
+    },
+    {
+      "id": "poisson-du-forain",
+      "valide": false,
+      "donneur": "forain-chamboule",
+      "destinataire": "forain-chamboule",
+      "fournit": [],
+      "besoin": [
+        {
+          "produit": "poisson",
+          "nombre": 1
+        }
+      ],
+      "recompense": [
+        200,
+        200
+      ],
+      "texte": "J’ai envie de poisson grillé pour mon dîner ! Tu peux m’en pêcher un à la rivière ?",
+      "rappel": "Pour mon dîner, il me faut 1 poisson de la rivière.",
+      "merci": "Un beau poisson ! Je vais le griller ce soir. Merci, voilà 4 €."
+    },
+    {
+      "id": "gouter-de-la-postiere",
+      "valide": false,
+      "donneur": "postiere",
+      "destinataire": "postiere",
+      "fournit": [],
+      "besoin": [
+        {
+          "produit": "poire",
+          "nombre": 1
+        },
+        {
+          "produit": "pain",
+          "nombre": 1
+        }
+      ],
+      "recompense": [
+        200,
+        200,
+        200
+      ],
+      "texte": "J’ai trié des lettres toute la matinée, j’ai faim ! Pour mon goûter, il me faut 1 poire et 1 pain.",
+      "rappel": "Pour mon goûter : 1 poire et 1 pain.",
+      "merci": "Un bon goûter, ça redonne des forces ! Merci, voilà 6 €."
+    },
+    {
+      "id": "crepes-pour-le-forain",
+      "valide": false,
+      "donneur": "epiciere",
+      "destinataire": "forain-chamboule",
+      "fournit": [
+        {
+          "produit": "crepes",
+          "nombre": 2
+        }
+      ],
+      "besoin": [
+        {
+          "produit": "crepes",
+          "nombre": 2
+        }
+      ],
+      "recompense": [
+        200
+      ],
+      "texte": "J’ai fait des crêpes ! Tu peux en porter 2 au forain ? Il travaille si dur.",
+      "rappel": "Les 2 crêpes, c’est pour le forain.",
+      "merci": "Des crêpes de l’épicière ? Miam ! Merci, voilà 2 €."
+    },
+    {
+      "id": "jus-de-pommes",
+      "valide": false,
+      "donneur": "forain-chamboule",
+      "destinataire": "forain-chamboule",
+      "fournit": [],
+      "besoin": [
+        {
+          "produit": "pomme",
+          "nombre": 3
+        }
+      ],
+      "recompense": [
+        200,
+        200
+      ],
+      "texte": "Je voudrais offrir du jus de pommes aux enfants de la fête. Il me faut 3 pommes du pommier !",
+      "rappel": "Pour le jus, il me faut 3 pommes.",
+      "merci": "3 pommes, ça fera un bon jus ! Merci, voilà 4 €."
+    },
+    {
+      "id": "lettre-de-l-epiciere",
+      "valide": false,
+      "donneur": "epiciere",
+      "destinataire": "postiere",
+      "fournit": [
+        {
+          "produit": "lettre",
+          "nombre": 1
+        }
+      ],
+      "besoin": [
+        {
+          "produit": "lettre",
+          "nombre": 1
+        }
+      ],
+      "recompense": [
+        200
+      ],
+      "texte": "J’ai écrit une lettre à ma sœur. Tu peux la porter à la postière pour qu’elle l’envoie ?",
+      "rappel": "Ma lettre, c’est pour la postière, à la poste.",
+      "merci": "Je l’envoie tout de suite ! Merci, voilà 2 €."
+    },
+    {
+      "id": "salade-de-la-postiere",
+      "valide": false,
+      "donneur": "postiere",
+      "destinataire": "postiere",
+      "fournit": [],
+      "besoin": [
+        {
+          "produit": "tomate",
+          "nombre": 2
+        },
+        {
+          "produit": "carotte",
+          "nombre": 1
+        }
+      ],
+      "recompense": [
+        200,
+        200,
+        200
+      ],
+      "texte": "Ce midi, je mange une salade. Il me faut 2 tomates et 1 carotte. Tu peux les acheter pour moi ?",
+      "rappel": "Pour ma salade : 2 tomates et 1 carotte.",
+      "merci": "Une salade toute fraîche ! Merci, voilà 6 €."
     }
   ],
   "textes": {

@@ -20,7 +20,10 @@ import { choisirQualite, eclairer, ombrer } from '../scene/qualite.ts';
 import { CameraHaute } from '../scene/suivi.ts';
 import { dire } from '../son/voix.ts';
 import { installerDictee, type PointInteret } from './dictee-ville.ts';
-import { aUneQuete, installerDemandes, majSeance, nomDe, parlerA } from './demandes-ville.ts';
+import { aUneQuete, donneursDuJour, installerDemandes, majSeance, nomDe, parlerA, sourcesDeDemandes } from './demandes-ville.ts';
+import { aventureAujourdhui, aventurePourLaGazette, demandesVenues } from './aventure-ville.ts';
+import posteT from '../../content/ville/poste.json';
+import { envoisAventure, ouvrirPropositions, ouvrirSujet } from './propositions-ville.ts';
 import { saluerHabitant } from './salut-habitants.ts';
 import sacT from '../../content/ville/sac.json';
 import type { Panier } from './commerce.ts';
@@ -40,13 +43,13 @@ import { ecrirePrenom } from '../ui/prenom.ts';
 import { avecPrenom, retenirPrenomEcrit } from './prenom-ecrit.ts';
 import { choisirPhoto, lirePhoto, type IdPhoto } from './photos.ts';
 import { ecrituresDuSoir, statistiquesDictee, testerLesVoix } from './dictee-parent.ts';
-import { corrigerEssai, type EtatDictee } from '../dictee/etat.ts';
+import { corrigerEssai, revisionDuJour, type EtatDictee } from '../dictee/etat.ts';
 import { voirPhoto } from './photo-vue.ts';
 import { ajouterALEchange, echanger, installerParent } from './parent-ville.ts';
 import { apresEnvoi, envoisDictee, lireRetourDictee } from './dictee-reve.ts';
 import { changerEcriture, toutesLesEcritures } from './ecritures.ts';
 import gazetteT from '../../content/ville/gazette.json';
-import { editionDuJour, gazetteNeuve, lundiDe, questionnaire, quetesDeLaSemaine, reserve, type Quete } from './gazette.ts';
+import { editionDuJour, gazetteNeuve, lundiDe, questionnaire, quetesDuJour as quetesDeLaGazette, reserve, type Quete } from './gazette.ts';
 import { lireLaGazette } from './gazette-vue.ts';
 import { lieuxDeLaCarte, ouvrirCarte, photographierLaVille, type Plan, type QueteCarte } from './carte.ts';
 import carteT from '../../content/ville/carte.json';
@@ -965,7 +968,7 @@ installerDemandes({
     commandes.actives = !oui;
     ui.interagir.hidden = true;
   },
-  noms: { 'forain-chamboule': 'Le forain', epiciere: epicerie.textes.nom },
+  noms: { 'forain-chamboule': 'Le forain', epiciere: epicerie.textes.nom, postiere: posteT.textes.nom },
   poserMeuble: (id) => void poserMeuble(id),
   apresUnChangement: rafraichirHud,
 });
@@ -1082,7 +1085,7 @@ const feteInstallee = installerFete({
 // sur le cadenas), et l'échange du jour avec le dépôt privé du rêve, comme le faisait le jeu d'avant.
 // La dictée part avec l'échange du rêve (l'état, les écritures) ; au retour, ce que le rêve a lu.
 ajouterALEchange({
-  envois: () => envoisDictee(etat.dictee),
+  envois: async () => [...(await envoisDictee(etat.dictee)), envoisAventure(etat)],
   apres: async (chemins, brut) => {
     await apresEnvoi(chemins, jourDe(new Date()));
     const retour = lireRetourDictee(brut);
@@ -1130,6 +1133,8 @@ void feteInstallee.then(() => {
           void sauverEtat(etat).then(() => location.reload());
         },
       },
+      { titre: 'Les propositions du rêve (quêtes, demandes)', ouvrir: () => void ouvrirPropositions({ etat: () => etat, sauver: () => void sauverEtat(etat), jour: aujourdhuiVille() }) },
+      { titre: 'Le sujet de la prochaine grande quête', ouvrir: () => void ouvrirSujet({ etat: () => etat, sauver: () => void sauverEtat(etat), jour: aujourdhuiVille() }) },
       { titre: 'La photo de l’enfant', ouvrir: () => void choisirPhoto('enfant').then((b) => b && mettreDansLeCadre('enfant', b)) },
       { titre: 'La photo de famille', ouvrir: () => void choisirPhoto('famille').then((b) => b && mettreDansLeCadre('famille', b)) },
     ],
@@ -1628,21 +1633,33 @@ await poserInterieur();
 
 // --- La Gazette de MiniVille : chaque jour, on la lit dans la maison avant de sortir ----------
 const gazetteLue = (): boolean => etat.gazette.valideLe === aujourdhuiVille();
-/** Les quêtes de la semaine d'aujourd'hui. */
+// La tâche du chapitre du jour (grande aventure) et les demandes du rêve rejoignent les demandes.
+sourcesDeDemandes(() => demandesVenues(etat, aujourdhuiVille()));
+majSeance();
+if (aventureAujourdhui(etat, aujourdhuiVille()).change) void sauverEtat(etat);
+
+/** Les quêtes du jour. */
 function quetesDuJour(): Quete[] {
-  return quetesDeLaSemaine({
+  const jour = aujourdhuiVille();
+  const q = revisionDuJour(etat.dictee, jour).quotidien;
+  return quetesDeLaGazette({
     jour: aujourdhuiVille(),
     attraction: etat.attraction,
     nomsAttractions: Object.fromEntries(attractions.attractions.map((a) => [a.id, a.nom])),
     prenomsProposes: PRENOMS_ATTRACTION,
     dictee: etat.dictee,
+    motsDuJour: { mots: q.mots, fini: q.fini },
+    annonces: donneursDuJour(),
     hasard: Math.random,
   });
 }
 async function ouvrirLaGazette(): Promise<void> {
   const jour = aujourdhuiVille();
+  const { quete, change } = aventureAujourdhui(etat, jour);
+  if (change) void sauverEtat(etat);
+  const aventure = aventurePourLaGazette(etat, quete);
   const quetes = quetesDuJour();
-  const edition = editionDuJour(etat.gazette, quetes, jour, etat.prenom);
+  const edition = editionDuJour(etat.gazette, quetes, jour, etat.prenom, aventure ?? undefined);
   const lundi = lundiDe(jour);
   const premiere = etat.gazette.premiere || lundi;
   const semaine = Math.round((Date.parse(lundi) - Date.parse(premiere)) / (7 * 86400000)) + 1;
@@ -1665,13 +1682,16 @@ async function ouvrirLaGazette(): Promise<void> {
   g.premiere = premiere;
   g.valideLe = jour;
   if (edition.type === 'histoire') g.histoiresLues = [...new Set([...g.histoiresLues, lundi])];
+  // La fin de l'aventure lue (et sa morale) : la suivante commencera demain.
+  if (aventure?.morale) etat.grandeQuete = { ...etat.grandeQuete, finLue: true };
   const resume =
     edition.type === 'histoire'
       ? `Semaine ${semaine} : histoire « ${edition.histoire.titre} » lue.`
       : edition.type === 'quetes'
         ? `Quêtes en cours : ${edition.quetes.map((q) => q.titre).join(', ')}.`
         : `Bilan de la semaine : ${edition.quetes.map((q) => q.titre).join(', ')} finies.`;
-  g.chronique = [...g.chronique, { jour, texte: resume }].slice(-200);
+  const resumeAventure = aventure ? ` ${aventure.titre}, ${aventure.sousTitre.charAt(0).toLocaleLowerCase('fr')}${aventure.sousTitre.slice(1)}.` : '';
+  g.chronique = [...g.chronique, { jour, texte: resume + resumeAventure }].slice(-200);
   void sauverEtat(etat);
 }
 // Chaque jour, le jeu commence dans la maison, et la porte reste fermée jusqu'à la Gazette lue.
@@ -1751,6 +1771,7 @@ function quetesPourLaCarte(pourLaCarte = true): QueteCarte[] {
   const habitants: Array<{ id: string; nom: string; lieu: { x: number; z: number }; elle: boolean }> = [
     { id: 'epiciere', nom: 'L’épicière', lieu: EPICIERE, elle: true },
     { id: 'forain-chamboule', nom: 'Le forain', lieu: FORAIN, elle: false },
+    { id: 'postiere', nom: posteT.textes.nom, lieu: POSTIERE, elle: true },
   ];
   for (const h of habitants) {
     if (!aUneQuete(h.id)) continue;
