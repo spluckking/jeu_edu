@@ -63,8 +63,8 @@ export const ZONE_MORTE = 2;
  *  des portes, écart de côté le plus grand d'une porte à la suivante, part des rochers. */
 export function reglagePilotage(n: number): { vitesse: number; espacement: number; largeurPorte: number; ecartMax: number; partRochers: number } {
   const k = avance(n);
-  // Rapide dès le départ ; une épreuve toutes les 2,4 s au niveau 1, toutes les 1,1 s au niveau 12.
-  return { vitesse: 14 + 10 * k, espacement: 34 - 8 * k, largeurPorte: 0.42 - 0.2 * k, ecartMax: 0.6 + 0.6 * k, partRochers: 0.45 * k };
+  // Très rapide dès le départ ; une épreuve toutes les 2,4 s au niveau 1, toutes les 1,1 s au niveau 12.
+  return { vitesse: 22 + 14 * k, espacement: 53 - 13 * k, largeurPorte: 0.42 - 0.2 * k, ecartMax: 0.6 + 0.6 * k, partRochers: 0.45 * k };
 }
 
 // --- La rivière ---------------------------------------------------------------------------------

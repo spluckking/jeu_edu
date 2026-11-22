@@ -45,10 +45,11 @@ menu.append(
   retour,
   creer('h1', '', T.page.titre),
   creer('p', 'essais-aide', T.page.aide),
-  rangee(T.page.stands, STANDS_ESSAI.map((s) => ({ titre: s.titre, jouer: (f) => jouerStand(f, s) }))),
-  rangee(T.page.maneges, MANEGES_ESSAI.map((m) => ({ titre: m.titre, jouer: (f) => jouerManege(f, m) }))),
+  // Le Golem Express d'abord : c'est l'essai en cours, visible sans faire défiler.
   rangee(T.page.attention, [
     { titre: G.titre, jouer: jouerGolem },
     { titre: G.parent.titre, jouer: voirResultats },
   ]),
+  rangee(T.page.stands, STANDS_ESSAI.map((s) => ({ titre: s.titre, jouer: (f) => jouerStand(f, s) }))),
+  rangee(T.page.maneges, MANEGES_ESSAI.map((m) => ({ titre: m.titre, jouer: (f) => jouerManege(f, m) }))),
 );

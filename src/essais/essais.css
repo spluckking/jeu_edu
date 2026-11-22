@@ -1,5 +1,11 @@
 /* La page d'essais pour la fête. */
 
+/* La page défile au doigt (le reste du jeu bloque les gestes du navigateur : touch-action: none). */
+html:has(> body.essais-fete),
+body.essais-fete {
+  touch-action: pan-y;
+}
+
 body.essais-fete {
   overflow: auto;
   background: linear-gradient(#cfeeff, #fff1d6);
