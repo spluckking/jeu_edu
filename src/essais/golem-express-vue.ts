@@ -1,56 +1,89 @@
-// Le Golem Express à l'écran (2D, vu de dessus) : un doigt guide le train (le golem pose les rails
-// devant la locomotive), l'autre main touche « Attraper » quand passe la bonne caisse. Les rails
-// brillent de pierre rouge tant que le train reste sur le chemin de cailloux.
+// Le Golem Express à l'écran : la scène 3D (golem-express-3d.ts), le capteur d'inclinaison, les
+// cartes (consigne, bilan) et les résultats pour le parent. On pilote en penchant la tablette (ou
+// au doigt, dans la moitié gauche) ; on attrape en touchant n'importe où dans la moitié droite.
 
 import T from '../../content/fete/golem-express.json';
 import { aujourdhui } from '../dictee/leitner.ts';
 import { bruitage } from '../son/bruitages.ts';
 import { confettis } from '../ui/confettis.ts';
 import { bouton, creer, remplir, texteALire } from '../ville/interface.ts';
+import { COULEURS, creerScene, PORTEE_VUE } from './golem-express-3d.ts';
 import {
+  affiner,
   ajuster,
-  cheminY,
   avecRappel,
+  CHOIX_MINUTES,
   cout,
+  DEMI_WAGONNET,
   DUREE_ECHAUFFEMENT,
   DUREE_MANCHE,
   DUREES_MANCHE,
   estLaCible,
+  lieuOuvertPar,
+  lieuxOuverts,
+  manchesDuJour,
   mesuresVides,
+  MINUTES_PAR_JOUR,
+  penche,
+  piegesPossibles,
+  prochaineEpreuve,
   prochainObjet,
   reglageCaisses,
   reglagePilotage,
   resultat,
   reussiteCaisses,
+  reussitEpreuve,
   reussitePilotage,
   tireCible,
+  VITESSE_COTE,
+  vitesseDeCote,
   WAGONS_MAX,
   type Cible,
-  type Matiere,
+  type Epreuve,
+  type IdLieu,
   type Mesures,
   type Niveaux,
   type Objet,
   type Resultat,
 } from './golem-express.ts';
 
-const L = 1000;
-const H = 600;
-const LOCO_X = 260;
 const CLE = 'golem-express';
 
 // --- La sauvegarde (sur la tablette seulement) -------------------------------------------------
 
+type Orientation = 'paysage' | 'portrait';
+type Pilotage = 'inclinaison' | 'doigt';
+
 interface Sauvegarde {
   niveaux: Niveaux;
   wagons: number;
-  manches: number;
+  /** Le temps de jeu par jour choisi par le parent (minutes), et la durée d'une manche (s). */
+  minutes: number;
   duree: number;
   difficiles: number;
   echauffement: string;
   resultats: Resultat[];
+  /** Le jour en cours et ses manches jouées. */
+  jour: string;
+  manchesJour: number;
+  pilotage: Pilotage;
+  /** Le sens de l'inclinaison, appris au réglage, pour chaque orientation de l'écran. */
+  sens: Partial<Record<Orientation, 1 | -1>>;
 }
 
-const neuve = (): Sauvegarde => ({ niveaux: { pilotage: 1, caisses: 1 }, wagons: 0, manches: 3, duree: DUREE_MANCHE, difficiles: 0, echauffement: '', resultats: [] });
+const neuve = (): Sauvegarde => ({
+  niveaux: { pilotage: 1, caisses: 1 },
+  wagons: 0,
+  minutes: MINUTES_PAR_JOUR,
+  duree: DUREE_MANCHE,
+  difficiles: 0,
+  echauffement: '',
+  resultats: [],
+  jour: '',
+  manchesJour: 0,
+  pilotage: 'inclinaison',
+  sens: {},
+});
 
 export function lire(): Sauvegarde {
   try {
@@ -68,19 +101,56 @@ function ecrire(s: Sauvegarde): void {
   }
 }
 
-// --- Les dessins -------------------------------------------------------------------------------
+// --- Le capteur d'inclinaison ------------------------------------------------------------------
 
-const COULEURS: Record<Matiere, [string, string]> = {
-  fer: ['#ddd5ca', '#a8917a'],
-  or: ['#f6c945', '#c48d1d'],
-  cuivre: ['#d9824e', '#7fbfa0'],
-  emeraude: ['#35c47a', '#1b7f4b'],
-  diamant: ['#79e6e2', '#2fa9b8'],
-  charbon: ['#4a4a4a', '#1c1c1c'],
-  pierreRouge: ['#e0443a', '#ff8a7a'],
-};
+const orientation = (): Orientation => (window.innerWidth >= window.innerHeight ? 'paysage' : 'portrait');
+const angleEcran = (): number => screen.orientation?.angle ?? 0;
 
-/** Une caisse : un bloc (carré, à facettes) ou une pépite (caillou), ou la TNT. */
+/** La pesanteur mesurée par la tablette, lissée ; null tant que rien n'est arrivé. */
+const capteur = (() => {
+  let g: { x: number; y: number; z: number } | null = null;
+  let ecoute = false;
+  const recevoir = (e: DeviceMotionEvent): void => {
+    const a = e.accelerationIncludingGravity;
+    if (!a || a.x === null || a.y === null || a.z === null) return;
+    g = g ? { x: g.x + (a.x - g.x) * 0.3, y: g.y + (a.y - g.y) * 0.3, z: g.z + (a.z - g.z) * 0.3 } : { x: a.x, y: a.y, z: a.z };
+  };
+  return {
+    /** Se résout à vrai si la tablette donne son inclinaison (dans la seconde et demie). */
+    demarrer(): Promise<boolean> {
+      if (!ecoute) {
+        window.addEventListener('devicemotion', recevoir);
+        ecoute = true;
+      }
+      const debut = performance.now();
+      return new Promise((ok) => {
+        const voir = (): void => {
+          if (g) ok(true);
+          else if (performance.now() - debut > 1500) ok(false);
+          else window.setTimeout(voir, 100);
+        };
+        voir();
+      });
+    },
+    angle(): number | null {
+      return g ? penche(g, angleEcran()) : null;
+    },
+  };
+})();
+
+/** Garde l'écran dans son sens pendant la course (pencher la tablette ne doit pas le tourner). */
+function bloquerEcran(oui: boolean): void {
+  const o = screen.orientation as unknown as { type: string; lock?(x: string): Promise<void> };
+  try {
+    void o.lock?.(oui ? o.type : 'landscape')?.catch(() => undefined);
+  } catch {
+    // Pas de verrouillage possible (hors plein écran) : tant pis.
+  }
+}
+
+// --- Les dessins des cartes (2D) ----------------------------------------------------------------
+
+/** Un minerai (bloc carré à éclats, ou pépite en caillou), ou la TNT. */
 export function dessinerObjet(c: CanvasRenderingContext2D, o: Objet, x: number, y: number, k = 1): void {
   c.save();
   c.translate(x, y);
@@ -95,7 +165,6 @@ export function dessinerObjet(c: CanvasRenderingContext2D, o: Objet, x: number, 
     c.textAlign = 'center';
     c.textBaseline = 'middle';
     c.fillText('TNT', 0, 1);
-    c.fillStyle = '#4a3833';
     c.fillRect(-1.5, -34, 3, 10);
   } else if (o.forme === 'bloc') {
     const [a, b] = COULEURS[o.matiere];
@@ -103,331 +172,372 @@ export function dessinerObjet(c: CanvasRenderingContext2D, o: Objet, x: number, 
     c.fillRect(-24, -24, 48, 48);
     c.fillStyle = a;
     c.fillRect(-20, -20, 40, 40);
-    // Des éclats en petits carrés : chaque matière a les siens.
     c.fillStyle = b;
-    for (const [px, py] of [[-12, -12], [6, -8], [-6, 6], [10, 10], [-14, 12]]) c.fillRect(px!, py!, 7, 7);
+    for (const [px, py] of [
+      [-12, -12],
+      [6, -8],
+      [-6, 6],
+      [10, 10],
+      [-14, 12],
+    ] as const)
+      c.fillRect(px, py, 7, 7);
     c.fillStyle = 'rgba(255,255,255,0.45)';
     c.fillRect(-20, -20, 40, 5);
   } else {
     const [a, b] = COULEURS[o.matiere];
-    c.fillStyle = b;
-    c.beginPath();
-    c.moveTo(-18, 4);
-    c.lineTo(-10, -14);
-    c.lineTo(8, -16);
-    c.lineTo(19, -2);
-    c.lineTo(12, 15);
-    c.lineTo(-8, 16);
-    c.closePath();
-    c.fill();
-    c.fillStyle = a;
-    c.beginPath();
-    c.moveTo(-12, 2);
-    c.lineTo(-7, -9);
-    c.lineTo(6, -10);
-    c.lineTo(12, -1);
-    c.lineTo(8, 9);
-    c.lineTo(-5, 10);
-    c.closePath();
-    c.fill();
+    const caillou = (p: ReadonlyArray<readonly [number, number]>, couleur: string): void => {
+      c.fillStyle = couleur;
+      c.beginPath();
+      for (const [px, py] of p) c.lineTo(px, py);
+      c.closePath();
+      c.fill();
+    };
+    caillou(
+      [
+        [-18, 4],
+        [-10, -14],
+        [8, -16],
+        [19, -2],
+        [12, 15],
+        [-8, 16],
+      ],
+      b,
+    );
+    caillou(
+      [
+        [-12, 2],
+        [-7, -9],
+        [6, -10],
+        [12, -1],
+        [8, 9],
+        [-5, 10],
+      ],
+      a,
+    );
     c.fillStyle = 'rgba(255,255,255,0.6)';
     c.fillRect(-4, -6, 5, 5);
   }
   c.restore();
 }
 
-/** La locomotive, son golem de pierre aux yeux lumineux, et ses wagons. */
-function dessinerTrain(c: CanvasRenderingContext2D, positions: Array<{ x: number; y: number; a: number }>, t: number): void {
-  for (let i = positions.length - 1; i >= 1; i--) {
-    const p = positions[i]!;
-    c.save();
-    c.translate(p.x, p.y);
-    c.rotate(p.a);
-    c.fillStyle = ['#6aa8ef', '#8acb52', '#ffc94a', '#c58ce8'][i % 4]!;
-    c.fillRect(-26, -20, 52, 40);
-    c.fillStyle = 'rgba(0,0,0,0.15)';
-    c.fillRect(-26, 12, 52, 8);
-    c.restore();
-  }
-  const p = positions[0]!;
-  c.save();
-  c.translate(p.x, p.y);
-  c.rotate(p.a);
-  c.fillStyle = '#4a3833';
-  c.fillRect(-38, -24, 70, 48);
-  c.fillStyle = '#f27a8e';
-  c.fillRect(-34, -20, 40, 40);
-  c.fillStyle = '#7a6458';
-  c.beginPath();
-  c.arc(18, 0, 13, 0, 7);
-  c.fill();
-  // La fumée.
-  c.fillStyle = 'rgba(255,255,255,0.7)';
-  for (let i = 0; i < 3; i++) {
-    const f = (t * 1.5 + i / 3) % 1;
-    c.beginPath();
-    c.arc(18 - f * 60, -f * 25, 6 + f * 10, 0, 7);
-    c.fill();
-  }
-  // Le golem, à l'avant : un bloc de pierre moussue.
-  c.fillStyle = '#9a9a8e';
-  c.fillRect(30, -18, 30, 36);
-  c.fillStyle = '#6fa35a';
-  c.fillRect(30, -18, 30, 8);
-  c.fillStyle = '#ffd34d';
-  c.fillRect(50, -10, 6, 6);
-  c.fillRect(50, 4, 6, 6);
-  c.restore();
+function imageObjet(o: Objet, taille = 120, classe = 'golem-objet'): HTMLCanvasElement {
+  const t = creer('canvas', classe);
+  t.width = taille;
+  t.height = taille;
+  dessinerObjet(t.getContext('2d')!, o, taille / 2, taille / 2, taille / 60);
+  return t;
+}
+
+function nomCible(c: Cible): string {
+  // « les pépites d’or », « les blocs d’émeraude » : de devant une voyelle s'élide.
+  return remplir(T.formes[c.forme][1]!, { matiere: T.matieres[c.matiere] }).replace(/ de ([aeiouyéèêh])/iu, ' d’$1');
 }
 
 // --- Une manche --------------------------------------------------------------------------------
 
 type Mode = 'double' | 'pilotage' | 'caisses';
+type Controle = { sorte: 'inclinaison'; sens: 1 | -1 } | { sorte: 'doigt' };
 
-interface EnCours {
-  objet: Objet;
-  wx: number;
+interface Posee {
+  id: number;
+  distance: number;
+  fini: boolean;
+}
+interface EpreuvePosee extends Posee {
+  epreuve: Epreuve;
+}
+interface ObjetPose extends Posee {
   cible: boolean;
   entree: number;
-  fini: '' | 'pris' | 'erreur' | 'passe';
-  quand: number;
 }
 
-/** Une manche ; se résout avec les mesures. */
-function courir(f: HTMLElement, mode: Mode, n: Niveaux, cible: Cible, duree: number, wagons: number, entete: string): Promise<Mesures> {
+interface OptionsManche {
+  mode: Mode;
+  niveaux: Niveaux;
+  cible: Cible;
+  duree: number;
+  wagons: number;
+  entete: string;
+  lieu: IdLieu;
+  controle: Controle;
+}
+
+/** Une manche ; se résout avec les mesures, ou null si l'enfant l'a arrêtée. */
+function courir(f: HTMLElement, o: OptionsManche): Promise<Mesures | null> {
   return new Promise((fini) => {
-    const cadre = creer('section', 'manege golem');
-    const toile = creer('canvas', 'manege-toile');
-    const attraper = bouton('golem-attraper', T.attraper);
-    attraper.hidden = mode === 'pilotage';
-    cadre.append(toile, attraper);
+    const { mode } = o;
+    const cadre = creer('section', 'golem3d');
+    const toile = creer('canvas', 'golem-toile');
+    const haut = creer('div', 'golem-haut');
+    const barre = creer('div', 'golem-barre');
+    const reste = creer('div', 'golem-reste');
+    barre.append(reste);
+    haut.append(creer('span', 'golem-entete', o.entete), barre);
+    const pause = bouton('golem-pause', T.pause);
+    cadre.append(toile, haut, pause);
+    if (mode !== 'pilotage') {
+      if (avecRappel(o.niveaux.caisses)) {
+        const rappel = creer('div', 'golem-rappel');
+        rappel.append(imageObjet({ sorte: 'minerai', ...o.cible }, 80, 'golem-rappel-image'));
+        cadre.append(rappel);
+      }
+      cadre.append(creer('div', 'golem-zone-droite', T.toucheIci));
+    }
+    if (mode !== 'caisses' && o.controle.sorte === 'doigt') cadre.append(creer('div', 'golem-zone-gauche'));
     f.replaceChildren(cadre);
-    const c = toile.getContext('2d')!;
-    const ajuster = (): void => {
-      const r = toile.getBoundingClientRect();
-      const dpr = Math.min(2, window.devicePixelRatio || 1);
-      toile.width = Math.round(r.width * dpr);
-      toile.height = Math.round(r.height * dpr);
-    };
-    ajuster();
+    const scene = creerScene(toile, o.lieu, o.wagons);
+    bloquerEcran(true);
 
-    const pil = reglagePilotage(mode === 'caisses' ? 3 : n.pilotage);
-    const cai = reglageCaisses(n.caisses);
+    const pil = reglagePilotage(mode === 'caisses' ? 3 : o.niveaux.pilotage);
+    const cai = reglageCaisses(o.niveaux.caisses);
     const m = mesuresVides();
-    let wx = 0;
     let t = 0;
-    let locoY = cheminY(0, pil.virages);
-    let visee = locoY;
-    let prochaine = 1.2;
-    let objets: EnCours[] = [];
-    const traces: Array<{ wx: number; y: number; sur: boolean }> = [];
-    const fenetre = cai.fenetre * pil.vitesse;
-    const debutFenetre = LOCO_X + 70;
+    let d = 0;
+    let x = 0;
+    let virage = 0;
+    let contreMur = false;
+    // Le réglage fin (pilotage : vitesse ; minerais : temps pour attraper), et ses fenêtres de 10 s.
+    let fp = 1;
+    let fc = 1;
+    const fenP = { ok: 0, n: 0 };
+    const fenC = { ok: 0, n: 0 };
+    let prochainReglage = 10;
+    let prochaineEpreuveA = 35;
+    let xPorte = 0;
+    let prochainObjetDans = 2.2;
+    const epreuves: EpreuvePosee[] = [];
+    let objets: ObjetPose[] = [];
+    const neutre = capteur.angle() ?? 0;
+    let doigtX: number | null = null;
+    let clavierDir = 0;
+    let enPause = false;
+    let arrete = false;
+    let forcage: number | null = null;
 
-    const dansFenetre = (o: EnCours): boolean => {
-      const sx = o.wx - wx + LOCO_X;
-      return !o.fini && sx <= debutFenetre + fenetre && sx >= debutFenetre - 30;
-    };
+    const vitesse = (): number => pil.vitesse * fp;
+    const fenetre = (): number => cai.fenetre / fc;
+    const aPortee = (p: ObjetPose): boolean => !p.fini && p.distance - d > 0 && p.distance - d <= vitesse() * fenetre();
+
     const toucher = (): void => {
-      if (mode === 'pilotage') return;
-      const o = objets.filter(dansFenetre).sort((a, b) => a.wx - b.wx)[0];
-      if (!o) {
+      if (mode === 'pilotage' || enPause) return;
+      const p = objets.filter(aPortee).sort((a, b) => a.distance - b.distance)[0];
+      if (!p) {
         m.dansLeVide++;
         return;
       }
-      o.quand = t;
-      if (o.cible) {
-        o.fini = 'pris';
+      p.fini = true;
+      scene.attraper(p.id, p.cible);
+      fenC.n++;
+      if (p.cible) {
         m.cibles++;
         m.attrapees++;
-        m.reactions.push(Math.round((t - o.entree) * 1000));
+        m.reactions.push(Math.round((t - p.entree) * 1000));
+        fenC.ok++;
         bruitage.reussite();
       } else {
-        o.fini = 'erreur';
         m.pieges++;
         m.piegesAttrapes++;
         bruitage.erreur();
       }
     };
-    attraper.addEventListener('pointerdown', (e) => {
+
+    // Les gestes : la moitié droite attrape ; la moitié gauche pilote (au doigt).
+    const moitieDroite = (e: PointerEvent): boolean => {
+      const r = cadre.getBoundingClientRect();
+      return e.clientX > r.left + r.width / 2;
+    };
+    const versX = (e: PointerEvent): number => {
+      const r = cadre.getBoundingClientRect();
+      return Math.max(-1, Math.min(1, ((e.clientX - r.left) / (r.width / 2)) * 2 - 1));
+    };
+    let doigtPilote: number | null = null;
+    cadre.addEventListener('pointerdown', (e) => {
+      if (e.target === pause || enPause) return;
       e.preventDefault();
-      toucher();
+      if (moitieDroite(e)) toucher();
+      else if (o.controle.sorte === 'doigt' && mode !== 'caisses') {
+        doigtPilote = e.pointerId;
+        doigtX = versX(e);
+      }
     });
+    cadre.addEventListener('pointermove', (e) => {
+      if (e.pointerId === doigtPilote) doigtX = versX(e);
+    });
+    const lacher = (e: PointerEvent): void => {
+      if (e.pointerId === doigtPilote) doigtPilote = null;
+    };
+    cadre.addEventListener('pointerup', lacher);
+    cadre.addEventListener('pointercancel', lacher);
     const clavier = (e: KeyboardEvent): void => {
       if (e.code === 'Space') {
         e.preventDefault();
-        toucher();
+        if (e.type === 'keydown' && !e.repeat) toucher();
+      } else if (e.code === 'ArrowLeft' || e.code === 'ArrowRight') {
+        e.preventDefault();
+        const s = e.code === 'ArrowLeft' ? -1 : 1;
+        if (e.type === 'keydown') clavierDir = s;
+        else if (clavierDir === s) clavierDir = 0;
       }
     };
     window.addEventListener('keydown', clavier);
-    const viser = (e: PointerEvent): void => {
-      if (mode === 'caisses' || (e.pointerType === 'mouse' && e.buttons === 0)) return;
-      const r = toile.getBoundingClientRect();
-      visee = ((e.clientY - r.top) / r.height) * H;
-    };
-    toile.addEventListener('pointerdown', (e) => {
-      toile.setPointerCapture(e.pointerId);
-      viser(e);
-    });
-    toile.addEventListener('pointermove', viser);
+    window.addEventListener('keyup', clavier);
 
-    // Pour les essais sur ordinateur : l'état du jeu, lisible par un robot de test.
+    // La pause : le bouton en haut à gauche, ou quand on quitte l'application.
+    const carton = creer('div', 'golem-pause-fond');
+    carton.hidden = true;
+    const carteP = creer('div', 'exercice golem-pause-carte');
+    const reprendre = bouton('bouton-principal', T.reprendre);
+    const arreter = bouton('bouton-secondaire', T.arreter);
+    const actionsP = creer('div', 'exercice-actions');
+    actionsP.append(arreter, reprendre);
+    carteP.append(creer('p', 'exercice-titre', T.pause), actionsP);
+    carton.append(carteP);
+    cadre.append(carton);
+    const mettrePause = (oui: boolean): void => {
+      enPause = oui;
+      carton.hidden = !oui;
+    };
+    pause.addEventListener('click', () => {
+      bruitage.touche();
+      mettrePause(true);
+    });
+    reprendre.addEventListener('click', () => {
+      bruitage.touche();
+      mettrePause(false);
+    });
+    arreter.addEventListener('click', () => {
+      bruitage.touche();
+      arrete = true;
+    });
+    const cache = (): void => {
+      if (document.hidden) mettrePause(true);
+    };
+    document.addEventListener('visibilitychange', cache);
+
+    // Pour les essais sur ordinateur : l'état du jeu, lisible et pilotable par un robot de test.
     if (new URLSearchParams(location.search).has('essai')) {
       (window as unknown as Record<string, unknown>).golem = {
-        etat: () => ({ locoY, chemin: cheminY(wx, pil.virages), largeur: pil.largeur, aPortee: objets.filter(dansFenetre).map((o) => o.cible) }),
-        viser: (y: number) => (visee = y),
+        etat: () => ({ t, d, x, fp, fc, mesures: { ...m }, prochaine: epreuves.find((p) => !p.fini)?.epreuve ?? null, aPortee: objets.filter(aPortee).map((p) => p.cible) }),
         toucher,
+        piloter: (v: number | null) => (forcage = v),
+        finir: () => (t = o.duree),
       };
     }
+
+    const terminer = (resultatManche: Mesures | null): void => {
+      window.removeEventListener('keydown', clavier);
+      window.removeEventListener('keyup', clavier);
+      document.removeEventListener('visibilitychange', cache);
+      bloquerEcran(false);
+      scene.liberer();
+      fini(resultatManche);
+    };
 
     let avant = performance.now();
     const image = (maintenant: number): void => {
       const dt = Math.min(0.05, (maintenant - avant) / 1000);
       avant = maintenant;
-      t += dt;
-      wx += pil.vitesse * dt;
-      const centre = cheminY(wx, pil.virages);
-      if (mode === 'caisses') visee = centre;
-      locoY += (visee - locoY) * Math.min(1, dt * 7);
-      const sur = Math.abs(locoY - centre) < pil.largeur / 2;
-      if (mode !== 'caisses') {
-        m.temps += dt;
-        if (sur) m.surChemin += dt;
+      if (arrete) return terminer(null);
+      if (enPause) {
+        requestAnimationFrame(image);
+        return;
       }
-      traces.push({ wx, y: locoY, sur });
-      while (traces.length && traces[0]!.wx < wx - LOCO_X - 40) traces.shift();
+      t += dt;
+      d += vitesse() * dt;
 
-      // Les caisses arrivent sur le chemin, à droite.
-      if (mode !== 'pilotage') {
-        prochaine -= dt;
-        if (prochaine <= 0) {
-          prochaine = cai.intervalle * (0.8 + Math.random() * 0.4);
-          const o = prochainObjet(cible, cai.ressemblance, Math.random);
-          objets.push({ objet: o, wx: wx - LOCO_X + L + 40, cible: estLaCible(o, cible), entree: 0, fini: '', quand: 0 });
+      // Le pilotage.
+      let vx = 0;
+      if (mode === 'caisses') vx = Math.max(-VITESSE_COTE, Math.min(VITESSE_COTE, -x * 3));
+      else if (forcage !== null) vx = forcage;
+      else if (clavierDir) vx = clavierDir * VITESSE_COTE;
+      else if (o.controle.sorte === 'inclinaison') {
+        const a = capteur.angle();
+        vx = a === null ? 0 : vitesseDeCote(o.controle.sens * (a - neutre));
+      } else if (doigtX !== null) vx = Math.max(-VITESSE_COTE, Math.min(VITESSE_COTE, (doigtX - x) * 6));
+      x += vx * dt;
+      const limite = 1 - DEMI_WAGONNET;
+      if (Math.abs(x) > limite) {
+        x = Math.sign(x) * limite;
+        if (!contreMur && mode !== 'caisses') {
+          m.murs++;
+          scene.secouer();
         }
-        for (const o of objets) {
-          const sx = o.wx - wx + LOCO_X;
-          if (!o.fini && !o.entree && sx <= debutFenetre + fenetre) o.entree = t;
-          if (!o.fini && sx < debutFenetre - 30) {
-            o.fini = 'passe';
-            o.quand = t;
-            if (o.cible) m.cibles++;
-            else m.pieges++;
+        contreMur = true;
+      } else contreMur = false;
+      virage += (vx / VITESSE_COTE - virage) * Math.min(1, dt * 6);
+
+      // Les portes et les rochers.
+      if (mode !== 'caisses') {
+        while (prochaineEpreuveA <= d + PORTEE_VUE) {
+          const e = prochaineEpreuve(o.niveaux.pilotage, xPorte, Math.random);
+          epreuves.push({ id: scene.poserEpreuve(e, prochaineEpreuveA), distance: prochaineEpreuveA, fini: false, epreuve: e });
+          if (e.sorte === 'porte') xPorte = e.x;
+          prochaineEpreuveA += pil.espacement * (0.85 + 0.3 * Math.random());
+        }
+        for (const p of epreuves) {
+          if (p.fini || p.distance > d) continue;
+          p.fini = true;
+          const ok = reussitEpreuve(p.epreuve, x);
+          m.epreuves++;
+          fenP.n++;
+          if (ok) {
+            m.reussies++;
+            fenP.ok++;
+            if (p.epreuve.sorte === 'porte') bruitage.ticket();
+          }
+          scene.marquerEpreuve(p.id, ok);
+        }
+      }
+
+      // Les minerais.
+      if (mode !== 'pilotage') {
+        prochainObjetDans -= dt;
+        if (prochainObjetDans <= 0) {
+          prochainObjetDans = cai.intervalle * (0.8 + Math.random() * 0.4);
+          const ob = prochainObjet(o.cible, cai.ressemblance, Math.random);
+          const distance = d + vitesse() * (fenetre() + 2.4);
+          objets.push({ id: scene.poserObjet(ob, (Math.random() * 2 - 1) * 0.55, distance), distance, fini: false, cible: estLaCible(ob, o.cible), entree: 0 });
+        }
+        for (const p of objets) {
+          if (p.fini) continue;
+          const portee = aPortee(p);
+          if (portee && !p.entree) p.entree = t;
+          scene.aPortee(p.id, portee);
+          if (p.distance <= d) {
+            p.fini = true;
+            fenC.n++;
+            if (p.cible) m.cibles++;
+            else {
+              m.pieges++;
+              fenC.ok++;
+            }
           }
         }
-        objets = objets.filter((o) => o.wx - wx + LOCO_X > -60 && !(o.fini && o.fini !== 'passe' && t - o.quand > 0.6));
+        objets = objets.filter((p) => !p.fini || p.distance > d - 15);
       }
 
-      // --- Le dessin ---
-      if (toile.width !== Math.round(toile.getBoundingClientRect().width * Math.min(2, window.devicePixelRatio || 1))) ajuster();
-      c.setTransform(toile.width / L, 0, 0, toile.height / H, 0, 0);
-      // L'herbe, en carreaux.
-      const dec = wx % 50;
-      for (let x = -50; x < L + 50; x += 50) {
-        for (let y = 0; y < H; y += 50) {
-          c.fillStyle = ((Math.floor((x + wx - dec) / 50) + y / 50) & 1) === 0 ? '#9fd36b' : '#93c962';
-          c.fillRect(x - dec, y, 50, 50);
-        }
+      // Le réglage fin, toutes les dix secondes.
+      if (t >= prochainReglage) {
+        prochainReglage += 10;
+        if (mode !== 'caisses') fp = affiner(fp, fenP.ok, fenP.n);
+        if (mode !== 'pilotage') fc = affiner(fc, fenC.ok, fenC.n);
+        fenP.ok = fenP.n = fenC.ok = fenC.n = 0;
       }
-      // Le chemin de cailloux.
-      c.lineCap = 'round';
-      c.lineJoin = 'round';
-      c.strokeStyle = '#cfc4b2';
-      c.lineWidth = pil.largeur;
-      c.beginPath();
-      for (let sx = -20; sx <= L + 20; sx += 10) c.lineTo(sx, cheminY(wx - LOCO_X + sx, pil.virages));
-      c.stroke();
-      c.fillStyle = '#b6a993';
-      for (let sx = -(wx % 37); sx <= L; sx += 37) {
-        const cy = cheminY(wx - LOCO_X + sx, pil.virages);
-        c.fillRect(sx, cy - pil.largeur * 0.3, 6, 6);
-        c.fillRect(sx + 15, cy + pil.largeur * 0.2, 6, 6);
-      }
-      // Les rails posés : rouges et lumineux sur le chemin, gris à côté.
-      for (let i = 1; i < traces.length; i++) {
-        const a = traces[i - 1]!;
-        const b = traces[i]!;
-        const ax = a.wx - wx + LOCO_X;
-        const bx = b.wx - wx + LOCO_X;
-        c.strokeStyle = b.sur ? '#e0443a' : '#8f8f8f';
-        c.lineWidth = 5;
-        c.beginPath();
-        c.moveTo(ax, a.y - 12);
-        c.lineTo(bx, b.y - 12);
-        c.moveTo(ax, a.y + 12);
-        c.lineTo(bx, b.y + 12);
-        c.stroke();
-      }
-      // La portée du bras du golem.
-      if (mode !== 'pilotage') {
-        c.fillStyle = 'rgba(255,248,238,0.18)';
-        c.fillRect(debutFenetre - 30, locoY - 70, fenetre + 30, 140);
-      }
-      // Les caisses.
-      for (const o of objets) {
-        const sx = o.wx - wx + LOCO_X;
-        const sy = cheminY(o.wx, pil.virages);
-        if (o.fini === 'pris') {
-          const k = Math.max(0, 1 - (t - o.quand) / 0.6);
-          dessinerObjet(c, o.objet, sx + (LOCO_X - sx) * (1 - k), sy + (locoY - sy) * (1 - k), k);
-          continue;
-        }
-        if (o.fini === 'erreur') {
-          // Un petit nuage : pas d'explosion, juste « pschitt ».
-          const k = (t - o.quand) / 0.6;
-          c.fillStyle = `rgba(160,160,160,${0.7 * (1 - k)})`;
-          c.beginPath();
-          c.arc(sx, sy, 20 + 30 * k, 0, 7);
-          c.fill();
-          continue;
-        }
-        c.globalAlpha = o.fini === 'passe' ? 0.4 : 1;
-        dessinerObjet(c, o.objet, sx, sy - 6);
-        c.globalAlpha = 1;
-      }
-      // Le train : la locomotive et ses wagons, le long des rails posés.
-      const positions = [{ x: LOCO_X, y: locoY, a: Math.atan2(visee - locoY, 90) * 0.6 }];
-      for (let k = 1; k <= Math.min(WAGONS_MAX, wagons); k++) {
-        const cible = wx - 64 * k;
-        const tr = traces.find((p) => p.wx >= cible) ?? traces[0];
-        if (tr) positions.push({ x: tr.wx - wx + LOCO_X, y: tr.y, a: 0 });
-      }
-      dessinerTrain(c, positions, t);
-      // En haut : la manche, le temps, et ce qu'il faut attraper.
-      c.fillStyle = 'rgba(255,248,238,0.9)';
-      c.beginPath();
-      c.roundRect(16, 14, 330, 54, 18);
-      c.fill();
-      c.fillStyle = '#4a3833';
-      c.font = '700 22px Andika, system-ui, sans-serif';
-      c.textAlign = 'left';
-      c.textBaseline = 'middle';
-      c.fillText(entete, 32, 33);
-      c.fillStyle = '#e3dccd';
-      c.fillRect(32, 50, 296, 8);
-      c.fillStyle = '#8acb52';
-      c.fillRect(32, 50, 296 * Math.max(0, 1 - t / duree), 8);
-      if (mode !== 'pilotage' && avecRappel(n.caisses)) {
-        c.fillStyle = 'rgba(255,248,238,0.9)';
-        c.beginPath();
-        c.roundRect(L - 120, 14, 104, 74, 18);
-        c.fill();
-        dessinerObjet(c, { sorte: 'minerai', ...cible }, L - 68, 51);
-      }
-      if (t >= duree) {
-        window.removeEventListener('keydown', clavier);
-        fini(m);
-      } else requestAnimationFrame(image);
+
+      reste.style.width = `${Math.max(0, 100 * (1 - t / o.duree))}%`;
+      scene.image(dt, d, x, virage);
+      if (t >= o.duree) terminer(m);
+      else requestAnimationFrame(image);
     };
     requestAnimationFrame(image);
   });
 }
 
-// --- Le déroulé d'une partie -------------------------------------------------------------------
+// --- Les cartes ----------------------------------------------------------------------------------
 
-function carte(f: HTMLElement, contenu: HTMLElement[], boutons: string[]): Promise<number> {
+function carte(f: HTMLElement, titre: string, contenu: HTMLElement[], boutons: string[]): Promise<number> {
   return new Promise((ok) => {
-    const s = creer('section', 'exercice');
+    const s = creer('section', 'exercice golem-carte');
     const actions = creer('div', 'exercice-actions');
     boutons.forEach((libelle, i) => {
       const b = bouton(i === boutons.length - 1 ? 'bouton-principal' : 'bouton-secondaire', libelle);
@@ -437,56 +547,153 @@ function carte(f: HTMLElement, contenu: HTMLElement[], boutons: string[]): Promi
       });
       actions.append(b);
     });
-    s.append(creer('p', 'exercice-titre', T.titre), ...contenu, actions);
+    s.append(creer('p', 'exercice-titre', titre), ...contenu, actions);
     f.replaceChildren(s);
   });
 }
 
-function nomCible(c: Cible): string {
-  return remplir(T.formes[c.forme][1]!, { matiere: T.matieres[c.matiere] });
+/** L'écran de consigne : la cible, tout ce qu'il faut laisser passer, puis « OK ». */
+function consigne(f: HTMLElement, titre: string, cible: Cible, niveauCaisses: number, avant: HTMLElement[] = []): Promise<number> {
+  const pieges = creer('div', 'golem-pieges');
+  for (const p of piegesPossibles(cible, reglageCaisses(niveauCaisses).ressemblance).slice(0, 8)) pieges.append(imageObjet(p, 64, 'golem-piege'));
+  const contenu = [...avant, texteALire(remplir(T.consigne, { cible: nomCible(cible) })), imageObjet({ sorte: 'minerai', ...cible }), texteALire(T.laisse), pieges];
+  if (!avecRappel(niveauCaisses)) contenu.push(texteALire(T.retiens));
+  contenu.push(texteALire(T.pret));
+  return carte(f, titre, contenu, [T.sortir, T.ok]);
 }
 
-function imageObjet(o: Objet): HTMLCanvasElement {
-  const t = creer('canvas', 'golem-objet');
-  t.width = 120;
-  t.height = 120;
-  const c = t.getContext('2d')!;
-  dessinerObjet(c, o, 60, 60, 2);
-  return t;
+/** Le réglage de l'inclinaison : la tablette droite, puis penchée à gauche ; rend le sens, ou
+ *  null si l'enfant préfère le doigt. */
+function reglerInclinaison(f: HTMLElement): Promise<1 | -1 | null> {
+  return new Promise((ok) => {
+    const s = creer('section', 'exercice golem-carte');
+    const texte = texteALire(T.reglageTenir);
+    const jauge = creer('div', 'golem-jauge');
+    const point = creer('div', 'golem-jauge-point');
+    jauge.append(point);
+    const actions = creer('div', 'exercice-actions');
+    const doigt = bouton('bouton-secondaire', T.parent.doigt);
+    const suivant = bouton('bouton-principal', T.ok);
+    actions.append(doigt, suivant);
+    s.append(creer('p', 'exercice-titre', T.reglageTitre), texte, jauge, actions);
+    f.replaceChildren(s);
+    let neutre: number | null = null;
+    let fini = false;
+    const suivre = (): void => {
+      if (fini) return;
+      const a = capteur.angle() ?? 0;
+      const ecart = neutre === null ? 0 : a - neutre;
+      point.style.left = `${50 + Math.max(-45, Math.min(45, ecart * 2.5))}%`;
+      if (neutre !== null && Math.abs(ecart) > 12) {
+        fini = true;
+        texte.replaceWith(texteALire(T.reglageBravo));
+        bruitage.reussite();
+        window.setTimeout(() => ok(ecart < 0 ? 1 : -1), 1200);
+        return;
+      }
+      requestAnimationFrame(suivre);
+    };
+    suivant.addEventListener('click', () => {
+      bruitage.touche();
+      neutre = capteur.angle() ?? 0;
+      suivant.hidden = true;
+      const t2 = texteALire(T.reglageGauche);
+      texte.replaceWith(t2);
+    });
+    doigt.addEventListener('click', () => {
+      fini = true;
+      ok(null);
+    });
+    requestAnimationFrame(suivre);
+  });
 }
 
-/** Une partie : l'échauffement (une fois par jour), puis les manches. */
+// --- Le déroulé d'une partie -------------------------------------------------------------------
+
+/** Une partie : le réglage (la première fois), l'échauffement (une fois par jour), puis les
+ *  manches du jour. */
 export async function jouerGolem(f: HTMLElement): Promise<void> {
   let s = lire();
-  if ((await carte(f, [texteALire(T.presentation)], [T.sortir, T.cestParti])) === 0) return;
   const jour = aujourdhui();
+  if (s.jour !== jour) {
+    s.jour = jour;
+    s.manchesJour = 0;
+    ecrire(s);
+  }
+  const total = manchesDuJour(s.minutes, s.duree);
+  if (s.manchesJour >= total) {
+    await carte(f, T.titre, [texteALire(T.finDuJour)], [T.sortir]);
+    return;
+  }
+
+  // La présentation, et le lieu (dès qu'il y en a plusieurs).
+  const ouverts = lieuxOuverts(s.wagons);
+  const presentation = [texteALire(T.presentation), texteALire(T.difficile)];
+  let lieu: IdLieu = ouverts[ouverts.length - 1]!;
+  if (ouverts.length > 1) {
+    presentation.push(texteALire(T.choisirLieu));
+    const i = await carte(f, T.titre, presentation, [T.sortir, ...ouverts.map((l) => T.lieux[l])]);
+    if (i === 0) return;
+    lieu = ouverts[i - 1]!;
+  } else if ((await carte(f, T.titre, presentation, [T.sortir, T.cestParti])) === 0) return;
+
+  // Le pilotage : l'inclinaison si la tablette la donne (réglée une fois par orientation).
+  let controle: Controle = { sorte: 'doigt' };
+  if (s.pilotage === 'inclinaison') {
+    if (await capteur.demarrer()) {
+      let sens = s.sens[orientation()];
+      if (!sens) {
+        const r = await reglerInclinaison(f);
+        if (r) {
+          sens = r;
+          s = lire();
+          s.sens = { ...s.sens, [orientation()]: r };
+          ecrire(s);
+        }
+      }
+      if (sens) controle = { sorte: 'inclinaison', sens };
+    } else await carte(f, T.titre, [texteALire(T.pasDeCapteur)], [T.ok]);
+  }
+
+  // L'échauffement, une fois par jour : chaque tâche seule (pour mesurer le coût de la double tâche).
   if (s.echauffement !== jour) {
     const cible = tireCible(Math.random);
-    await carte(f, [texteALire(T.echauffePilotage)], [T.cestParti]);
-    const mp = await courir(f, 'pilotage', s.niveaux, cible, DUREE_ECHAUFFEMENT, s.wagons, T.echauffement);
+    await carte(f, T.echauffement, [texteALire(controle.sorte === 'inclinaison' ? T.echauffePilotage : T.echauffePilotageDoigt)], [T.cestParti]);
+    const mp = await courir(f, { mode: 'pilotage', niveaux: s.niveaux, cible, duree: DUREE_ECHAUFFEMENT, wagons: s.wagons, entete: T.echauffement, lieu, controle });
+    if (!mp) return;
+    s = lire();
     s.resultats.push(resultat(jour, 'pilotage', s.niveaux, mp));
-    await carte(f, [texteALire(T.echauffeCaisses), texteALire(remplir(T.regle, { cible: nomCible(cible) })), imageObjet({ sorte: 'minerai', ...cible }), ...(avecRappel(s.niveaux.caisses) ? [] : [texteALire(T.retiens)])], [T.cestParti]);
-    const mc = await courir(f, 'caisses', s.niveaux, cible, DUREE_ECHAUFFEMENT, s.wagons, T.echauffement);
+    ecrire(s);
+    if ((await consigne(f, T.echauffement, cible, s.niveaux.caisses, [texteALire(T.echauffeCaisses)])) === 0) return;
+    const mc = await courir(f, { mode: 'caisses', niveaux: s.niveaux, cible, duree: DUREE_ECHAUFFEMENT, wagons: s.wagons, entete: T.echauffement, lieu, controle });
+    if (!mc) return;
+    s = lire();
     s.resultats.push(resultat(jour, 'caisses', s.niveaux, mc));
     s.echauffement = jour;
     ecrire(s);
   }
-  for (let i = 1; i <= s.manches; i++) {
+
+  // Les manches du jour.
+  while (s.manchesJour < total) {
+    const n = s.manchesJour + 1;
     const cible = tireCible(Math.random);
-    const entete = remplir(T.mancheN, { n: i, total: s.manches });
-    const regle = [creer('p', 'golem-chef', T.chefDeGare), imageObjet({ sorte: 'minerai', ...cible }), texteALire(remplir(T.regle, { cible: nomCible(cible) })), texteALire(T.jamaisTnt)];
-    if (!avecRappel(s.niveaux.caisses)) regle.push(texteALire(T.retiens));
-    if ((await carte(f, regle, [T.sortir, T.cestParti])) === 0) return;
-    const m = await courir(f, 'double', s.niveaux, cible, s.duree, s.wagons, entete);
-    const a = ajuster(s.niveaux, m, s.difficiles);
+    const entete = remplir(T.mancheN, { n, total });
+    if ((await consigne(f, entete, cible, s.niveaux.caisses)) === 0) return;
+    const m = await courir(f, { mode: 'double', niveaux: s.niveaux, cible, duree: s.duree, wagons: s.wagons, entete, lieu, controle });
+    if (!m) return;
     s = lire();
+    const a = ajuster(s.niveaux, m, s.difficiles);
     s.resultats.push(resultat(jour, 'double', s.niveaux, m, s.duree));
     s.niveaux = a.niveaux;
     s.difficiles = a.difficiles;
+    s.manchesJour++;
+    const avant = s.wagons;
     if (a.etoile) s.wagons = Math.min(WAGONS_MAX, s.wagons + 1);
+    const nouveau = lieuOuvertPar(avant, s.wagons);
     ecrire(s);
     const textes = [remplir(T.bilanManche, { pilotage: Math.round(100 * reussitePilotage(m)), caisses: Math.round(100 * reussiteCaisses(m)) })];
     textes.push(a.etoile ? T.etoile : T.presque);
+    if (nouveau) textes.push(remplir(T.nouveauLieu, { lieu: T.lieux[nouveau].toLowerCase() }));
     if (a.monte.pilotage) textes.push(T.plusVite);
     if (a.monte.caisses) textes.push(T.plusMalin);
     if (a.descend) textes.push(T.plusDoux);
@@ -494,46 +701,69 @@ export async function jouerGolem(f: HTMLElement): Promise<void> {
       bruitage.finDeManche();
       confettis();
     }
-    const derniere = i === s.manches;
-    if ((await carte(f, textes.map((x) => texteALire(x)), derniere ? [T.continuer] : [T.sortir, T.continuer])) === 0 && !derniere) return;
+    const derniere = s.manchesJour >= total;
+    if ((await carte(f, entete, textes.map((x) => texteALire(x)), derniere ? [T.continuer] : [T.sortir, T.continuer])) === 0 && !derniere) return;
   }
   bruitage.finDeManche();
-  await carte(f, [texteALire(s.wagons === 0 ? T.finZero : s.wagons === 1 ? T.finUn : remplir(T.fin, { wagons: s.wagons }))], [T.continuer]);
+  await carte(f, T.titre, [texteALire(s.wagons === 0 ? T.finZero : s.wagons === 1 ? T.finUn : remplir(T.fin, { wagons: s.wagons })), texteALire(T.finDuJour)], [T.continuer]);
 }
 
-/** Pour le parent : les résultats des manches, et le nombre de manches par partie. */
+// --- Pour le parent ------------------------------------------------------------------------------
+
+function choix<V extends string | number>(etiquette: string, valeurs: ReadonlyArray<[V, string]>, actuelle: V, changer: (v: V) => void): HTMLElement {
+  const l = creer('label', 'golem-reglage', `${etiquette} : `);
+  const sel = creer('select');
+  for (const [v, nom] of valeurs) {
+    const op = creer('option', '', nom);
+    op.value = String(v);
+    op.selected = v === actuelle;
+    sel.append(op);
+  }
+  sel.addEventListener('change', () => {
+    const v = valeurs.find(([x]) => String(x) === sel.value);
+    if (v) changer(v[0]);
+  });
+  l.append(sel);
+  return l;
+}
+
+/** Les résultats des manches, et les réglages du parent. */
 export function voirResultats(f: HTMLElement): Promise<void> {
   return new Promise((fini) => {
     const s = lire();
+    const modifier = (m: (x: Sauvegarde) => void): void => {
+      const x = lire();
+      m(x);
+      ecrire(x);
+    };
     const carteR = creer('section', 'exercice golem-resultats');
-    const reglage = creer('label', 'golem-reglage', `${T.parent.manches} : `);
-    const choix = creer('select');
-    for (const n of [1, 2, 3, 4, 5, 6, 8, 10]) {
-      const o = creer('option', '', String(n));
-      o.value = String(n);
-      o.selected = n === s.manches;
-      choix.append(o);
-    }
-    choix.addEventListener('change', () => {
-      const s2 = lire();
-      s2.manches = Number(choix.value);
-      ecrire(s2);
+    const minutes = choix(
+      T.parent.minutes,
+      CHOIX_MINUTES.map((n) => [n, remplir(T.parent.minutesN, { n })] as [number, string]),
+      s.minutes,
+      (v) => modifier((x) => (x.minutes = v)),
+    );
+    const duree = choix(
+      T.parent.duree,
+      DUREES_MANCHE.map((d) => [d, d === 90 ? T.parent.duree90 : T.parent.duree180] as [number, string]),
+      s.duree,
+      (v) => modifier((x) => (x.duree = v)),
+    );
+    const pilotage = choix<Pilotage>(
+      T.parent.pilotage,
+      [
+        ['inclinaison', T.parent.inclinaison],
+        ['doigt', T.parent.doigt],
+      ],
+      s.pilotage,
+      (v) => modifier((x) => (x.pilotage = v)),
+    );
+    const refaire = bouton('bouton-secondaire', T.parent.refaireReglage);
+    refaire.addEventListener('click', () => {
+      modifier((x) => (x.sens = {}));
+      refaire.disabled = true;
+      refaire.textContent = T.parent.reglageEfface;
     });
-    reglage.append(choix);
-    const reglageDuree = creer('label', 'golem-reglage', `${T.parent.duree} : `);
-    const choixDuree = creer('select');
-    for (const d of DUREES_MANCHE) {
-      const o = creer('option', '', d === 90 ? T.parent.duree90 : T.parent.duree180);
-      o.value = String(d);
-      o.selected = d === s.duree;
-      choixDuree.append(o);
-    }
-    choixDuree.addEventListener('change', () => {
-      const s2 = lire();
-      s2.duree = Number(choixDuree.value);
-      ecrire(s2);
-    });
-    reglageDuree.append(choixDuree);
     const tableau = creer('table', 'golem-tableau');
     const tete = creer('tr');
     for (const col of T.parent.colonnes) tete.append(creer('th', '', col));
@@ -545,9 +775,9 @@ export function voirResultats(f: HTMLElement): Promise<void> {
       const seulC = r.sorte === 'double' ? echauffe(r.date, 'caisses') : undefined;
       const seulP = r.sorte === 'double' ? echauffe(r.date, 'pilotage') : undefined;
       const coutCaisses = seulC?.dprime !== undefined && r.dprime !== undefined ? cout(seulC.dprime, r.dprime) : null;
-      const coutChemin = seulP ? cout(seulP.pilotage, r.pilotage) : null;
+      const coutPilotage = seulP ? cout(seulP.pilotage, r.pilotage) : null;
       const date = r.sorte === 'double' ? r.date : `${r.date} (${r.sorte === 'pilotage' ? T.parent.seulChemin : T.parent.seulesCaisses})`;
-      for (const v of [date, r.niveaux.pilotage, r.niveaux.caisses, r.sorte === 'caisses' ? '–' : `${r.pilotage} %`, r.sorte === 'pilotage' ? '–' : `${r.caisses} %`, r.oubliees, r.erreurs, r.reaction ? `${r.reaction} ms` : '–', r.regularite ? `${r.regularite} ms` : '–', r.dprime === undefined ? '–' : r.dprime.toFixed(2), pourcent(coutChemin), pourcent(coutCaisses)]) l.append(creer('td', '', String(v)));
+      for (const v of [date, r.niveaux.pilotage, r.niveaux.caisses, r.sorte === 'caisses' ? '–' : `${r.pilotage} %`, r.sorte === 'pilotage' ? '–' : `${r.caisses} %`, r.oubliees, r.erreurs, r.reaction ? `${r.reaction} ms` : '–', r.regularite ? `${r.regularite} ms` : '–', r.dprime === undefined ? '–' : r.dprime.toFixed(2), pourcent(coutPilotage), pourcent(coutCaisses)]) l.append(creer('td', '', String(v)));
       tableau.append(l);
     }
     const effacer = bouton('bouton-secondaire', T.parent.effacer);
@@ -558,17 +788,22 @@ export function voirResultats(f: HTMLElement): Promise<void> {
         effacer.textContent = `${T.parent.effacer} ?`;
         return;
       }
-      ecrire({ ...neuve(), manches: lire().manches });
+      const x = lire();
+      ecrire({ ...neuve(), minutes: x.minutes, duree: x.duree, pilotage: x.pilotage, sens: x.sens });
       fini();
     });
     const fermer = bouton('bouton-principal', T.parent.fermer);
     fermer.addEventListener('click', () => fini());
     const actions = creer('div', 'exercice-actions');
     actions.append(effacer, fermer);
+    const fait = s.jour === aujourdhui() ? s.manchesJour : 0;
     carteR.append(
       creer('p', 'exercice-titre', T.parent.titre),
-      reglage,
-      reglageDuree,
+      minutes,
+      duree,
+      pilotage,
+      refaire,
+      creer('p', 'golem-aide', remplir(T.parent.aujourdhui, { fait, total: manchesDuJour(s.minutes, s.duree) })),
       s.resultats.length ? tableau : creer('p', '', T.parent.aucun),
       creer('p', 'golem-aide', T.parent.aide),
       creer('p', 'golem-aide', remplir(T.parent.niveaux, { ...s.niveaux, wagons: s.wagons })),

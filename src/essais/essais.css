@@ -224,35 +224,162 @@ svg.essai-parts[viewBox^='0 0'] {
   width: min(440px, 80vw);
 }
 
-/* Le Golem Express : le bouton « Attraper », en bas à droite, pour l'autre main. */
-.golem {
-  position: relative;
-}
-
-.golem-attraper {
-  position: absolute;
-  right: 3%;
-  bottom: 5%;
-  width: clamp(110px, 16%, 170px);
-  aspect-ratio: 1;
-  border: 0;
-  border-radius: 50%;
-  background: var(--jaune);
-  color: var(--encre);
-  font: 700 1.3rem var(--police);
-  box-shadow: 0 6px 0 #d9a52a, var(--ombre);
+/* Le Golem Express : la scène 3D en plein écran, et ce qui s'affiche par-dessus. */
+.golem3d {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  overflow: hidden;
+  background: #2b2018;
   touch-action: none;
   user-select: none;
+  -webkit-user-select: none;
 }
 
-.golem-attraper:active {
-  translate: 0 4px;
-  box-shadow: 0 2px 0 #d9a52a;
+.golem-toile {
+  display: block;
+  width: 100%;
+  height: 100%;
 }
 
-.golem-chef {
-  margin: 0;
-  font-weight: 700;
+.golem-haut {
+  position: absolute;
+  top: calc(12px + env(safe-area-inset-top));
+  left: 50%;
+  translate: -50% 0;
+  display: grid;
+  gap: 6px;
+  min-width: 260px;
+  padding: 8px 18px 10px;
+  border-radius: 18px;
+  background: rgb(255 248 238 / 0.9);
+  color: var(--encre);
+  font: 700 1.2rem var(--police);
+  text-align: center;
+  pointer-events: none;
+}
+
+.golem-barre {
+  height: 8px;
+  border-radius: 4px;
+  background: #e3dccd;
+  overflow: hidden;
+}
+
+.golem-reste {
+  height: 100%;
+  background: #8acb52;
+}
+
+.golem-pause {
+  position: absolute;
+  top: calc(12px + env(safe-area-inset-top));
+  left: calc(12px + env(safe-area-inset-left));
+  padding: 10px 18px;
+  border: 0;
+  border-radius: 16px;
+  background: rgb(255 248 238 / 0.9);
+  color: var(--encre);
+  font: 700 1.1rem var(--police);
+}
+
+.golem-rappel {
+  position: absolute;
+  top: calc(12px + env(safe-area-inset-top));
+  right: calc(12px + env(safe-area-inset-right));
+  padding: 6px;
+  border-radius: 18px;
+  background: rgb(255 248 238 / 0.9);
+  pointer-events: none;
+}
+
+.golem-rappel-image {
+  display: block;
+  width: 64px;
+  height: 64px;
+}
+
+/* La moitié droite attrape : un rond discret le rappelle, en bas à droite. */
+.golem-zone-droite {
+  position: absolute;
+  right: 4%;
+  bottom: 6%;
+  display: grid;
+  place-items: center;
+  width: clamp(110px, 15vw, 160px);
+  aspect-ratio: 1;
+  padding: 12px;
+  border: 3px dashed rgb(255 248 238 / 0.8);
+  border-radius: 50%;
+  background: rgb(40 30 25 / 0.28);
+  color: rgb(255 248 238 / 0.95);
+  font: 700 1rem var(--police);
+  text-align: center;
+  pointer-events: none;
+}
+
+.golem-zone-gauche {
+  position: absolute;
+  inset: auto 50% 0 0;
+  height: 22%;
+  background: linear-gradient(to top, rgb(255 248 238 / 0.18), transparent);
+  pointer-events: none;
+}
+
+.golem-pause-fond {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgb(0 0 0 / 0.35);
+}
+
+.golem-pause-fond[hidden] {
+  display: none;
+}
+
+.golem-carte {
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
+}
+
+.golem-pieges {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+
+.golem-piege {
+  width: 56px;
+  height: 56px;
+  opacity: 0.85;
+}
+
+/* Le réglage de l'inclinaison : un point qui suit la tablette. */
+.golem-jauge {
+  position: relative;
+  width: min(420px, 80%);
+  height: 18px;
+  margin: 8px auto;
+  border-radius: 9px;
+  background: #e3dccd;
+}
+
+.golem-jauge-point {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 34px;
+  height: 34px;
+  translate: -50% -50%;
+  border-radius: 50%;
+  background: var(--jaune);
+  box-shadow: 0 3px 0 #d9a52a;
+}
+
+.golem-reglage select {
+  font: inherit;
 }
 
 .golem-objet {
