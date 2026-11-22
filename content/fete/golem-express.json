@@ -1,5 +1,5 @@
 {
-  "_lisez-moi": "Le Golem Express, un jeu d'attention en essai, en 3D vu de derrière : piloter le wagonnet en penchant la tablette (passer dans les portes dorées, éviter les rochers), et n'attraper que les minerais demandés en touchant la droite de l'écran (en se retenant pour les autres). Chaque tâche a son niveau, qui monte au-dessus de 80 % de réussite et descend sous 70 % ; un réglage fin suit aussi l'enfant pendant la manche. valide=false : textes à relire (A_VALIDER.md, point 30).",
+  "_lisez-moi": "Le Golem Express, un jeu d'attention en essai, en 3D vu de derrière : piloter le wagonnet en penchant la tablette (passer dans les portes dorées, éviter les rochers), et n'attraper que les minerais demandés, lancés en l'air vers le golem à droite de la route, en touchant la droite de l'écran (en se retenant pour les autres). Chaque tâche a son niveau, qui monte au-dessus de 80 % de réussite et descend sous 70 % ; un réglage fin suit aussi l'enfant pendant la manche. valide=false : textes à relire (A_VALIDER.md, point 30).",
   "valide": false,
   "titre": "Le Golem Express",
   "presentation": "Ton golem file dans son wagonnet ! Penche la tablette pour passer dans les portes dorées et éviter les rochers. Touche la droite de l’écran pour attraper seulement les minerais demandés.",
