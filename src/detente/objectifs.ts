@@ -4,20 +4,22 @@
 // gagne qu'aux manèges. Le rêve du soir peut choisir le prochain cadeau (preparation.recompenses).
 // Rien n'est tiré au sort. Fonctions pures, sans navigateur.
 
-export type IdManege = 'autos' | 'trampoline' | 'glaces';
-export const MANEGES: readonly IdManege[] = ['autos', 'trampoline', 'glaces'];
+export type IdManege = 'autos' | 'trampoline' | 'glaces' | 'chaises';
+export const MANEGES: readonly IdManege[] = ['autos', 'trampoline', 'glaces', 'chaises'];
 
 /** Ce que l'on compte à chaque manège : [un, plusieurs]. */
 export const UNITES: Record<IdManege, readonly [string, string]> = {
   autos: ['étoile', 'étoiles'],
   trampoline: ['saut réussi', 'sauts réussis'],
   glaces: ['palais traversé', 'palais traversés'],
+  chaises: ['ballon éclaté', 'ballons éclatés'],
 };
 
 const PALIERS: Record<IdManege, { debut: readonly number[]; ensuite: number }> = {
   autos: { debut: [10, 25, 45, 70, 100], ensuite: 35 },
   trampoline: { debut: [10, 25, 45, 70, 100], ensuite: 35 },
   glaces: { debut: [1, 3, 6, 10, 15], ensuite: 5 },
+  chaises: { debut: [10, 25, 45, 70, 100], ensuite: 35 },
 };
 
 /** Le total à atteindre pour le palier de ce rang (0 : le premier). Les paliers ne finissent jamais. */
@@ -63,6 +65,8 @@ export const LOTS_DES_MANEGES: Record<IdManege, readonly string[]> = {
   autos: ['chapeau-pilote', 'objet-volant'],
   trampoline: ['chapeau-etoile', 'chaussures-ressorts'],
   glaces: ['lunettes-miroir', 'haut-paillettes'],
+  // Pas encore d'accessoire propre aux chaises volantes : des décorations seulement.
+  chaises: [],
 };
 const TOUS_LES_LOTS = new Set(Object.values(LOTS_DES_MANEGES).flat());
 
@@ -78,6 +82,7 @@ const ORDRE: Record<IdManege, readonly string[]> = {
   autos: ['ballons-rouge', 'chapeau-pilote', 'fanions-jaune', 'coupe', 'objet-volant', 'etoile', 'nounours-bleu', 'lampions'],
   trampoline: ['ballons-bleu', 'chapeau-etoile', 'fleurs', 'coupe', 'chaussures-ressorts', 'etoile-rose', 'nounours', 'fanions-vert'],
   glaces: ['lampions-violet', 'lunettes-miroir', 'fleurs-bleu', 'coupe', 'haut-paillettes', 'etoile', 'nounours-violet', 'ballons-jaune'],
+  chaises: ['fanions-rose', 'ballons-vert', 'lampions-bleu', 'coupe', 'etoile-violet', 'fleurs-jaune', 'nounours-rouge'],
 };
 
 export interface SuiviManeges {
@@ -91,9 +96,19 @@ export interface SuiviManeges {
 
 export function suiviManegesNeuf(): SuiviManeges {
   return {
-    compte: { autos: 0, trampoline: 0, glaces: 0 },
-    paliers: { autos: 0, trampoline: 0, glaces: 0 },
-    decorations: { autos: [], trampoline: [], glaces: [] },
+    compte: { autos: 0, trampoline: 0, glaces: 0, chaises: 0 },
+    paliers: { autos: 0, trampoline: 0, glaces: 0, chaises: 0 },
+    decorations: { autos: [], trampoline: [], glaces: [], chaises: [] },
+  };
+}
+
+/** Un suivi d'avant un nouveau manège : le nouveau part de zéro, rien d'autre ne change. */
+export function completerSuivi(s: SuiviManeges): SuiviManeges {
+  const neuf = suiviManegesNeuf();
+  return {
+    compte: { ...neuf.compte, ...s.compte },
+    paliers: { ...neuf.paliers, ...s.paliers },
+    decorations: { ...neuf.decorations, ...s.decorations },
   };
 }
 

@@ -588,7 +588,7 @@ async function poserFete(): Promise<void> {
       melangeurs.push(m);
     }
   }
-  const tailles: Record<string, [string, number]> = { autos: ['autos-tamponneuses', 9], trampoline: ['trampoline', 6.5], glaces: ['palais-glaces', 7] };
+  const tailles: Record<string, [string, number]> = { autos: ['autos-tamponneuses', 9], trampoline: ['trampoline', 6.5], glaces: ['palais-glaces', 7], chaises: ['chaises-volantes', 8.5] };
   for (const [id, m] of Object.entries(FETE.maneges)) {
     const [fichier, longueur] = tailles[id] ?? ['', 0];
     const g = await modele(fichier);
@@ -1080,7 +1080,7 @@ const feteInstallee = installerFete({
     return attractions.attractions[i + 1]?.id ?? null;
   },
   stands: Object.fromEntries(Object.entries(FETE.stands).map(([id, s]) => [id, devantLeStand(s)])) as unknown as Record<IdStand, { x: number; z: number }>,
-  maneges: Object.fromEntries(Object.entries(FETE.maneges).map(([id, m]) => [id, devantLeStand(m, id === 'autos' ? 5.6 : 4.6)])) as unknown as Record<IdManege, { x: number; z: number }>,
+  maneges: Object.fromEntries(Object.entries(FETE.maneges).map(([id, m]) => [id, devantLeStand(m, id === 'autos' || id === 'chaises' ? 5.6 : 4.6)])) as unknown as Record<IdManege, { x: number; z: number }>,
 });
 // La sauvegarde du jeu d'avant est lue : ses réglages (volumes, voix), l'espace parent (appui long
 // sur le cadenas), et l'échange du jour avec le dépôt privé du rêve, comme le faisait le jeu d'avant.

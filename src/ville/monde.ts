@@ -52,6 +52,7 @@ export const FETE = {
     glaces: { x: 99, z: -16, cap: -0.35 },
     autos: { x: 76, z: -36, cap: 0.2 },
     trampoline: { x: 103.5, z: -46.5, cap: -0.4 },
+    chaises: { x: 70.5, z: -56, cap: 0.25 },
   },
   roue: { x: 86, z: -54, cap: 0 },
   /** Le forain de la roue, à gauche devant elle ; les forains qui ont fini viennent aider à droite. */
@@ -79,7 +80,6 @@ export const FETE = {
     { modele: 'table-parasol', x: 92.5, z: -39.5, cap: 0.2, longueur: 3.2, r: 1.6 },
     { modele: 'table-parasol', x: 59.5, z: -38, cap: -0.3, longueur: 3.2, r: 1.6 },
     { modele: 'table-parasol', x: 98.5, z: -25, cap: 0.6, longueur: 3, r: 1.5 },
-    { modele: 'chaises-volantes', x: 70.5, z: -56, cap: 0.25, longueur: 8.5, r: 4 },
   ],
 } as const;
 
