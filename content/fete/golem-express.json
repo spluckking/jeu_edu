@@ -70,6 +70,8 @@
     "doigt": "Au doigt",
     "refaireReglage": "Refaire le réglage de l’inclinaison",
     "reglageEfface": "Le réglage sera refait au prochain lancement.",
+    "inverserSens": "Inverser le sens du pilotage",
+    "sensInverse": "C’est inversé : penche à droite, le wagonnet va à droite.",
     "aujourdhui": "Aujourd’hui : {fait} manche(s) sur {total}.",
     "aucun": "Pas encore de manche jouée.",
     "effacer": "Tout effacer",
