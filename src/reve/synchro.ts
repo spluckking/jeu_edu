@@ -7,6 +7,8 @@ import { memoire } from '../app/essai.ts';
 import type { Sauvegarde } from '../sauvegarde/format.ts';
 import { lirePreparation, type Preparation } from './preparation.ts';
 import { pointsFaibles, statistiques } from '../stats/stats.ts';
+import { programme } from '../ville/programme.ts';
+import { lundiDe } from '../ville/gazette.ts';
 
 export interface Acces {
   /** « propriétaire/nom » du dépôt privé. */
@@ -81,7 +83,9 @@ export function envoisAPreparer(s: Sauvegarde, aujourdhui: Jour, jours = 3): Env
   // Les statistiques de toutes les compétences, et les points faibles : le rêve s'en sert pour
   // choisir les exercices du lendemain (preparation.competences, preparation.ateliers).
   const stats = statistiques(s.journal, aujourdhui);
-  envois.push({ chemin: 'stats.json', contenu: { jour: aujourdhui, pointsFaibles: pointsFaibles(stats), competences: stats } });
+  // Le programme de la semaine (les devoirs) : le rêve ne choisit que pour les stands libres.
+  const semaine = programme.semaines.find((x) => x.valide && x.lundi === lundiDe(aujourdhui)) ?? null;
+  envois.push({ chemin: 'stats.json', contenu: { jour: aujourdhui, programme: semaine, pointsFaibles: pointsFaibles(stats), competences: stats } });
   return envois;
 }
 
