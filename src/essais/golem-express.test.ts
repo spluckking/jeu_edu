@@ -4,7 +4,11 @@ import {
   ajuster,
   avecRappel,
   cout,
+  creerRiviere,
+  DEMI_RIVIERE_MAX,
+  DEMI_RIVIERE_MIN,
   DEMI_WAGONNET,
+  DERIVE_MAX,
   dPrime,
   ecartType,
   estLaCible,
@@ -91,8 +95,9 @@ describe('le Golem Express', () => {
   it('les portes restent dans la galerie et toujours atteignables', () => {
     for (let n = 1; n <= NIVEAU_MAX; n++) {
       const r = reglagePilotage(n);
-      // Le temps entre deux épreuves suffit pour aller d'une porte à la suivante, même la plus loin.
-      expect(r.ecartMax / VITESSE_COTE).toBeLessThan(r.espacement / r.vitesse);
+      // Le temps entre deux épreuves suffit pour aller d'une porte à la suivante, même la plus loin,
+      // et même contre le courant d'un virage.
+      expect(r.ecartMax / (VITESSE_COTE - DERIVE_MAX)).toBeLessThan(r.espacement / r.vitesse);
       let x = 0;
       for (let i = 0; i < 300; i++) {
         const e = prochaineEpreuve(n, x, Math.random);
@@ -100,6 +105,24 @@ describe('le Golem Express', () => {
         if (e.sorte === 'porte') x = e.x;
       }
     }
+  });
+
+  it('la rivière tourne et change de largeur, sans à-coups', () => {
+    const r = creerRiviere(Math.random);
+    let tourne = false;
+    for (let d = 0; d < 3000; d += 1) {
+      const w = r.demi(d);
+      expect(w).toBeGreaterThanOrEqual(DEMI_RIVIERE_MIN - 1e-9);
+      expect(w).toBeLessThanOrEqual(DEMI_RIVIERE_MAX + 1e-9);
+      // D'un mètre au suivant, le milieu bouge peu : pas de cassure.
+      expect(Math.abs(r.centre(d + 1) - r.centre(d))).toBeLessThan(1);
+      expect(Math.abs(r.derive(d, 24))).toBeLessThanOrEqual(DERIVE_MAX);
+      if (Math.abs(r.centre(d)) > 10) tourne = true;
+    }
+    expect(tourne).toBe(true);
+    // On part tout droit.
+    expect(r.centre(0)).toBe(0);
+    expect(r.derive(0, 14)).toBeCloseTo(0, 6);
   });
 
   it('passer dans une porte, passer à côté d’un rocher', () => {

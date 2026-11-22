@@ -14,6 +14,7 @@ import {
   avecRappel,
   CHOIX_MINUTES,
   cout,
+  creerRiviere,
   DEMI_WAGONNET,
   DUREE_ECHAUFFEMENT,
   DUREE_MANCHE,
@@ -246,16 +247,25 @@ interface Posee {
 interface EpreuvePosee extends Posee {
   epreuve: Epreuve;
 }
-/** D'où partent les minerais lancés (m devant le wagonnet) : assez loin pour les voir arriver. */
-const DEPART_VOL = 45;
-/** Le vol dure le temps pour tirer du niveau, plus ce petit moment (s). */
-const VOL_EN_PLUS = 0.3;
+/** D'où partent les minerais lancés (m devant la barque) : assez loin pour les voir arriver. */
+const DEPART_VOL = 60;
+/** Après avoir dépassé la barque, un minerai reste encore visible (et visable) ce temps-là (s). */
+const APRES_PASSAGE = 0.6;
+/** Combien de mètres il recule derrière la barque pendant ce temps. */
+const RECUL = 5;
 
 interface ObjetPose extends Posee {
   cible: boolean;
-  /** Sa vitesse propre (m/s), en plus de celle du wagonnet. */
-  vol: number;
+  /** Le moment du lancer, et la durée du vol jusqu'à la barque (s). */
   entree: number;
+  vol: number;
+}
+
+/** Où est le minerai (m devant la barque, négatif derrière), à « age » secondes de son lancer :
+ *  il file très vite, ralentit en arrivant à la hauteur du golem, puis passe derrière lui. */
+function ecartEnVol(age: number, vol: number): number {
+  if (age <= vol) return DEPART_VOL * (1 - age / vol) ** 1.6;
+  return -RECUL * Math.min(1, (age - vol) / APRES_PASSAGE);
 }
 
 interface OptionsManche {
@@ -292,7 +302,8 @@ function courir(f: HTMLElement, o: OptionsManche): Promise<Mesures | null> {
     }
     if (mode !== 'caisses' && o.controle.sorte === 'doigt') cadre.append(creer('div', 'golem-zone-gauche'));
     f.replaceChildren(cadre);
-    const scene = creerScene(toile, o.lieu, o.wagons);
+    const riviere = creerRiviere(Math.random);
+    const scene = creerScene(toile, o.lieu, o.wagons, riviere);
     bloquerEcran(true);
 
     const pil = reglagePilotage(mode === 'caisses' ? 3 : o.niveaux.pilotage);
@@ -324,8 +335,9 @@ function courir(f: HTMLElement, o: OptionsManche): Promise<Mesures | null> {
     const vitesse = (): number => pil.vitesse * fp;
     const fenetre = (): number => cai.fenetre / fc;
     // Les minerais sont lancés vers le golem, très vite : on peut tirer dessus pendant tout leur vol,
-    // tant qu'on les voit. Le vol dure le temps pour tirer du niveau (réglage fin compris).
-    const aPortee = (p: ObjetPose): boolean => !p.fini && p.distance - d > 0;
+    // et encore un peu après qu'ils l'ont dépassé, tant qu'on les voit. Le vol dure le temps pour
+    // tirer du niveau (réglage fin compris).
+    const aPortee = (p: ObjetPose): boolean => !p.fini && t - p.entree <= p.vol + APRES_PASSAGE;
 
     const toucher = (): void => {
       if (mode === 'pilotage' || enPause) return;
@@ -426,7 +438,7 @@ function courir(f: HTMLElement, o: OptionsManche): Promise<Mesures | null> {
     // Pour les essais sur ordinateur : l'état du jeu, lisible et pilotable par un robot de test.
     if (new URLSearchParams(location.search).has('essai')) {
       (window as unknown as Record<string, unknown>).golem = {
-        etat: () => ({ t, d, x, fp, fc, mesures: { ...m }, prochaine: epreuves.find((p) => !p.fini)?.epreuve ?? null, aPortee: objets.filter(aPortee).map((p) => p.cible) }),
+        etat: () => ({ t, d, x, fp, fc, mesures: { ...m }, prochaine: epreuves.find((p) => !p.fini)?.epreuve ?? null, aPortee: objets.filter(aPortee).map((p) => p.cible), ecarts: objets.filter(aPortee).map((p) => Math.round(p.distance - d)) }),
         toucher,
         piloter: (v: number | null) => (forcage = v),
         finir: () => (t = o.duree),
@@ -463,7 +475,8 @@ function courir(f: HTMLElement, o: OptionsManche): Promise<Mesures | null> {
         const a = capteur.angle();
         vx = a === null ? 0 : vitesseDeCote(o.controle.sens * (a - neutre));
       } else if (doigtX !== null) vx = Math.max(-VITESSE_COTE, Math.min(VITESSE_COTE, (doigtX - x) * 6));
-      x += vx * dt;
+      // Dans un virage, le courant pousse la barque vers l'extérieur (pas pendant les minerais seuls).
+      x += (vx + (mode === 'caisses' ? 0 : riviere.derive(d, vitesse()))) * dt;
       const limite = 1 - DEMI_WAGONNET;
       if (Math.abs(x) > limite) {
         x = Math.sign(x) * limite;
@@ -505,16 +518,15 @@ function courir(f: HTMLElement, o: OptionsManche): Promise<Mesures | null> {
           prochainObjetDans = cai.intervalle * (0.8 + Math.random() * 0.4);
           const ob = prochainObjet(o.cible, cai.ressemblance, Math.random);
           const distance = d + DEPART_VOL;
-          const vol = Math.max(0, DEPART_VOL / (fenetre() + VOL_EN_PLUS) - vitesse());
-          objets.push({ id: scene.poserObjet(ob, distance, Math.random() < 0.5 ? 1 : -1), distance, vol, fini: false, cible: estLaCible(ob, o.cible), entree: t });
+          objets.push({ id: scene.poserObjet(ob, distance, Math.random() < 0.5 ? 1 : -1), distance, vol: fenetre(), fini: false, cible: estLaCible(ob, o.cible), entree: t });
         }
         for (const p of objets) {
-          p.distance -= p.vol * dt;
-          scene.deplacerObjet(p.id, p.distance);
           if (p.fini) continue;
+          p.distance = d + ecartEnVol(t - p.entree, p.vol);
+          scene.deplacerObjet(p.id, p.distance);
           const portee = aPortee(p);
           scene.aPortee(p.id, portee);
-          if (p.distance <= d) {
+          if (!portee) {
             p.fini = true;
             fenC.n++;
             if (p.cible) m.cibles++;

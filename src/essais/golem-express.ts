@@ -1,7 +1,8 @@
 // Le Golem Express, les règles (sans affichage ; testées dans golem-express.test.ts). Le golem file
-// dans son wagonnet, vu de derrière ; deux tâches en même temps : piloter en penchant la tablette
-// (passer dans les portes dorées, éviter les rochers), et n'attraper que les minerais demandés en
-// laissant passer les autres (se retenir). Chaque tâche a son propre niveau, réglé après chaque
+// dans sa barque sur une rivière qui tourne, se rétrécit et s'élargit, vu de derrière ; deux tâches
+// en même temps : piloter en penchant la tablette (passer dans les portes dorées, éviter les
+// rochers), et ne tirer que sur les minerais demandés, lancés vers lui, en laissant passer les
+// autres (se retenir). Chaque tâche a son propre niveau, réglé après chaque
 // manche : au-dessus de 80 % de réussite, un cran plus dur ; sous 70 %, un cran plus facile ; deux
 // manches de suite sous 60 %, deux crans plus facile. Pendant la manche, un réglage fin suit aussi
 // l'enfant, toutes les dix secondes, pour qu'il reste au bord de ce qu'il sait faire.
@@ -47,10 +48,10 @@ const parmi = <X>(hasard: () => number, l: readonly X[]): X => l[Math.floor(hasa
 const avance = (n: number): number => (borne(n) - 1) / (NIVEAU_MAX - 1);
 
 // --- Le pilotage --------------------------------------------------------------------------------
-// La galerie va de x = -1 (mur de gauche) à x = 1 (mur de droite). Sur le parcours arrivent, l'une
+// La rivière va de x = -1 (berge de gauche) à x = 1 (berge de droite), quelle que soit sa largeur. Sur le parcours arrivent, l'une
 // après l'autre, des épreuves : une porte dorée (passer dedans) ou un rocher (passer à côté).
 
-/** Le demi-largeur du wagonnet, dans les mêmes unités que la galerie. */
+/** La demi-largeur de la barque, dans les mêmes unités que la rivière. */
 export const DEMI_WAGONNET = 0.12;
 /** La vitesse de côté la plus forte (galerie par seconde), quand la tablette est bien penchée. */
 export const VITESSE_COTE = 1.7;
@@ -62,7 +63,78 @@ export const ZONE_MORTE = 2;
  *  des portes, écart de côté le plus grand d'une porte à la suivante, part des rochers. */
 export function reglagePilotage(n: number): { vitesse: number; espacement: number; largeurPorte: number; ecartMax: number; partRochers: number } {
   const k = avance(n);
-  return { vitesse: 9 + 6 * k, espacement: 22 - 6 * k, largeurPorte: 0.42 - 0.2 * k, ecartMax: 0.6 + 0.9 * k, partRochers: 0.45 * k };
+  // Rapide dès le départ ; une épreuve toutes les 2,4 s au niveau 1, toutes les 1,1 s au niveau 12.
+  return { vitesse: 14 + 10 * k, espacement: 34 - 8 * k, largeurPorte: 0.42 - 0.2 * k, ecartMax: 0.6 + 0.6 * k, partRochers: 0.45 * k };
+}
+
+// --- La rivière ---------------------------------------------------------------------------------
+// Une suite de tronçons tirés au hasard (droits, ou qui tournent d'un côté), de largeur changeante.
+// Dans un virage, le courant pousse la barque vers l'extérieur : il faut corriger en penchant.
+
+/** La demi-largeur de la rivière (m), la plus petite et la plus grande. */
+export const DEMI_RIVIERE_MIN = 2.4;
+export const DEMI_RIVIERE_MAX = 4.2;
+/** La poussée du courant la plus forte dans un virage (rivière par seconde). */
+export const DERIVE_MAX = 0.4;
+
+export interface Riviere {
+  /** Le milieu de la rivière (m, de côté) à la distance d. */
+  centre(d: number): number;
+  /** Sa demi-largeur (m) à la distance d. */
+  demi(d: number): number;
+  /** La poussée du courant (rivière par seconde, vers l'extérieur du virage) à la vitesse v. */
+  derive(d: number, v: number): number;
+}
+
+export function creerRiviere(hasard: () => number): Riviere {
+  // Les nœuds : distance, milieu, demi-largeur. On part tout droit, à largeur moyenne.
+  const D: number[] = [-60, 0, 40];
+  const C: number[] = [0, 0, 0];
+  const W: number[] = [3.2, 3.2, 3.2];
+  const prolonger = (jusque: number): void => {
+    while (D[D.length - 3]! < jusque + 200) {
+      const l = 30 + hasard() * 40;
+      const pente = hasard() < 0.3 ? 0 : (hasard() * 2 - 1) * 0.45;
+      D.push(D[D.length - 1]! + l);
+      C.push(C[C.length - 1]! + pente * l);
+      W.push(DEMI_RIVIERE_MIN + hasard() * (DEMI_RIVIERE_MAX - DEMI_RIVIERE_MIN));
+    }
+  };
+  const troncon = (d: number): number => {
+    prolonger(d);
+    let i = 0;
+    while (i < D.length - 2 && D[i + 1]! <= d) i++;
+    return i;
+  };
+  const centre = (d: number): number => {
+    if (d <= D[0]!) return C[0]!;
+    const i = troncon(d);
+    // Une courbe douce (Hermite) entre deux nœuds, qui garde la direction en passant le nœud.
+    const pente = (j: number): number => (j <= 0 || j >= D.length - 1 ? 0 : (C[j + 1]! - C[j - 1]!) / (D[j + 1]! - D[j - 1]!));
+    const l = D[i + 1]! - D[i]!;
+    const u = (d - D[i]!) / l;
+    const h00 = 2 * u ** 3 - 3 * u ** 2 + 1;
+    const h10 = u ** 3 - 2 * u ** 2 + u;
+    const h01 = -2 * u ** 3 + 3 * u ** 2;
+    const h11 = u ** 3 - u ** 2;
+    return h00 * C[i]! + h10 * l * pente(i) + h01 * C[i + 1]! + h11 * l * pente(i + 1);
+  };
+  const demi = (d: number): number => {
+    if (d <= D[0]!) return W[0]!;
+    const i = troncon(d);
+    const u = (d - D[i]!) / (D[i + 1]! - D[i]!);
+    const s = u * u * (3 - 2 * u);
+    return W[i]! + (W[i + 1]! - W[i]!) * s;
+  };
+  return {
+    centre,
+    demi,
+    derive(d, v) {
+      const h = 2;
+      const courbure = (centre(d + h) - 2 * centre(d) + centre(d - h)) / (h * h);
+      return Math.max(-DERIVE_MAX, Math.min(DERIVE_MAX, (-courbure * v * v * 0.6) / demi(d)));
+    },
+  };
 }
 
 export type Epreuve = { sorte: 'porte'; x: number; largeur: number } | { sorte: 'rocher'; x: number; largeur: number };
