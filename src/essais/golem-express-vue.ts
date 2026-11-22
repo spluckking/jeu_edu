@@ -1,6 +1,6 @@
 // Le Golem Express à l'écran : la scène 3D (golem-express-3d.ts), le capteur d'inclinaison, les
 // cartes (consigne, bilan) et les résultats pour le parent. On pilote en penchant la tablette (ou
-// au doigt, dans la moitié gauche) ; on attrape en touchant n'importe où dans la moitié droite.
+// au doigt, dans la moitié gauche) ; on tire en touchant n'importe où dans la moitié droite.
 
 import T from '../../content/fete/golem-express.json';
 import { aujourdhui } from '../dictee/leitner.ts';
@@ -246,13 +246,15 @@ interface Posee {
 interface EpreuvePosee extends Posee {
   epreuve: Epreuve;
 }
-/** Les minerais volent : leur vitesse, en part de celle du wagonnet. */
-const VOL = 2;
-/** Combien de temps (s) on voit arriver un minerai avant de pouvoir l'attraper. */
-const AVANT_PORTEE = 1;
+/** D'où partent les minerais lancés (m devant le wagonnet) : assez loin pour les voir arriver. */
+const DEPART_VOL = 45;
+/** Le vol dure le temps pour tirer du niveau, plus ce petit moment (s). */
+const VOL_EN_PLUS = 0.3;
 
 interface ObjetPose extends Posee {
   cible: boolean;
+  /** Sa vitesse propre (m/s), en plus de celle du wagonnet. */
+  vol: number;
   entree: number;
 }
 
@@ -321,11 +323,9 @@ function courir(f: HTMLElement, o: OptionsManche): Promise<Mesures | null> {
 
     const vitesse = (): number => pil.vitesse * fp;
     const fenetre = (): number => cai.fenetre / fc;
-    // Les minerais sont lancés vers le golem : ils volent à leur propre vitesse, en plus de celle du
-    // wagonnet, et arrivent bien plus vite qu'un objet posé sur la route.
-    const vol = (): number => vitesse() * VOL;
-    const approche = (): number => vitesse() + vol();
-    const aPortee = (p: ObjetPose): boolean => !p.fini && p.distance - d > 0 && p.distance - d <= approche() * fenetre();
+    // Les minerais sont lancés vers le golem, très vite : on peut tirer dessus pendant tout leur vol,
+    // tant qu'on les voit. Le vol dure le temps pour tirer du niveau (réglage fin compris).
+    const aPortee = (p: ObjetPose): boolean => !p.fini && p.distance - d > 0;
 
     const toucher = (): void => {
       if (mode === 'pilotage' || enPause) return;
@@ -350,7 +350,7 @@ function courir(f: HTMLElement, o: OptionsManche): Promise<Mesures | null> {
       }
     };
 
-    // Les gestes : la moitié droite attrape ; la moitié gauche pilote (au doigt).
+    // Les gestes : la moitié droite tire ; la moitié gauche pilote (au doigt).
     const moitieDroite = (e: PointerEvent): boolean => {
       const r = cadre.getBoundingClientRect();
       return e.clientX > r.left + r.width / 2;
@@ -504,15 +504,15 @@ function courir(f: HTMLElement, o: OptionsManche): Promise<Mesures | null> {
         if (prochainObjetDans <= 0) {
           prochainObjetDans = cai.intervalle * (0.8 + Math.random() * 0.4);
           const ob = prochainObjet(o.cible, cai.ressemblance, Math.random);
-          const distance = d + approche() * (fenetre() + AVANT_PORTEE);
-          objets.push({ id: scene.poserObjet(ob, distance, Math.random() < 0.5 ? 1 : -1), distance, fini: false, cible: estLaCible(ob, o.cible), entree: 0 });
+          const distance = d + DEPART_VOL;
+          const vol = Math.max(0, DEPART_VOL / (fenetre() + VOL_EN_PLUS) - vitesse());
+          objets.push({ id: scene.poserObjet(ob, distance, Math.random() < 0.5 ? 1 : -1), distance, vol, fini: false, cible: estLaCible(ob, o.cible), entree: t });
         }
         for (const p of objets) {
-          p.distance -= vol() * dt;
+          p.distance -= p.vol * dt;
           scene.deplacerObjet(p.id, p.distance);
           if (p.fini) continue;
           const portee = aPortee(p);
-          if (portee && !p.entree) p.entree = t;
           scene.aPortee(p.id, portee);
           if (p.distance <= d) {
             p.fini = true;

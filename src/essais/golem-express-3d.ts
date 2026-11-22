@@ -320,7 +320,8 @@ export interface Scene {
    *  jamais sur la route. */
   poserObjet(o: Objet, distance: number, cote: 1 | -1): number;
   deplacerObjet(id: number, distance: number): void;
-  /** Le minerai attrapé file vers le golem ; un piège attrapé fait « pschitt ». */
+  /** Le golem tire : un trait part vers l'objet ; le bon minerai vole en éclats, un piège fait
+   *  « pschitt » (un petit nuage gris, jamais d'explosion). */
   attraper(id: number, bon: boolean): void;
   /** Un minerai à portée brille un peu. */
   aPortee(id: number, oui: boolean): void;
@@ -435,6 +436,7 @@ export function creerScene(toile: HTMLCanvasElement, lieu: IdLieu, wagons: numbe
       }
     });
   };
+  const effets: Array<{ objet: THREE.Line; depuis: number; duree: number }> = [];
   const retirer = (id: number): void => {
     const p = poses.get(id);
     if (!p) return;
@@ -466,6 +468,7 @@ export function creerScene(toile: HTMLCanvasElement, lieu: IdLieu, wagons: numbe
     },
     poserObjet(o, distance, cote) {
       const objet = modeleObjet(o);
+      objet.userData.couleur = o.sorte === 'tnt' ? '#d63a2f' : COULEURS[o.matiere][0];
       objet.userData.cote = cote;
       objet.position.set(0, 6, -distance);
       scene.add(objet);
@@ -481,7 +484,29 @@ export function creerScene(toile: HTMLCanvasElement, lieu: IdLieu, wagons: numbe
       if (!p) return;
       p.etat = bon ? 'pris' : 'pschitt';
       p.depuis = temps;
-      if (!bon) {
+      // Le tir : un trait lumineux du golem jusqu'à l'objet, qui s'efface aussitôt.
+      const depart = wagonnet.position.clone().add(new THREE.Vector3(0, 2.2, 0));
+      const trait = new THREE.Line(
+        new THREE.BufferGeometry().setFromPoints([depart, p.objet.position.clone()]),
+        new THREE.LineBasicMaterial({ color: 0xfff3a0, transparent: true, opacity: 1 }),
+      );
+      scene.add(trait);
+      effets.push({ objet: trait, depuis: temps, duree: 0.15 });
+      if (bon) {
+        // Des éclats de sa couleur, projetés tout autour.
+        const eclats = new THREE.Group();
+        eclats.position.copy(p.objet.position);
+        const m = new THREE.MeshBasicMaterial({ color: p.objet.userData.couleur as string, transparent: true });
+        for (let i = 0; i < 10; i++) {
+          const e = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.22, 0.22), m);
+          e.userData.dir = new THREE.Vector3(Math.random() - 0.5, Math.random() - 0.3, Math.random() - 0.5).normalize();
+          eclats.add(e);
+        }
+        scene.remove(p.objet);
+        liberer(p.objet);
+        p.objet = eclats;
+        scene.add(eclats);
+      } else {
         // Pas d'explosion : un petit nuage gris remplace le piège.
         scene.remove(p.objet);
         liberer(p.objet);
@@ -531,14 +556,27 @@ export function creerScene(toile: HTMLCanvasElement, lieu: IdLieu, wagons: numbe
         if (e.distance < d - 12) e.distance += LONGUEUR_DECOR;
         e.objet.position.z = -e.distance;
       }
+      for (const e of [...effets]) {
+        const k = (temps - e.depuis) / e.duree;
+        (e.objet.material as THREE.LineBasicMaterial).opacity = Math.max(0, 1 - k);
+        if (k >= 1) {
+          scene.remove(e.objet);
+          e.objet.geometry.dispose();
+          (e.objet.material as THREE.Material).dispose();
+          effets.splice(effets.indexOf(e), 1);
+        }
+      }
       // Les objets posés : les minerais tournent, les attrapés filent vers le golem.
       for (const [id, p] of poses) {
         const age = temps - p.depuis;
         if (p.sorte === 'objet') {
           if (p.etat === 'pris') {
             const k = Math.min(1, age / 0.45);
-            p.objet.position.lerp(new THREE.Vector3(X, 1.6, z), k);
-            p.objet.scale.setScalar(1.35 * (1 - 0.8 * k));
+            for (const e of p.objet.children) {
+              e.position.copy((e.userData.dir as THREE.Vector3).clone().multiplyScalar(k * 2.2));
+              e.rotation.x += dt * 9;
+            }
+            ((p.objet.children[0] as THREE.Mesh).material as THREE.MeshBasicMaterial).opacity = 1 - k;
             if (k >= 1) retirer(id);
             continue;
           }
