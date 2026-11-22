@@ -1,12 +1,15 @@
 // La Gazette à l'écran : une page de journal (le nom en grand, la date, des colonnes), l'histoire
 // de la semaine, les quêtes (avec « Voir sur la carte »), puis le questionnaire, à côté de
-// l'article : chaque question doit être juste ; après une erreur, la phrase qui contient la
-// réponse s'allume dans l'article et on réessaie.
+// l'article : chaque question doit être juste. Après une erreur, les réponses se bloquent : il faut
+// d'abord toucher, dans l'article, la phrase qui donne la réponse (au bout de deux phrases
+// fausses, le passage qui la contient s'allume). Taper au hasard devient plus long que lire. Les
+// réponses justes du premier coup donnent la prime du reporter (au premier essai du jour).
 
 import T from '../../content/ville/gazette.json';
 import L from '../../content/ville/lecons.json';
 import { bruitage } from '../son/bruitages.ts';
-import type { Edition, Question } from './gazette.ts';
+import { euros, somme } from './argent.ts';
+import { primeDuReporter, type Edition, type Question } from './gazette.ts';
 import { remplir, texteALire } from './interface.ts';
 
 export interface VueGazette {
@@ -20,6 +23,17 @@ export interface VueGazette {
   semaine: number;
   /** Montre les quêtes sur la carte (toute la ville, un repère par quête). */
   visiter(): Promise<void>;
+  /** Vrai au premier questionnaire du jour : seul celui-là donne la prime. */
+  primeOuverte: boolean;
+  /** Le questionnaire commence (pour ne donner la prime qu'au premier essai). */
+  commence(): void;
+}
+
+/** Le questionnaire réussi : combien de réponses justes du premier coup, et la prime gagnée. */
+export interface Resultat {
+  premierCoup: number;
+  total: number;
+  prime: number[];
 }
 
 const creer = <K extends keyof HTMLElementTagNameMap>(tag: K, classe: string, texte?: string): HTMLElementTagNameMap[K] => {
@@ -29,8 +43,8 @@ const creer = <K extends keyof HTMLElementTagNameMap>(tag: K, classe: string, te
   return e;
 };
 
-/** Ouvre la Gazette ; rend vrai si elle est lue et son questionnaire réussi. */
-export function lireLaGazette(v: VueGazette): Promise<boolean> {
+/** Ouvre la Gazette ; rend le résultat si elle est lue et son questionnaire réussi (null sinon). */
+export function lireLaGazette(v: VueGazette): Promise<Resultat | null> {
   return new Promise((fini) => {
     const fond = creer('div', 'gazette-fond');
     const page = creer('article', 'gazette-page');
@@ -79,10 +93,19 @@ export function lireLaGazette(v: VueGazette): Promise<boolean> {
     fermer.addEventListener('click', () => {
       bruitage.touche();
       fond.remove();
-      fini(false);
+      fini(null);
     });
+    const total = v.questions.length;
+    let premierCoup = 0;
     const terminer = (): void => {
       cote.replaceChildren(texteALire(T.textes.fini, 'gazette-bravo texte-a-lire'));
+      const prime = v.primeOuverte ? primeDuReporter(premierCoup, total) : [];
+      if (total >= 3) {
+        cote.append(creer('p', 'gazette-premier-coup', remplir(T.textes.premierCoup, { n: premierCoup, total })));
+        const message = prime.length ? remplir(T.textes.prime, { euros: euros(somme(prime)) }) : v.primeOuverte ? T.textes.pasDePrime : T.textes.primeDejaJouee;
+        cote.append(texteALire(message, prime.length ? 'gazette-prime texte-a-lire' : 'gazette-retour texte-a-lire'));
+        if (prime.length) bruitage.reussite();
+      }
       // À la fin d'une grande aventure, la morale, après la question pour réfléchir.
       if (e.aventure?.morale) cote.append(texteALire(remplir(T.textes.morale, { morale: e.aventure.morale }), 'gazette-morale texte-a-lire'));
       const b = creer('button', 'bouton-principal', T.textes.sortir);
@@ -90,14 +113,46 @@ export function lireLaGazette(v: VueGazette): Promise<boolean> {
       b.addEventListener('click', () => {
         bruitage.touche();
         fond.remove();
-        fini(true);
+        fini({ premierCoup, total, prime });
       });
       cote.append(b);
     };
+
+    // Chercher la phrase : après une erreur, on touche dans l'article la phrase de la réponse.
+    let recherche: { cible: HTMLElement; rates: number; retour: HTMLElement; trouvee(): void } | null = null;
+    const finirRecherche = (): void => {
+      recherche = null;
+      article.classList.remove('gazette-cherche');
+      for (const p of article.querySelectorAll('.piste')) p.classList.remove('piste');
+    };
+    article.addEventListener('click', (ev) => {
+      const r = recherche;
+      const touchee = (ev.target as HTMLElement | null)?.closest<HTMLElement>('.gazette-phrase');
+      if (!r || !touchee) return;
+      if (touchee === r.cible) {
+        bruitage.reussite();
+        touchee.classList.add('brille');
+        r.retour.textContent = T.textes.trouvee;
+        finirRecherche();
+        r.trouvee();
+        return;
+      }
+      bruitage.erreur();
+      r.rates++;
+      touchee.classList.remove('pas-celle');
+      void touchee.offsetWidth;
+      touchee.classList.add('pas-celle');
+      if (r.rates >= 2) {
+        r.cible.closest('.gazette-texte')?.classList.add('piste');
+        r.retour.textContent = T.textes.piste;
+      } else r.retour.textContent = T.textes.pasCettePhrase;
+    });
+
     const reste = [...v.reserve];
     const poser = (i: number, autre = false): void => {
       const q = v.questions[i];
       if (!q) return terminer();
+      finirRecherche();
       for (const s of phrases.values()) s.classList.remove('brille');
       const choix = [...q.choix].map((c, k) => ({ c, juste: k === 0 }));
       for (let k = choix.length - 1; k > 0; k--) {
@@ -114,6 +169,7 @@ export function lireLaGazette(v: VueGazette): Promise<boolean> {
             bruitage.reussite();
             b.classList.add('juste');
             retour.textContent = T.textes.juste;
+            if (!autre && erreurs === 0) premierCoup++;
             for (const x of boutons) x.disabled = true;
             setTimeout(() => poser(i + 1), 900);
             return;
@@ -130,12 +186,24 @@ export function lireLaGazette(v: VueGazette): Promise<boolean> {
           }
           b.classList.add('faux');
           b.disabled = true;
-          retour.textContent = T.textes.faux;
           const s = q.indice ? phrases.get(q.indice) : undefined;
-          if (s) {
-            s.classList.add('brille');
-            s.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          // Pas de phrase à chercher (une question pour réfléchir) : on réessaie tout de suite.
+          if (!s || s.classList.contains('brille')) {
+            retour.textContent = T.textes.fauxSansPhrase;
+            return;
           }
+          // Les réponses attendent qu'on ait trouvé la phrase dans l'article.
+          for (const x of boutons) x.disabled = true;
+          retour.textContent = T.textes.faux;
+          article.classList.add('gazette-cherche');
+          recherche = {
+            cible: s,
+            rates: 0,
+            retour,
+            trouvee: () => {
+              for (const x of boutons) if (!x.classList.contains('faux')) x.disabled = false;
+            },
+          };
         });
         return b;
       });
@@ -152,6 +220,7 @@ export function lireLaGazette(v: VueGazette): Promise<boolean> {
     commencer.type = 'button';
     commencer.addEventListener('click', () => {
       bruitage.touche();
+      v.commence();
       if (v.questions.length) poser(0);
       else terminer();
     });

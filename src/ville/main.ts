@@ -30,6 +30,7 @@ import type { Panier } from './commerce.ts';
 import { remplir } from './interface.ts';
 import { CASES, casesPrises, nouveauJour, ranger } from './sac.ts';
 import { installerEpicerie, rafraichirHud } from './epicerie-ville.ts';
+import { ajouter as ajouterArgent } from './argent.ts';
 import { installerJardin } from './jardin-ville.ts';
 import { installerPoste } from './poste-ville.ts';
 import { appliquerReglagesDuJeu, essaiGrandDefi, installerFete, PRENOMS_ATTRACTION, toutFini, ouvrirStand, standFini } from './fete-ville.ts';
@@ -1675,10 +1676,21 @@ async function ouvrirLaGazette(): Promise<void> {
     date: new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }),
     semaine,
     visiter: () => ouvrirLaCarte(true),
+    // La prime du reporter : seulement au premier questionnaire du jour.
+    primeOuverte: etat.gazette.essaiLe !== jour,
+    commence: () => {
+      if (etat.gazette.essaiLe === jour) return;
+      etat.gazette.essaiLe = jour;
+      void sauverEtat(etat);
+    },
   });
   occupe = false;
   commandes.actives = avant;
   if (!ok) return;
+  if (ok.prime.length) {
+    etat.porteMonnaie = ajouterArgent(etat.porteMonnaie, ok.prime);
+    rafraichirHud();
+  }
   const g = etat.gazette;
   g.premiere = premiere;
   g.valideLe = jour;
@@ -1693,7 +1705,8 @@ async function ouvrirLaGazette(): Promise<void> {
         ? `Quêtes en cours : ${edition.quetes.map((q) => q.titre).join(', ')}.`
         : `Bilan de la semaine : ${edition.quetes.map((q) => q.titre).join(', ')} finies.`;
   const resumeAventure = aventure ? ` ${aventure.titre}, ${aventure.sousTitre.charAt(0).toLocaleLowerCase('fr')}${aventure.sousTitre.slice(1)}.` : '';
-  g.chronique = [...g.chronique, { jour, texte: resume + resumeAventure }].slice(-200);
+  const lecture = ok.total ? ` Du premier coup : ${ok.premierCoup} sur ${ok.total}.` : '';
+  g.chronique = [...g.chronique, { jour, texte: resume + resumeAventure + lecture }].slice(-200);
   void sauverEtat(etat);
 }
 // Chaque jour, le jeu commence dans la maison, et la porte reste fermée jusqu'à la Gazette lue.
