@@ -318,6 +318,10 @@ svg {
 }
 
 .question .case {
+  /* La case de la réponse prend la largeur de ce qu'on y écrit (la ville a aussi des cases
+     d'une lettre, pour la dictée : elles ne doivent pas déteindre ici). */
+  width: auto;
+  height: auto;
   display: inline-block;
   min-width: 2.2ch;
   padding: 0 0.2em;
