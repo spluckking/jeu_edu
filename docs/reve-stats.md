@@ -18,6 +18,8 @@ privé) est à la fin.
 `stats.json`, à chaque échange :
 
 - `jour` : le jour de l'échange ;
+- `programme` : le programme de la semaine en cours (`titre`, `ateliers` par stand, `focus`), ou
+  `null` s'il n'y en a pas : les stands qu'il ne cite pas sont libres ;
 - `pointsFaibles` : les compétences précises réussies moins de 7 fois sur 10 ces 7 derniers jours
   (au moins 4 réponses), les plus faibles d'abord ;
 - `competences` : pour chaque compétence et chaque niveau au-dessus (`mesures`,
