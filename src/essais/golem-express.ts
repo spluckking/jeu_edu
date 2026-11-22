@@ -88,9 +88,9 @@ export interface Riviere {
 
 export function creerRiviere(hasard: () => number): Riviere {
   // Les nœuds : distance, milieu, demi-largeur. On part tout droit, à largeur moyenne.
-  const D: number[] = [-60, 0, 40];
-  const C: number[] = [0, 0, 0];
-  const W: number[] = [3.2, 3.2, 3.2];
+  const D: number[] = [-60, 0, 40, 80];
+  const C: number[] = [0, 0, 0, 0];
+  const W: number[] = [3.2, 3.2, 3.2, 3.2];
   const prolonger = (jusque: number): void => {
     while (D[D.length - 3]! < jusque + 200) {
       const l = 30 + hasard() * 40;
