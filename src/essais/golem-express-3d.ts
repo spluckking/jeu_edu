@@ -583,9 +583,12 @@ export function creerScene(toile: HTMLCanvasElement, lieu: IdLieu, wagons: numbe
           }
           // En vol : il arrive de loin, en haut d'un côté, et passe au-dessus de l'épaule du golem.
           // Il tourne vite, comme un objet lancé.
-          const loin = Math.max(0, p.distance - d);
+          // Une fois passé, il continue sa route en s'écartant, vers le bord de l'écran.
+          const ecart = p.distance - d;
+          const loin = Math.max(0, ecart);
+          const passe = Math.max(0, -ecart);
           const cote = p.objet.userData.cote as number;
-          p.objet.position.set(monde(p.distance, xBarque) + cote * (2.1 + loin * 0.05), 3.1 + loin * 0.06, -p.distance);
+          p.objet.position.set(monde(p.distance, xBarque) + cote * (2.1 + loin * 0.05 + passe * 0.3), 3.1 + loin * 0.06 + passe * 0.1, -p.distance);
           p.objet.rotation.x += dt * 5;
           p.objet.rotation.y += dt * 7;
           const s = p.objet.userData.aPortee ? 1.15 + Math.sin(temps * 12) * 0.06 : 1;

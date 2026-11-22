@@ -249,10 +249,10 @@ interface EpreuvePosee extends Posee {
 }
 /** D'où partent les minerais lancés (m devant la barque) : assez loin pour les voir arriver. */
 const DEPART_VOL = 60;
-/** Après avoir dépassé la barque, un minerai reste encore visible (et visable) ce temps-là (s). */
-const APRES_PASSAGE = 0.6;
-/** Combien de mètres il recule derrière la barque pendant ce temps. */
-const RECUL = 5;
+/** La vitesse (m/s, par rapport à la barque) d'un minerai qui la dépasse : il ne s'arrête jamais. */
+const VITESSE_PASSAGE = 14;
+/** Après avoir dépassé la barque, il reste encore visible (et visable) ce temps-là (s). */
+const APRES_PASSAGE = 0.5;
 
 interface ObjetPose extends Posee {
   cible: boolean;
@@ -262,10 +262,12 @@ interface ObjetPose extends Posee {
 }
 
 /** Où est le minerai (m devant la barque, négatif derrière), à « age » secondes de son lancer :
- *  il file très vite, ralentit en arrivant à la hauteur du golem, puis passe derrière lui. */
+ *  il part très vite, freine un peu en approchant, et passe le golem sans jamais s'arrêter. */
 function ecartEnVol(age: number, vol: number): number {
-  if (age <= vol) return DEPART_VOL * (1 - age / vol) ** 1.6;
-  return -RECUL * Math.min(1, (age - vol) / APRES_PASSAGE);
+  const reste = vol - age;
+  if (reste <= 0) return VITESSE_PASSAGE * reste;
+  const b = Math.max(0, (DEPART_VOL - VITESSE_PASSAGE * vol) / (vol * vol));
+  return VITESSE_PASSAGE * reste + b * reste * reste;
 }
 
 interface OptionsManche {
