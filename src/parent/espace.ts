@@ -29,9 +29,9 @@ export interface OptionsEspace {
   rejouerIntroduction?(): void;
   /** Remplace toute la sauvegarde par celle d'un fichier, puis relance le jeu. */
   remplacer(s: Sauvegarde): Promise<void>;
-  /** Les réglages de la ville (mots de la semaine, photos, statistiques…) : un bouton chacun ; on
-   *  ferme l'espace parent avant d'ouvrir le réglage. */
-  ville?: Array<{ titre: string; ouvrir(): void }>;
+  /** Les réglages de la ville (mots de la semaine, photos, statistiques…) : un bouton chacun.
+   *  S'il rend une promesse, l'espace parent se cache pendant le réglage et revient à sa fermeture. */
+  ville?: Array<{ titre: string; ouvrir(): void | Promise<unknown> }>;
 }
 
 function el<K extends keyof HTMLElementTagNameMap>(balise: K, classe = '', texte = ''): HTMLElementTagNameMap[K] {
@@ -138,7 +138,7 @@ function curseur(etiquette: string, valeur: number, min: number, max: number, pa
   return ligne;
 }
 
-function construire(o: OptionsEspace, fermer: () => void): HTMLElement {
+function construire(o: OptionsEspace, fermer: () => void, cacher: (oui: boolean) => void): HTMLElement {
   const s = o.sauvegarde();
   const panneau = el('div', 'parent');
   const tete = el('div', 'parent-tete');
@@ -425,9 +425,17 @@ function construire(o: OptionsEspace, fermer: () => void): HTMLElement {
   const ville = el('div', 'lecture-boutons parent-ville');
   for (const v of o.ville ?? []) {
     const b = el('button', 'bouton-secondaire', v.titre);
-    b.addEventListener('click', () => {
-      fermer();
-      v.ouvrir();
+    b.addEventListener('click', async () => {
+      // Un réglage qui rend une promesse a sa propre fenêtre : l'espace parent se cache jusqu'à sa
+      // fermeture. Les autres (la galerie de la tablette) s'ouvrent par-dessus.
+      const fini = v.ouvrir();
+      if (!fini) return;
+      cacher(true);
+      try {
+        await fini;
+      } finally {
+        cacher(false);
+      }
     });
     ville.append(b);
   }
@@ -475,7 +483,7 @@ export async function ouvrirEspaceParent(o: OptionsEspace): Promise<void> {
       fond.remove();
       fini();
     };
-    fond.append(construire(o, fermer));
+    fond.append(construire(o, fermer, (oui) => (fond.hidden = oui)));
     document.body.append(fond);
   });
 }

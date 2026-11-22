@@ -37,7 +37,12 @@ const rangee = (titre: string, jeux: Array<{ titre: string; jouer: (f: HTMLEleme
   return s;
 };
 
+// Retour à la ville (on arrive ici depuis l'espace parent).
+const retour = bouton('bouton-secondaire essais-retour', T.page.retour);
+retour.addEventListener('click', () => location.assign(`${import.meta.env.BASE_URL}ville.html`));
+
 menu.append(
+  retour,
   creer('h1', '', T.page.titre),
   creer('p', 'essais-aide', T.page.aide),
   rangee(T.page.stands, STANDS_ESSAI.map((s) => ({ titre: s.titre, jouer: (f) => jouerStand(f, s) }))),

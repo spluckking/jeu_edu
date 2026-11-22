@@ -6,7 +6,8 @@
     "aide": "Choisis un stand ou un manège à essayer.",
     "stands": "Les stands",
     "maneges": "Les manèges",
-    "attention": "Le jeu d’attention"
+    "attention": "Le jeu d’attention",
+    "retour": "Revenir à la ville"
   },
   "commun": {
     "questionN": "Question {n} sur {total}",

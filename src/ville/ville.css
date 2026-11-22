@@ -1110,6 +1110,17 @@ button.produit {
   display: none;
 }
 
+/* Dans l'espace parent, les rangées de boutons passent à la ligne au lieu de déborder à droite ;
+   ceux de la ville forment une grille. */
+.parent .lecture-boutons {
+  flex-wrap: wrap;
+}
+.parent .parent-ville {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 12px;
+}
+
 /* Le cadenas de l'espace parent : discret, en haut à droite, sous la carte (appui long). */
 .bouton-parent-ville {
   position: fixed;
