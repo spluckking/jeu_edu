@@ -505,7 +505,7 @@ function courir(f: HTMLElement, o: OptionsManche): Promise<Mesures | null> {
           prochainObjetDans = cai.intervalle * (0.8 + Math.random() * 0.4);
           const ob = prochainObjet(o.cible, cai.ressemblance, Math.random);
           const distance = d + approche() * (fenetre() + AVANT_PORTEE);
-          objets.push({ id: scene.poserObjet(ob, distance), distance, fini: false, cible: estLaCible(ob, o.cible), entree: 0 });
+          objets.push({ id: scene.poserObjet(ob, distance, Math.random() < 0.5 ? 1 : -1), distance, fini: false, cible: estLaCible(ob, o.cible), entree: 0 });
         }
         for (const p of objets) {
           p.distance -= vol() * dt;
@@ -594,7 +594,9 @@ function reglerInclinaison(f: HTMLElement): Promise<1 | -1 | null> {
       if (fini) return;
       const a = capteur.angle() ?? 0;
       const ecart = neutre === null ? 0 : a - neutre;
-      point.style.left = `${50 + Math.max(-45, Math.min(45, ecart * 2.5))}%`;
+      // Le point part toujours vers la gauche, comme la tablette : on ne connaît pas encore le sens
+      // du capteur, et un point qui partirait de l'autre côté ferait pencher l'enfant à l'envers.
+      point.style.left = `${50 - Math.min(45, Math.abs(ecart) * 2.5)}%`;
       if (neutre !== null && Math.abs(ecart) > 12) {
         fini = true;
         texte.replaceWith(texteALire(T.reglageBravo));
@@ -769,6 +771,16 @@ export function voirResultats(f: HTMLElement): Promise<void> {
       s.pilotage,
       (v) => modifier((x) => (x.pilotage = v)),
     );
+    // Si le wagonnet part du mauvais côté : on retourne le sens appris, sans refaire le réglage.
+    const inverser = bouton('bouton-secondaire', T.parent.inverserSens);
+    inverser.disabled = !Object.keys(s.sens).length;
+    inverser.addEventListener('click', () => {
+      modifier((x) => {
+        for (const k of Object.keys(x.sens) as Orientation[]) x.sens[k] = x.sens[k] === 1 ? -1 : 1;
+      });
+      inverser.disabled = true;
+      inverser.textContent = T.parent.sensInverse;
+    });
     const refaire = bouton('bouton-secondaire', T.parent.refaireReglage);
     refaire.addEventListener('click', () => {
       modifier((x) => (x.sens = {}));
@@ -813,6 +825,7 @@ export function voirResultats(f: HTMLElement): Promise<void> {
       minutes,
       duree,
       pilotage,
+      inverser,
       refaire,
       creer('p', 'golem-aide', remplir(T.parent.aujourdhui, { fait, total: manchesDuJour(s.minutes, s.duree) })),
       s.resultats.length ? tableau : creer('p', '', T.parent.aucun),
