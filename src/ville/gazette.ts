@@ -21,9 +21,11 @@ export interface EtatGazette {
   chronique: Array<{ jour: Jour; texte: string }>;
   /** La leçon du jour : le dernier jour où chaque carte a été lue. */
   lecons: Record<string, Jour>;
+  /** Le dernier jour où le questionnaire a été commencé : la prime ne compte qu'au premier essai. */
+  essaiLe: Jour;
 }
 
-export const gazetteNeuve = (): EtatGazette => ({ valideLe: '', premiere: '', histoiresLues: [], chronique: [], lecons: {} });
+export const gazetteNeuve = (): EtatGazette => ({ valideLe: '', premiere: '', histoiresLues: [], chronique: [], lecons: {}, essaiLe: '' });
 
 export function lireGazette(brut: unknown): EtatGazette {
   if (typeof brut !== 'object' || brut === null) return gazetteNeuve();
@@ -32,10 +34,21 @@ export function lireGazette(brut: unknown): EtatGazette {
   return {
     valideLe: texte(o.valideLe),
     premiere: texte(o.premiere),
+    essaiLe: texte(o.essaiLe),
     histoiresLues: Array.isArray(o.histoiresLues) ? o.histoiresLues.filter((x): x is string => typeof x === 'string') : [],
     lecons: typeof o.lecons === 'object' && o.lecons !== null ? Object.fromEntries(Object.entries(o.lecons).filter((e): e is [string, string] => typeof e[1] === 'string')) : {},
     chronique: Array.isArray(o.chronique) ? o.chronique.filter((c): c is { jour: Jour; texte: string } => typeof c?.jour === 'string' && typeof c?.texte === 'string') : [],
   };
+}
+
+/** La prime du reporter, en pièces : 2 € si tout est juste du premier coup, 1 € s'il manque une
+ *  seule réponse (à partir de 3 questions), rien sinon. Au hasard, 3 sur 3 n'arrive qu'une fois
+ *  sur 27 : c'est en lisant qu'on la gagne. */
+export function primeDuReporter(premierCoup: number, total: number): number[] {
+  if (total < 3) return [];
+  if (premierCoup >= total) return [200];
+  if (premierCoup === total - 1) return [100];
+  return [];
 }
 
 /** Le lundi de la semaine de ce jour. */

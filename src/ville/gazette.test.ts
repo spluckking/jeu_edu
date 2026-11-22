@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { dicteeNeuve } from '../dictee/etat.ts';
 import { attractionNeuve, passerEpreuve } from './attraction.ts';
 import L from '../../content/ville/lecons.json';
-import { editionDuJour, gazetteNeuve, leconDuJour, lundiDe, questionnaire, quetesDuJour, remplir, type Aventure, type Monde } from './gazette.ts';
+import { editionDuJour, gazetteNeuve, leconDuJour, lireGazette, lundiDe, primeDuReporter, questionnaire, quetesDuJour, remplir, type Aventure, type Monde } from './gazette.ts';
 
 const monde = (m: Partial<Monde> = {}): Monde => ({
   jour: '2026-11-18',
@@ -119,6 +119,18 @@ describe('la Gazette', () => {
     // Toutes lues : on recommence par la plus ancienne.
     const toutes = Object.fromEntries(L.lecons.map((c, i) => [c.id, `2026-11-${10 + i}`]));
     expect(leconDuJour(toutes, '2026-12-01')!.id).toBe(L.lecons[0]!.id);
+  });
+
+  it('la prime du reporter : 2 € pour tout du premier coup, 1 € s’il en manque une', () => {
+    expect(primeDuReporter(3, 3)).toEqual([200]);
+    expect(primeDuReporter(2, 3)).toEqual([100]);
+    expect(primeDuReporter(1, 3)).toEqual([]);
+    expect(primeDuReporter(2, 2)).toEqual([]);
+  });
+
+  it('garde le jour du premier essai du questionnaire', () => {
+    expect(lireGazette({ essaiLe: '2026-11-22' }).essaiLe).toBe('2026-11-22');
+    expect(lireGazette({}).essaiLe).toBe('');
   });
 
   it('chaque carte de leçon est bien formée', () => {
