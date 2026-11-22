@@ -4,6 +4,8 @@
 // Chaque étoile, saut réussi ou palais traversé compte pour le prochain cadeau du manège.
 
 import type { IdDetente } from '../scene/fete.ts';
+import { chaises } from '../essais/maneges-essai.ts';
+import { H as HAUTEUR_CADRE, L as LARGEUR_CADRE, type Entree, type Manege } from '../essais/manege-cadre.ts';
 import { bruitage } from '../son/bruitages.ts';
 import { confettis } from '../ui/confettis.ts';
 
@@ -20,11 +22,64 @@ const TITRES: Record<IdDetente, [string, string]> = {
   autos: ['Les autos tamponneuses', 'Touche la piste pour conduire. Attrape les étoiles !'],
   trampoline: ['Le trampoline', 'Touche l’écran juste quand tu touches la toile pour sauter plus haut.'],
   glaces: ['Le palais des glaces', 'Trouve le chemin jusqu’à l’étoile. Touche une case à côté de toi pour avancer.'],
+  chaises: [chaises.titre, chaises.consigne],
 };
 
 interface Jeu {
   dessiner(c: CanvasRenderingContext2D, l: number, h: number, dt: number): void;
   toucher(x: number, y: number, l: number, h: number): void;
+  /** Le doigt posé, déplacé ou levé (pour les jeux où l'on garde le doigt appuyé). */
+  doigt?(appui: boolean, x: number, y: number, l: number, h: number): void;
+}
+
+/** Un manège de la page d'essai (toile de 1000 × 600) joué librement, sans chrono : chaque point
+ *  marqué compte pour le prochain cadeau. */
+function depuisManege(m: Manege, compte: () => void): Jeu {
+  const jeu = m.creer(Math.random);
+  const e: Entree = { appui: false, x: 0, y: 0, tape: false };
+  let t = 0;
+  let points = 0;
+  // Le cadre garde ses proportions, centré dans la toile.
+  const cadre = (l: number, h: number): { s: number; ox: number; oy: number } => {
+    const s = Math.min(l / LARGEUR_CADRE, h / HAUTEUR_CADRE);
+    return { s, ox: (l - LARGEUR_CADRE * s) / 2, oy: (h - HAUTEUR_CADRE * s) / 2 };
+  };
+  const placer = (x: number, y: number, l: number, h: number): void => {
+    const { s, ox, oy } = cadre(l, h);
+    e.x = (x - ox) / s;
+    e.y = (y - oy) / s;
+  };
+  return {
+    dessiner(c, l, h, dt) {
+      t += dt;
+      jeu.maj(dt, e, t);
+      e.tape = false;
+      while (points < jeu.score()) {
+        points++;
+        compte();
+      }
+      const { s, ox, oy } = cadre(l, h);
+      c.fillStyle = '#e8f7ff';
+      c.fillRect(0, 0, l, h);
+      c.save();
+      c.translate(ox, oy);
+      c.scale(s, s);
+      c.beginPath();
+      c.rect(0, 0, LARGEUR_CADRE, HAUTEUR_CADRE);
+      c.clip();
+      jeu.dessiner(c, t);
+      c.restore();
+    },
+    toucher(x, y, l, h) {
+      placer(x, y, l, h);
+      e.appui = true;
+      e.tape = true;
+    },
+    doigt(appui, x, y, l, h) {
+      placer(x, y, l, h);
+      e.appui = appui;
+    },
+  };
 }
 
 function etoile(c: CanvasRenderingContext2D, x: number, y: number, r: number, couleur = '#ffd447'): void {
@@ -372,7 +427,7 @@ export function jouerDetente(id: IdDetente, suivi: SuiviDetente): Promise<void> 
     const message = (t: string): void => {
       consigne.textContent = t;
     };
-    const jeu = id === 'autos' ? autos(message, compte) : id === 'trampoline' ? trampoline(message, compte) : glaces(message, compte);
+    const jeu = id === 'autos' ? autos(message, compte) : id === 'trampoline' ? trampoline(message, compte) : id === 'chaises' ? depuisManege(chaises, compte) : glaces(message, compte);
     const c = toile.getContext('2d');
     let actif = true;
     let avant = performance.now();
@@ -399,7 +454,19 @@ export function jouerDetente(id: IdDetente, suivi: SuiviDetente): Promise<void> 
     toile.addEventListener('pointerdown', pointeur);
     toile.addEventListener('pointermove', (e) => {
       if (id === 'autos' && e.buttons > 0) pointeur(e);
+      if (jeu.doigt && e.buttons > 0) {
+        const r = toile.getBoundingClientRect();
+        jeu.doigt(true, e.clientX - r.left, e.clientY - r.top, r.width, r.height);
+      }
     });
+    // Le doigt levé (jeux où l'on garde appuyé).
+    const lever = (e: PointerEvent): void => {
+      const r = toile.getBoundingClientRect();
+      jeu.doigt?.(false, e.clientX - r.left, e.clientY - r.top, r.width, r.height);
+    };
+    toile.addEventListener('pointerup', lever);
+    toile.addEventListener('pointercancel', lever);
+    toile.addEventListener('pointerleave', lever);
     retour.addEventListener('click', () => {
       bruitage.touche();
       actif = false;

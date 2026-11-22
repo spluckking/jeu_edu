@@ -53,7 +53,7 @@ describe('migration 7 → 8', () => {
     const s = migrer(v7);
     expect(s.version).toBe(8);
     expect(s.jetons).toBe(0);
-    expect(s.maneges.compte).toEqual({ autos: 0, trampoline: 0, glaces: 0 });
+    expect(s.maneges.compte).toEqual({ autos: 0, trampoline: 0, glaces: 0, chaises: 0 });
     expect(s.tickets).toBe(42);
     expect(s.roue).toBe(3);
   });

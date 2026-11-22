@@ -6,7 +6,7 @@ import type { Noms } from '../histoire/lecture.ts';
 import type { Jour } from '../memoire/jours.ts';
 import type { EtatElement } from '../memoire/moteur.ts';
 import { convertirGarderobe, garderobeNeuve, type Garderobe, type Journee } from '../recompenses/recompenses.ts';
-import { suiviManegesNeuf, type SuiviManeges } from '../detente/objectifs.ts';
+import { completerSuivi, suiviManegesNeuf, type SuiviManeges } from '../detente/objectifs.ts';
 import type { Preparation } from '../reve/preparation.ts';
 
 export const VERSION = 8;
@@ -155,7 +155,8 @@ export function migrer(brut: unknown): Sauvegarde {
   if (s.version === 6) s = { ...s, version: 7, garderobe: convertirGarderobe(s.garderobe) };
   // Version 7 → 8 : les jetons de manège et les objectifs des manèges.
   if (s.version === 7) s = { ...s, version: 8, ...manegesNeufs() };
-  if (s.version === VERSION) return s as unknown as Sauvegarde;
+  // Un manège ajouté depuis (les chaises volantes) : son compteur part de zéro.
+  if (s.version === VERSION) return { ...(s as unknown as Sauvegarde), maneges: completerSuivi((s as unknown as Sauvegarde).maneges) };
   // Une version plus récente que ce code : on refuse plutôt que d'écraser des données.
   throw new Error(`Version de sauvegarde inconnue : ${String(s.version)}`);
 }

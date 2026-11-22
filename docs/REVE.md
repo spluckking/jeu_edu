@@ -57,7 +57,7 @@ dans l'espace parent. Sans réseau ou sans clé, rien ne se passe et le jeu cont
   `"valide": false`). Elles n'arrivent devant l'enfant qu'après « Valider la semaine » dans
   l'espace parent.
 
-- `recompenses` : le **prochain cadeau** de chaque manège (`autos`, `trampoline`, `glaces`),
+- `recompenses` : le **prochain cadeau** de chaque manège (`autos`, `trampoline`, `glaces`, `chaises`),
   choisi dans le catalogue ci-dessous. Facultatif. Un cadeau déjà gagné ou impossible est
   remplacé par l'ordre prévu dans le jeu.
 
@@ -65,15 +65,16 @@ La tablette vérifie tout ce qu'elle reçoit : une préparation illisible est ig
 
 ## Les manèges : objectifs et cadeaux
 
-Les autos tamponneuses, le trampoline et le palais des glaces comptent ce que l'enfant y fait,
-d'un jour à l'autre, sans jamais rien retirer : étoiles attrapées, sauts réussis, palais
-traversés. À chaque palier, un cadeau.
+Les autos tamponneuses, le trampoline, le palais des glaces et les chaises volantes comptent ce
+que l'enfant y fait, d'un jour à l'autre, sans jamais rien retirer : étoiles attrapées, sauts
+réussis, palais traversés, ballons éclatés. À chaque palier, un cadeau.
 
 | Manège | On compte | Paliers |
 |---|---|---|
 | autos | les étoiles | 10, 25, 45, 70, 100, puis tous les 35 |
 | trampoline | les sauts réussis | 10, 25, 45, 70, 100, puis tous les 35 |
 | glaces | les palais traversés | 1, 3, 6, 10, 15, puis tous les 5 |
+| chaises | les ballons éclatés | 10, 25, 45, 70, 100, puis tous les 35 |
 
 Un tour coûte un **jeton** tant que la séance du jour n'est pas finie (une manche de révision
 finie = un jeton) ; ensuite les manèges sont gratuits. Les tickets restent pour la grande roue
@@ -87,7 +88,8 @@ et ne servent jamais aux manèges.
   - teintes : `rouge`, `bleu`, `jaune`, `vert`, `violet`, `rose`
 - **Accessoires** qu'on ne gagne qu'aux manèges (un seul exemplaire chacun) :
   `chapeau-pilote`, `objet-volant`, `chapeau-etoile`, `chaussures-ressorts`,
-  `lunettes-miroir`, `haut-paillettes`.
+  `lunettes-miroir`, `haut-paillettes`. Les chaises volantes n'ont pas encore d'accessoire :
+  seulement des décorations.
 
 Le journal contient `maneges` (`compte`, `paliers`, `decorations` par manège), `jetons` et
 `garderobe` (`possedes`, `porte`).

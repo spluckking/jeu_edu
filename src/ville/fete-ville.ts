@@ -524,7 +524,7 @@ function fermerStand(): void {
 }
 
 // --- Les manèges -------------------------------------------------------------------------------
-const NOMS_MANEGES: Record<IdManege, string> = { autos: 'Les autos tamponneuses', trampoline: 'Le trampoline', glaces: 'Le palais des glaces' };
+const NOMS_MANEGES: Record<IdManege, string> = { autos: 'Les autos tamponneuses', trampoline: 'Le trampoline', glaces: 'Le palais des glaces', chaises: 'Les chaises volantes' };
 
 function suiviDetente(id: IdManege): SuiviDetente {
   return {
@@ -545,7 +545,8 @@ async function monterSurLeManege(id: IdManege): Promise<void> {
     await carte(f, NOMS_MANEGES[id], fete.manegesFermes, ['D’accord']);
     f.remove();
   } else {
-    musique.demarrer(id);
+    // Les chaises volantes n'ont pas encore leur morceau : celui des autos.
+    musique.demarrer(id === 'chaises' ? 'autos' : id);
     await jouerDetente(id, suiviDetente(id));
     musique.arreter();
   }

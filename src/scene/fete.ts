@@ -8,7 +8,7 @@ import type { Decoration, Teinte } from '../detente/objectifs.ts';
 
 export type IdStand = 'chamboule' | 'confiserie' | 'chantier' | 'horloge' | 'peche';
 /** Les stands de détente : jeu libre seulement, sans forain à nommer. */
-export type IdDetente = 'autos' | 'trampoline' | 'glaces';
+export type IdDetente = 'autos' | 'trampoline' | 'glaces' | 'chaises';
 export type IdLieu = IdStand | IdDetente;
 
 export interface Stand {
@@ -851,7 +851,10 @@ export function construireFete(depart?: Accessoires): Fete {
 
   function decorer(id: IdDetente, decorations: readonly Decoration[], nouvelle = false): void {
     decorationsManeges.get(id)?.groupe.removeFromParent();
-    const groupe = atelier.mobile(standsManeges[id]);
+    // L'ancienne fête n'a pas les chaises volantes (elles ne sont qu'à MiniVille).
+    const stand = standsManeges[id];
+    if (!stand) return;
+    const groupe = atelier.mobile(stand);
     const balancoires: THREE.Object3D[] = [];
     decorations.forEach((d, i) => {
       const [x, z, ry] = PLACES_DECO[i] ?? [0, 0, 0];
@@ -873,7 +876,7 @@ export function construireFete(depart?: Accessoires): Fete {
   stand('horloge', -17.5, 3.5, 0.9, garnirHorloge);
   // Le fond de la fête.
   stand('peche', -12.5, -19, 0.9, garnirPeche);
-  const standsManeges: Record<IdDetente, THREE.Group> = {
+  const standsManeges: Partial<Record<IdDetente, THREE.Group>> = {
     autos: stand('autos', 12.5, -18.5, -0.6, garnirAutos),
     trampoline: stand('trampoline', -5.5, -30, 0.1, garnirTrampoline),
     glaces: stand('glaces', 5.5, -30, -0.1, garnirGlaces),

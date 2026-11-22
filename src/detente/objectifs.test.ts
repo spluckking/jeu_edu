@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { compter, installer, lireRecompense, objectif, PLACES, prochaineRecompense, seuil, suiviManegesNeuf, type SuiviManeges } from './objectifs.ts';
+import { compter, completerSuivi, installer, lireRecompense, objectif, PLACES, prochaineRecompense, seuil, suiviManegesNeuf, type SuiviManeges } from './objectifs.ts';
 
 describe('objectifs des manèges', () => {
   it('les paliers montent et ne finissent jamais', () => {
@@ -68,5 +68,15 @@ describe('objectifs des manèges', () => {
     expect(s.decorations.glaces).toHaveLength(PLACES);
     expect(possedes).toEqual(['lunettes-miroir', 'haut-paillettes']);
     expect(prochaineRecompense('glaces', s, possedes)).toBeNull();
+  });
+});
+
+describe('un nouveau manège', () => {
+  it('complète un suivi d’avant les chaises volantes, sans rien changer d’autre', () => {
+    const ancien = { compte: { autos: 12, trampoline: 3, glaces: 1 }, paliers: { autos: 1, trampoline: 0, glaces: 1 }, decorations: { autos: [{ modele: 'ballons', teinte: 'rouge' }], trampoline: [], glaces: [] } } as unknown as SuiviManeges;
+    const s = completerSuivi(ancien);
+    expect(s.compte).toEqual({ autos: 12, trampoline: 3, glaces: 1, chaises: 0 });
+    expect(s.decorations.chaises).toEqual([]);
+    expect(s.decorations.autos).toHaveLength(1);
   });
 });

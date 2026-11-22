@@ -144,7 +144,7 @@ const carrousel: Manege = {
 
 // --- Les chaises volantes : éclater les ballons ------------------------------------------------
 
-const chaises: Manege = {
+export const chaises: Manege = {
   id: 'chaises',
   ...T.chaises,
   duree: 45,
