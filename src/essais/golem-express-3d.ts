@@ -316,7 +316,9 @@ function modelePoutre(couleur: number): THREE.Group {
 export interface Scene {
   poserEpreuve(e: Epreuve, distance: number): number;
   marquerEpreuve(id: number, reussie: boolean): void;
-  poserObjet(o: Objet, x: number, distance: number): number;
+  /** Un minerai lancé vers le golem : il vole en l'air, à droite, jamais sur la route. */
+  poserObjet(o: Objet, distance: number): number;
+  deplacerObjet(id: number, distance: number): void;
   /** Le minerai attrapé file vers le golem ; un piège attrapé fait « pschitt ». */
   attraper(id: number, bon: boolean): void;
   /** Un minerai à portée brille un peu. */
@@ -461,12 +463,16 @@ export function creerScene(toile: HTMLCanvasElement, lieu: IdLieu, wagons: numbe
           }
         });
     },
-    poserObjet(o, x, distance) {
+    poserObjet(o, distance) {
       const objet = modeleObjet(o);
-      objet.position.set(x * DEMI_GALERIE, 1.9, -distance);
+      objet.position.set(0, 6, -distance);
       scene.add(objet);
       poses.set(++compteur, { objet, distance, sorte: 'objet', etat: '', depuis: 0 });
       return compteur;
+    },
+    deplacerObjet(id, distance) {
+      const p = poses.get(id);
+      if (p) p.distance = distance;
     },
     attraper(id, bon) {
       const p = poses.get(id);
@@ -541,8 +547,13 @@ export function creerScene(toile: HTMLCanvasElement, lieu: IdLieu, wagons: numbe
             if (k >= 1) retirer(id);
             continue;
           }
-          p.objet.rotation.y += dt * 1.6;
-          p.objet.position.y = 1.9 + Math.sin(temps * 2 + id) * 0.12;
+          // En vol : il arrive de loin, en haut à droite, et descend vers au-dessus de l’épaule droite du golem,
+          // à côté du wagonnet. Il tourne vite, comme un objet lancé.
+          const ecart = p.distance - d;
+          const loin = Math.max(0, ecart);
+          p.objet.position.set(X + 2.1 + loin * 0.05, 3.1 + loin * 0.06, -p.distance);
+          p.objet.rotation.x += dt * 5;
+          p.objet.rotation.y += dt * 7;
           const s = p.objet.userData.aPortee ? 1.15 + Math.sin(temps * 12) * 0.06 : 1;
           p.objet.scale.setScalar(1.35 * s);
         } else if (p.etat === 'reussie') {

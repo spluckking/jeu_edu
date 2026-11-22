@@ -246,6 +246,11 @@ interface Posee {
 interface EpreuvePosee extends Posee {
   epreuve: Epreuve;
 }
+/** Les minerais volent : leur vitesse, en part de celle du wagonnet. */
+const VOL = 2;
+/** Combien de temps (s) on voit arriver un minerai avant de pouvoir l'attraper. */
+const AVANT_PORTEE = 1;
+
 interface ObjetPose extends Posee {
   cible: boolean;
   entree: number;
@@ -316,7 +321,11 @@ function courir(f: HTMLElement, o: OptionsManche): Promise<Mesures | null> {
 
     const vitesse = (): number => pil.vitesse * fp;
     const fenetre = (): number => cai.fenetre / fc;
-    const aPortee = (p: ObjetPose): boolean => !p.fini && p.distance - d > 0 && p.distance - d <= vitesse() * fenetre();
+    // Les minerais sont lancés vers le golem : ils volent à leur propre vitesse, en plus de celle du
+    // wagonnet, et arrivent bien plus vite qu'un objet posé sur la route.
+    const vol = (): number => vitesse() * VOL;
+    const approche = (): number => vitesse() + vol();
+    const aPortee = (p: ObjetPose): boolean => !p.fini && p.distance - d > 0 && p.distance - d <= approche() * fenetre();
 
     const toucher = (): void => {
       if (mode === 'pilotage' || enPause) return;
@@ -495,10 +504,12 @@ function courir(f: HTMLElement, o: OptionsManche): Promise<Mesures | null> {
         if (prochainObjetDans <= 0) {
           prochainObjetDans = cai.intervalle * (0.8 + Math.random() * 0.4);
           const ob = prochainObjet(o.cible, cai.ressemblance, Math.random);
-          const distance = d + vitesse() * (fenetre() + 2.4);
-          objets.push({ id: scene.poserObjet(ob, (Math.random() * 2 - 1) * 0.55, distance), distance, fini: false, cible: estLaCible(ob, o.cible), entree: 0 });
+          const distance = d + approche() * (fenetre() + AVANT_PORTEE);
+          objets.push({ id: scene.poserObjet(ob, distance), distance, fini: false, cible: estLaCible(ob, o.cible), entree: 0 });
         }
         for (const p of objets) {
+          p.distance -= vol() * dt;
+          scene.deplacerObjet(p.id, p.distance);
           if (p.fini) continue;
           const portee = aPortee(p);
           if (portee && !p.entree) p.entree = t;
