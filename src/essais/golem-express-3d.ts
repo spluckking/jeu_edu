@@ -1,15 +1,15 @@
-// Le Golem Express en 3D, vu de derrière : le wagonnet du golem file dans l'écran, au milieu d'un
-// lieu (la mine, la rivière, la forêt, la montagne, le volcan). Ce module ne fait que dessiner :
-// les règles et le temps sont dans golem-express-vue.ts. Le monde avance vers -z ; la galerie va
-// de x = -1 à x = 1 (DEMI_GALERIE mètres de chaque côté).
+// Le Golem Express en 3D, vu de derrière : la barque du golem file sur une rivière qui tourne, se
+// rétrécit et s'élargit, au milieu d'un lieu (la mine, la rivière, la forêt, la montagne, le
+// volcan). Ce module ne fait que dessiner : les règles et le temps sont dans golem-express-vue.ts.
+// Le monde avance vers -z ; à la distance d, la rivière a son milieu en x = centre(d) et va de
+// x = -1 à x = 1 (en largeurs de rivière). Rien dans le décor ne ressemble à ce qu'on vise : pas
+// d'objets au bord de l'eau, seulement les berges et des formes lointaines.
 
 import * as THREE from 'three';
-import { DEMI_WAGONNET, type Epreuve, type IdLieu, type Matiere, type Objet } from './golem-express.ts';
+import type { Epreuve, IdLieu, Matiere, Objet, Riviere } from './golem-express.ts';
 
-export const DEMI_GALERIE = 3;
-/** Jusqu'où on voit devant (les objets apparaissent dans la brume). */
-export const PORTEE_VUE = 110;
-const LONGUEUR_DECOR = 150;
+/** Jusqu'où on voit devant (les épreuves apparaissent dans la brume). */
+export const PORTEE_VUE = 130;
 
 /** Les couleurs des minerais : la couleur principale, et celle des éclats. */
 export const COULEURS: Record<Matiere, [string, string]> = {
@@ -25,79 +25,63 @@ export const COULEURS: Record<Matiere, [string, string]> = {
 interface Decor {
   ciel: number;
   brume: [number, number];
-  sol: [string, string];
-  bords: number;
-  plafond?: number;
+  /** L'eau (ou la lave) : deux couleurs pour ses reflets. */
+  eau: [string, string];
+  lave?: boolean;
+  berge: [string, string];
+  /** Sous terre : la hauteur de la voûte. */
+  voute?: number;
   rocher: number;
-  /** Ce qui borde la route : des éléments posés de chaque côté. */
-  elements: Array<{ sorte: 'cristal' | 'arbre' | 'sapin' | 'bloc' | 'poutre' | 'lanterne' | 'lave' | 'champignon'; couleur: number; tous: number }>;
+  /** Des formes au loin, bien à l'écart de l'eau (collines, montagnes, sapins géants). */
+  lointain?: { sorte: 'colline' | 'montagne' | 'sapin'; couleur: number };
 }
 
 const DECORS: Record<IdLieu, Decor> = {
   mine: {
     ciel: 0x2b2018,
-    brume: [25, PORTEE_VUE],
-    sol: ['#6b5240', '#5a4434'],
-    bords: 0x6a5240,
-    plafond: 0x3a2d22,
+    brume: [30, PORTEE_VUE],
+    eau: ['#2f7aa8', '#5aa9d6'],
+    berge: ['#6b5240', '#5a4434'],
+    voute: 7,
     rocher: 0x8a7a6a,
-    elements: [
-      { sorte: 'poutre', couleur: 0x8b5a2b, tous: 16 },
-      { sorte: 'lanterne', couleur: 0xffc04a, tous: 16 },
-      { sorte: 'cristal', couleur: 0x6fd6ff, tous: 7 },
-      { sorte: 'cristal', couleur: 0xc58ce8, tous: 11 },
-    ],
   },
   riviere: {
     ciel: 0xbfe6ff,
-    brume: [40, PORTEE_VUE + 10],
-    sol: ['#4fa6d8', '#62b8e6'],
-    bords: 0x7cc35a,
+    brume: [45, PORTEE_VUE + 10],
+    eau: ['#3f95cf', '#5fb1e3'],
+    berge: ['#7cc35a', '#6db04d'],
     rocher: 0x9c9c92,
-    elements: [
-      { sorte: 'arbre', couleur: 0x4f9e3a, tous: 6 },
-      { sorte: 'bloc', couleur: 0xa0a094, tous: 9 },
-    ],
+    lointain: { sorte: 'colline', couleur: 0x8fcf6a },
   },
   foret: {
     ciel: 0xd6efd0,
-    brume: [30, PORTEE_VUE],
-    sol: ['#8a6b45', '#7b5e3c'],
-    bords: 0x4e8a3a,
+    brume: [35, PORTEE_VUE],
+    eau: ['#3c8a8a', '#4f9f9a'],
+    berge: ['#4e8a3a', '#447a33'],
     rocher: 0x8f8a7c,
-    elements: [
-      { sorte: 'arbre', couleur: 0x3f8a32, tous: 4 },
-      { sorte: 'sapin', couleur: 0x2f6e3a, tous: 5 },
-      { sorte: 'champignon', couleur: 0xe0443a, tous: 13 },
-    ],
+    lointain: { sorte: 'sapin', couleur: 0x2f6e3a },
   },
   montagne: {
     ciel: 0xe6f2ff,
-    brume: [35, PORTEE_VUE],
-    sol: ['#eef4fb', '#dbe7f3'],
-    bords: 0xcfdced,
+    brume: [40, PORTEE_VUE],
+    eau: ['#6fb6e6', '#9fd0f0'],
+    berge: ['#eef4fb', '#dbe7f3'],
     rocher: 0x7f8c99,
-    elements: [
-      { sorte: 'sapin', couleur: 0x2f6e4a, tous: 5 },
-      { sorte: 'cristal', couleur: 0x9fd8ff, tous: 7 },
-    ],
+    lointain: { sorte: 'montagne', couleur: 0xb9c9dc },
   },
   volcan: {
     ciel: 0x4a2a2a,
-    brume: [25, PORTEE_VUE],
-    sol: ['#3e3634', '#332c2a'],
-    bords: 0x2a2220,
+    brume: [30, PORTEE_VUE],
+    eau: ['#ff6a1a', '#ffa040'],
+    lave: true,
+    berge: ['#3e3634', '#332c2a'],
     rocher: 0x5a4f4a,
-    elements: [
-      { sorte: 'lave', couleur: 0xff6a1a, tous: 6 },
-      { sorte: 'bloc', couleur: 0x4a403c, tous: 8 },
-      { sorte: 'cristal', couleur: 0xff9a4a, tous: 12 },
-    ],
+    lointain: { sorte: 'montagne', couleur: 0x2a2220 },
   },
 };
 
-/** Une texture de sol en petites taches, qu'on fait défiler pour donner la vitesse. */
-function textureSol(a: string, b: string): THREE.CanvasTexture {
+/** Une texture en petites taches : l'eau, les berges. Elle est attachée au monde, donc elle défile. */
+function texture(a: string, b: string): THREE.CanvasTexture {
   const t = document.createElement('canvas');
   t.width = 128;
   t.height = 128;
@@ -105,7 +89,7 @@ function textureSol(a: string, b: string): THREE.CanvasTexture {
   c.fillStyle = a;
   c.fillRect(0, 0, 128, 128);
   c.fillStyle = b;
-  for (let i = 0; i < 70; i++) c.fillRect(Math.random() * 128, Math.random() * 128, 4 + Math.random() * 10, 3 + Math.random() * 6);
+  for (let i = 0; i < 70; i++) c.fillRect(Math.random() * 128, Math.random() * 128, 4 + Math.random() * 14, 2 + Math.random() * 5);
   const tex = new THREE.CanvasTexture(t);
   tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
   tex.colorSpace = THREE.SRGBColorSpace;
@@ -155,179 +139,169 @@ export function modeleObjet(o: Objet): THREE.Group {
   return g;
 }
 
-/** Le wagonnet qui flotte, et le golem de pierre moussue dedans. */
-function modeleWagonnet(): THREE.Group {
+/** La barque, et le golem de pierre moussue assis dedans. */
+function modeleBarque(): THREE.Group {
   const g = new THREE.Group();
-  const caisse = new THREE.Mesh(new THREE.BoxGeometry(DEMI_WAGONNET * 2 * DEMI_GALERIE, 0.55, 1.5), mat(0x6b4a33));
-  caisse.position.y = 0.45;
-  const bord = new THREE.Mesh(new THREE.BoxGeometry(DEMI_WAGONNET * 2 * DEMI_GALERIE + 0.1, 0.1, 1.6), mat(0xb08a5a));
-  bord.position.y = 0.76;
-  const halo = new THREE.Mesh(new THREE.CircleGeometry(0.75, 20), new THREE.MeshBasicMaterial({ color: 0xffd27a, transparent: true, opacity: 0.45 }));
-  halo.rotation.x = -Math.PI / 2;
-  halo.position.y = 0.05;
+  const bois = mat(0x8a5a33);
+  const clair = mat(0xc49a62);
+  const coque = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.4, 1.7), bois);
+  coque.position.y = 0.2;
+  // La proue en pointe, devant (vers -z).
+  const proue = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 0.4, 3), bois);
+  proue.rotation.y = Math.PI / 2;
+  proue.scale.set(1, 1, 1.4);
+  proue.position.set(0, 0.2, -0.95);
+  const bord = new THREE.Mesh(new THREE.BoxGeometry(1.08, 0.08, 1.78), clair);
+  bord.position.y = 0.42;
   const pierre = mat(0x9a9a8e);
   const mousse = mat(0x6fa35a);
   const corps = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.62, 0.48), pierre);
-  corps.position.set(0, 1.05, 0.1);
+  corps.position.set(0, 0.75, 0.1);
   const tete = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.4, 0.42), pierre);
-  tete.position.set(0, 1.58, 0.05);
+  tete.position.set(0, 1.28, 0.05);
   const chapeau = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.1, 0.46), mousse);
-  chapeau.position.set(0, 1.82, 0.05);
+  chapeau.position.set(0, 1.52, 0.05);
   const epaules = new THREE.Mesh(new THREE.BoxGeometry(0.66, 0.1, 0.5), mousse);
-  epaules.position.set(0, 1.38, 0.1);
-  g.add(caisse, bord, halo, corps, tete, chapeau, epaules);
+  epaules.position.set(0, 1.08, 0.1);
+  g.add(coque, proue, bord, corps, tete, chapeau, epaules);
   for (const s of [-1, 1]) {
     const bras = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.5, 0.2), pierre);
-    bras.position.set(s * 0.42, 1.1, 0.05);
-    bras.name = s < 0 ? 'bras-gauche' : 'bras-droit';
+    bras.position.set(s * 0.42, 0.8, 0.05);
     g.add(bras);
   }
   return g;
 }
 
-function modeleWagon(i: number): THREE.Group {
+/** La petite barque d'un golem égaré qu'on a ramené. */
+function modeleBarquette(i: number): THREE.Group {
   const g = new THREE.Group();
   const couleur = [0x6aa8ef, 0x8acb52, 0xffc94a, 0xc58ce8][i % 4]!;
-  const caisse = new THREE.Mesh(new THREE.BoxGeometry(0.75, 0.45, 1.1), mat(couleur));
-  caisse.position.y = 0.4;
-  // Le petit golem égaré qu'on a ramené : une tête qui dépasse.
+  const coque = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.3, 1.1), mat(couleur));
+  coque.position.y = 0.15;
+  const proue = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.35, 0.3, 3), mat(couleur));
+  proue.rotation.y = Math.PI / 2;
+  proue.position.set(0, 0.15, -0.6);
   const tete = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.28, 0.28), mat(0x9a9a8e));
-  tete.position.y = 0.78;
+  tete.position.y = 0.5;
   const mousse = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.07, 0.3), mat(0x6fa35a));
-  mousse.position.y = 0.95;
-  g.add(caisse, tete, mousse);
+  mousse.position.y = 0.67;
+  g.add(coque, proue, tete, mousse);
   return g;
 }
 
-/** Une porte dorée : deux piliers, une barre, et le passage qui brille au sol. */
-function modelePorte(e: Epreuve): THREE.Group {
+/** Une porte dorée : deux piliers plantés dans l'eau, une barre, et le passage qui brille. */
+function modelePorte(e: Epreuve, demi: number): THREE.Group {
   const g = new THREE.Group();
-  const l = e.largeur * DEMI_GALERIE;
+  const l = e.largeur * demi;
   const or = mat(0xf2c14e, { emissive: new THREE.Color(0xc48d1d), emissiveIntensity: 0.3, roughness: 0.5 });
   for (const s of [-1, 1]) {
-    const pilier = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.14, 2.6, 8), or);
-    pilier.position.set(s * (l + 0.12), 1.3, 0);
+    const pilier = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.14, 2.8, 8), or);
+    pilier.position.set(s * (l + 0.12), 1.2, 0);
     g.add(pilier);
   }
   const barre = new THREE.Mesh(new THREE.BoxGeometry(2 * l + 0.5, 0.22, 0.22), or);
   barre.position.y = 2.6;
-  const passage = new THREE.Mesh(new THREE.PlaneGeometry(2 * l, 3), new THREE.MeshBasicMaterial({ color: 0xffe08a, transparent: true, opacity: 0.4, depthWrite: false }));
+  const passage = new THREE.Mesh(new THREE.PlaneGeometry(2 * l, 3), new THREE.MeshBasicMaterial({ color: 0xffe08a, transparent: true, opacity: 0.45, depthWrite: false }));
   passage.rotation.x = -Math.PI / 2;
-  passage.position.y = 0.03;
-  passage.name = 'passage';
+  passage.position.y = 0.04;
   g.add(barre, passage);
   return g;
 }
 
-function modeleRocher(e: Epreuve, couleur: number): THREE.Group {
+function modeleRocher(e: Epreuve, demi: number, couleur: number): THREE.Group {
   const g = new THREE.Group();
-  const r = e.largeur * DEMI_GALERIE;
+  const r = e.largeur * demi;
   const p = new THREE.Mesh(new THREE.DodecahedronGeometry(r, 0), mat(couleur));
   p.scale.set(1, 0.85, 0.9);
-  p.position.y = r * 0.7;
+  p.position.y = r * 0.45;
   p.rotation.set(Math.random(), Math.random(), Math.random());
   g.add(p);
   return g;
 }
 
-function modeleElement(sorte: Decor['elements'][number]['sorte'], couleur: number): THREE.Object3D {
+/** Une grande forme au loin, loin de l'eau : on ne peut pas la prendre pour une cible. */
+function modeleLointain(sorte: NonNullable<Decor['lointain']>['sorte'], couleur: number): THREE.Object3D {
+  const taille = 6 + Math.random() * 8;
+  if (sorte === 'colline') {
+    const c = new THREE.Mesh(new THREE.SphereGeometry(taille, 10, 6, 0, Math.PI * 2, 0, Math.PI / 2), mat(couleur));
+    c.scale.y = 0.45;
+    return c;
+  }
+  if (sorte === 'montagne') {
+    const c = new THREE.Mesh(new THREE.ConeGeometry(taille, taille * 1.6, 6), mat(couleur));
+    c.position.y = taille * 0.8;
+    const g = new THREE.Group();
+    g.add(c);
+    return g;
+  }
   const g = new THREE.Group();
-  switch (sorte) {
-    case 'cristal': {
-      for (let i = 0; i < 3; i++) {
-        const h = 0.8 + Math.random() * 1.4;
-        const c = new THREE.Mesh(new THREE.ConeGeometry(0.22, h, 5), mat(couleur, { emissive: new THREE.Color(couleur), emissiveIntensity: 0.5, roughness: 0.3 }));
-        c.position.set((Math.random() - 0.5) * 0.8, h / 2, (Math.random() - 0.5) * 0.8);
-        c.rotation.z = (Math.random() - 0.5) * 0.5;
-        g.add(c);
-      }
-      break;
-    }
-    case 'arbre': {
-      const tronc = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.2, 1.4, 6), mat(0x7a5a3a));
-      tronc.position.y = 0.7;
-      const feuilles = new THREE.Mesh(new THREE.IcosahedronGeometry(1.1, 0), mat(couleur));
-      feuilles.position.y = 2;
-      g.add(tronc, feuilles);
-      break;
-    }
-    case 'sapin': {
-      const tronc = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.15, 0.8, 6), mat(0x6a4a30));
-      tronc.position.y = 0.4;
-      g.add(tronc);
-      for (let i = 0; i < 3; i++) {
-        const c = new THREE.Mesh(new THREE.ConeGeometry(1 - i * 0.25, 1.2, 7), mat(couleur));
-        c.position.y = 1.1 + i * 0.7;
-        g.add(c);
-      }
-      break;
-    }
-    case 'bloc': {
-      const s = 0.6 + Math.random() * 1.2;
-      const b = new THREE.Mesh(new THREE.DodecahedronGeometry(s, 0), mat(couleur));
-      b.position.y = s * 0.5;
-      g.add(b);
-      break;
-    }
-    case 'champignon': {
-      const pied = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.12, 0.4, 6), mat(0xfff3dc));
-      pied.position.y = 0.2;
-      const chapeau = new THREE.Mesh(new THREE.SphereGeometry(0.32, 8, 5, 0, Math.PI * 2, 0, Math.PI / 2), mat(couleur));
-      chapeau.position.y = 0.38;
-      g.add(pied, chapeau);
-      break;
-    }
-    case 'lave': {
-      const l = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.06, 2.4), new THREE.MeshBasicMaterial({ color: couleur }));
-      l.position.y = 0.04;
-      g.add(l);
-      break;
-    }
-    case 'lanterne': {
-      const poteau = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 2.2, 5), mat(0x5a3a22));
-      poteau.position.y = 1.1;
-      const lumiere = new THREE.Mesh(new THREE.SphereGeometry(0.18, 8, 6), new THREE.MeshBasicMaterial({ color: couleur }));
-      lumiere.position.y = 2.25;
-      g.add(poteau, lumiere);
-      break;
-    }
-    case 'poutre':
-      // Les poutres de la mine sont construites à part (elles enjambent la galerie).
-      break;
+  for (let i = 0; i < 3; i++) {
+    const c = new THREE.Mesh(new THREE.ConeGeometry(2.6 - i * 0.6, 3.5, 7), mat(couleur));
+    c.position.y = 2 + i * 2.2;
+    g.add(c);
   }
   return g;
 }
 
-/** Une arche de bois qui enjambe la galerie de la mine. */
-function modelePoutre(couleur: number): THREE.Group {
-  const g = new THREE.Group();
-  const bois = mat(couleur);
-  for (const s of [-1, 1]) {
-    const p = new THREE.Mesh(new THREE.BoxGeometry(0.35, 5, 0.35), bois);
-    p.position.set(s * (DEMI_GALERIE + 0.6), 2.5, 0);
-    g.add(p);
-  }
-  const b = new THREE.Mesh(new THREE.BoxGeometry(2 * DEMI_GALERIE + 1.6, 0.4, 0.4), bois);
-  b.position.y = 5;
-  g.add(b);
-  return g;
+/** Une bande qui suit la rivière : des colonnes (côté, écart au bord de l'eau, hauteur), une
+ *  rangée tous les PAS mètres, recalculées à chaque image autour de la barque. */
+const PAS = 2.5;
+const RANGEES = Math.ceil((PORTEE_VUE + 40) / PAS);
+function ruban(colonnes: Array<[-1 | 1, number, number]>, matiere: THREE.Material, repetition: number): { maillage: THREE.Mesh; suivre(d: number, r: Riviere): void } {
+  const n = colonnes.length;
+  const positions = new Float32Array(RANGEES * n * 3);
+  const uvs = new Float32Array(RANGEES * n * 2);
+  const indices: number[] = [];
+  for (let j = 0; j < RANGEES - 1; j++)
+    for (let i = 0; i < n - 1; i++) {
+      const a = j * n + i;
+      indices.push(a, a + 1, a + n, a + 1, a + n + 1, a + n);
+    }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+  geo.setAttribute('uv', new THREE.BufferAttribute(uvs, 2));
+  geo.setIndex(indices);
+  const maillage = new THREE.Mesh(geo, matiere);
+  maillage.frustumCulled = false;
+  return {
+    maillage,
+    suivre(d, r) {
+      const debut = Math.floor((d - 25) / PAS) * PAS;
+      for (let j = 0; j < RANGEES; j++) {
+        const dist = debut + j * PAS;
+        const c = r.centre(dist);
+        const w = r.demi(dist);
+        colonnes.forEach(([cote, ecart, y], i) => {
+          const k = (j * n + i) * 3;
+          positions[k] = c + cote * (w + ecart);
+          positions[k + 1] = y;
+          positions[k + 2] = -dist;
+          uvs[(j * n + i) * 2] = (i / (n - 1)) * repetition;
+          uvs[(j * n + i) * 2 + 1] = dist / 8;
+        });
+      }
+      geo.attributes.position!.needsUpdate = true;
+      geo.attributes.uv!.needsUpdate = true;
+      geo.computeVertexNormals();
+    },
+  };
 }
 
 export interface Scene {
   poserEpreuve(e: Epreuve, distance: number): number;
   marquerEpreuve(id: number, reussie: boolean): void;
   /** Un minerai lancé vers le golem : il vole en l'air, d'un côté (1 : à droite, -1 : à gauche),
-   *  jamais sur la route. */
+   *  jamais sur l'eau devant la barque. */
   poserObjet(o: Objet, distance: number, cote: 1 | -1): number;
   deplacerObjet(id: number, distance: number): void;
   /** Le golem tire : un trait part vers l'objet ; le bon minerai vole en éclats, un piège fait
    *  « pschitt » (un petit nuage gris, jamais d'explosion). */
   attraper(id: number, bon: boolean): void;
-  /** Un minerai à portée brille un peu. */
+  /** Un minerai qu'on peut encore viser brille un peu. */
   aPortee(id: number, oui: boolean): void;
-  /** Une image : le wagonnet est à la distance d et en x (galerie), penché de « virage ». */
+  /** Une image : la barque est à la distance d et en x (rivière), penchée de « virage ». */
   image(dt: number, d: number, x: number, virage: number): void;
-  /** Une petite secousse (un mur frotté). */
+  /** Une petite secousse (une berge frottée). */
   secouer(): void;
   liberer(): void;
 }
@@ -340,7 +314,9 @@ interface Pose {
   depuis: number;
 }
 
-export function creerScene(toile: HTMLCanvasElement, lieu: IdLieu, wagons: number): Scene {
+const LONGUEUR_LOINTAIN = 260;
+
+export function creerScene(toile: HTMLCanvasElement, lieu: IdLieu, wagons: number, riviere: Riviere): Scene {
   const decor = DECORS[lieu];
   const rendu = new THREE.WebGLRenderer({ canvas: toile, antialias: true, powerPreference: 'high-performance' });
   rendu.setPixelRatio(Math.min(1.5, window.devicePixelRatio || 1));
@@ -348,73 +324,88 @@ export function creerScene(toile: HTMLCanvasElement, lieu: IdLieu, wagons: numbe
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(decor.ciel);
   scene.fog = new THREE.Fog(decor.ciel, decor.brume[0], decor.brume[1]);
-  scene.add(new THREE.HemisphereLight(0xffffff, decor.bords, lieu === 'mine' || lieu === 'volcan' ? 2.2 : 2.4));
+  scene.add(new THREE.HemisphereLight(0xffffff, new THREE.Color(decor.berge[0]), lieu === 'mine' || lieu === 'volcan' ? 2.2 : 2.4));
   const soleil = new THREE.DirectionalLight(0xffffff, lieu === 'mine' ? 1.3 : 1.6);
-  soleil.position.set(-4, 10, 6);
   scene.add(soleil, soleil.target);
-  const camera = new THREE.PerspectiveCamera(62, 16 / 9, 0.1, 260);
+  const camera = new THREE.PerspectiveCamera(62, 16 / 9, 0.1, 300);
 
-  // Le sol et les bords suivent le wagonnet ; leur texture défile.
-  const tex = textureSol(decor.sol[0], decor.sol[1]);
-  tex.repeat.set(6, 40);
-  const sol = new THREE.Mesh(new THREE.PlaneGeometry(2 * DEMI_GALERIE + 1, 240), new THREE.MeshStandardMaterial({ map: tex, roughness: 0.95 }));
-  sol.rotation.x = -Math.PI / 2;
-  const texBords = textureSol(`#${new THREE.Color(decor.bords).getHexString()}`, `#${new THREE.Color(decor.bords).multiplyScalar(0.8).getHexString()}`);
-  texBords.repeat.set(4, 40);
-  const bords = new THREE.Group();
-  for (const s of [-1, 1]) {
-    // Le bord de la galerie : un muret (mine, volcan) ou une berge (dehors).
-    const haut = decor.plafond !== undefined ? 6 : 0.5;
-    const b = new THREE.Mesh(new THREE.BoxGeometry(14, haut, 240), new THREE.MeshStandardMaterial({ map: texBords, roughness: 0.95 }));
-    b.position.set(s * (DEMI_GALERIE + 0.5 + 7), haut / 2, 0);
-    bords.add(b);
+  // L'eau, les berges (et la voûte sous terre) : des bandes qui suivent la rivière.
+  const texEau = texture(decor.eau[0], decor.eau[1]);
+  const eau = ruban(
+    [
+      [-1, 0.4, -0.02],
+      [1, 0.4, -0.02],
+    ],
+    decor.lave ? new THREE.MeshBasicMaterial({ map: texEau }) : new THREE.MeshStandardMaterial({ map: texEau, roughness: 0.25, metalness: 0.1 }),
+    2,
+  );
+  const texBerge = texture(decor.berge[0], decor.berge[1]);
+  const matBerge = new THREE.MeshStandardMaterial({ map: texBerge, roughness: 0.95, side: THREE.DoubleSide });
+  const v = decor.voute;
+  const bandes = [eau];
+  for (const s of [-1, 1] as const) {
+    // Sous terre, la paroi monte jusqu'à la voûte ; dehors, une berge basse puis la plaine.
+    const profil: Array<[-1 | 1, number, number]> =
+      v !== undefined
+        ? [
+            [s, 0, -0.1],
+            [s, 0.6, 0.4],
+            [s, 2.5, 0.5],
+            [s, 4.5, v],
+          ]
+        : [
+            [s, 0, -0.1],
+            [s, 0.5, 0.7],
+            [s, 2, 0.8],
+            [s, 60, 0.8],
+          ];
+    bandes.push(ruban(profil, matBerge, v !== undefined ? 3 : 8));
   }
-  if (decor.plafond !== undefined) {
-    const p = new THREE.Mesh(new THREE.PlaneGeometry(2 * DEMI_GALERIE + 4, 240), mat(decor.plafond));
-    p.rotation.x = Math.PI / 2;
-    p.position.y = 6;
-    bords.add(p);
-  }
-  // Le bord de la route, bien visible : une ligne claire de chaque côté.
-  for (const s of [-1, 1]) {
-    const l = new THREE.Mesh(new THREE.PlaneGeometry(0.15, 240), new THREE.MeshBasicMaterial({ color: 0xfff1c8, transparent: true, opacity: 0.7 }));
-    l.rotation.x = -Math.PI / 2;
-    l.position.set(s * DEMI_GALERIE, 0.02, 0);
-    bords.add(l);
-  }
-  scene.add(sol, bords);
+  if (v !== undefined)
+    bandes.push(
+      ruban(
+        [
+          [-1, 4.5, v],
+          [1, 4.5, v],
+        ],
+        new THREE.MeshStandardMaterial({ color: 0x3a2d22, roughness: 1, side: THREE.DoubleSide }),
+        1,
+      ),
+    );
+  for (const b of bandes) scene.add(b.maillage);
 
-  // Le décor des côtés, recyclé devant le wagonnet.
-  const elements: Array<{ objet: THREE.Object3D; distance: number }> = [];
-  for (const e of decor.elements) {
-    for (let d = Math.random() * e.tous; d < LONGUEUR_DECOR; d += e.tous * (0.7 + Math.random() * 0.6)) {
-      const objet = e.sorte === 'poutre' ? modelePoutre(e.couleur) : modeleElement(e.sorte, e.couleur);
-      if (e.sorte !== 'poutre') {
-        const cote = Math.random() < 0.5 ? -1 : 1;
-        objet.position.x = cote * (DEMI_GALERIE + 1 + Math.random() * (e.sorte === 'lave' ? 1 : 4));
-        // Dans la mine, entre la route et la paroi ; dehors, posé sur la berge.
-        if (decor.plafond !== undefined && e.sorte !== 'lanterne') objet.position.x = cote * (DEMI_GALERIE + 0.15 + Math.random() * 0.3);
-        if (decor.plafond === undefined) objet.position.y = 0.5;
-        if (e.sorte === 'lanterne') objet.position.x = cote * (DEMI_GALERIE + 0.4);
-      }
+  // Les formes lointaines, recyclées devant la barque.
+  const lointains: Array<{ objet: THREE.Object3D; distance: number; cote: number; ecart: number }> = [];
+  if (decor.lointain)
+    for (let dist = 0; dist < LONGUEUR_LOINTAIN; dist += 9 + Math.random() * 12) {
+      const objet = modeleLointain(decor.lointain.sorte, decor.lointain.couleur);
       scene.add(objet);
-      elements.push({ objet, distance: d });
+      lointains.push({ objet, distance: dist, cote: Math.random() < 0.5 ? -1 : 1, ecart: 18 + Math.random() * 40 });
     }
-  }
+  const placer = (l: (typeof lointains)[number]): void => {
+    l.objet.position.set(riviere.centre(l.distance) + l.cote * (riviere.demi(l.distance) + l.ecart), 0.6, -l.distance);
+  };
+  lointains.forEach(placer);
 
-  const wagonnet = modeleWagonnet();
-  scene.add(wagonnet);
-  const trainee = Array.from({ length: Math.min(3, wagons) }, (_, i) => {
-    const w = modeleWagon(i);
-    scene.add(w);
-    return w;
+  const barque = modeleBarque();
+  scene.add(barque);
+  const suite = Array.from({ length: Math.min(3, wagons) }, (_, i) => {
+    const b = modeleBarquette(i);
+    scene.add(b);
+    return b;
   });
   const passe: Array<{ d: number; x: number }> = [];
+
+  /** Le point du monde à la distance dist, en x (en largeurs de rivière). */
+  const monde = (dist: number, x: number): number => riviere.centre(dist) + x * riviere.demi(dist);
+  /** La direction de la rivière (angle à donner à ce qui la suit). */
+  const direction = (dist: number): number => -Math.atan((riviere.centre(dist + 1) - riviere.centre(dist - 1)) / 2);
 
   let compteur = 0;
   const poses = new Map<number, Pose>();
   let secousse = 0;
   let temps = 0;
+  let xBarque = 0;
 
   const taille = (): void => {
     const r = toile.getBoundingClientRect();
@@ -447,8 +438,10 @@ export function creerScene(toile: HTMLCanvasElement, lieu: IdLieu, wagons: numbe
 
   return {
     poserEpreuve(e, distance) {
-      const objet = e.sorte === 'porte' ? modelePorte(e) : modeleRocher(e, decor.rocher);
-      objet.position.set(e.x * DEMI_GALERIE, 0, -distance);
+      const w = riviere.demi(distance);
+      const objet = e.sorte === 'porte' ? modelePorte(e, w) : modeleRocher(e, w, decor.rocher);
+      objet.position.set(monde(distance, e.x), 0, -distance);
+      objet.rotation.y = direction(distance);
       scene.add(objet);
       poses.set(++compteur, { objet, distance, sorte: 'epreuve', etat: '', depuis: 0 });
       return compteur;
@@ -468,16 +461,16 @@ export function creerScene(toile: HTMLCanvasElement, lieu: IdLieu, wagons: numbe
     },
     poserObjet(o, distance, cote) {
       const objet = modeleObjet(o);
-      objet.userData.couleur = o.sorte === 'tnt' ? '#d63a2f' : COULEURS[o.matiere][0];
       objet.userData.cote = cote;
-      objet.position.set(0, 6, -distance);
+      objet.userData.couleur = o.sorte === 'tnt' ? '#d63a2f' : COULEURS[o.matiere][0];
+      objet.position.set(0, 8, -distance);
       scene.add(objet);
       poses.set(++compteur, { objet, distance, sorte: 'objet', etat: '', depuis: 0 });
       return compteur;
     },
     deplacerObjet(id, distance) {
       const p = poses.get(id);
-      if (p) p.distance = distance;
+      if (p && !p.etat) p.distance = distance;
     },
     attraper(id, bon) {
       const p = poses.get(id);
@@ -485,13 +478,15 @@ export function creerScene(toile: HTMLCanvasElement, lieu: IdLieu, wagons: numbe
       p.etat = bon ? 'pris' : 'pschitt';
       p.depuis = temps;
       // Le tir : un trait lumineux du golem jusqu'à l'objet, qui s'efface aussitôt.
-      const depart = wagonnet.position.clone().add(new THREE.Vector3(0, 2.2, 0));
+      const depart = barque.position.clone().add(new THREE.Vector3(0, 1.9, 0));
       const trait = new THREE.Line(
         new THREE.BufferGeometry().setFromPoints([depart, p.objet.position.clone()]),
         new THREE.LineBasicMaterial({ color: 0xfff3a0, transparent: true, opacity: 1 }),
       );
       scene.add(trait);
       effets.push({ objet: trait, depuis: temps, duree: 0.15 });
+      scene.remove(p.objet);
+      liberer(p.objet);
       if (bon) {
         // Des éclats de sa couleur, projetés tout autour.
         const eclats = new THREE.Group();
@@ -502,19 +497,14 @@ export function creerScene(toile: HTMLCanvasElement, lieu: IdLieu, wagons: numbe
           e.userData.dir = new THREE.Vector3(Math.random() - 0.5, Math.random() - 0.3, Math.random() - 0.5).normalize();
           eclats.add(e);
         }
-        scene.remove(p.objet);
-        liberer(p.objet);
         p.objet = eclats;
-        scene.add(eclats);
       } else {
         // Pas d'explosion : un petit nuage gris remplace le piège.
-        scene.remove(p.objet);
-        liberer(p.objet);
         const nuage = new THREE.Mesh(new THREE.IcosahedronGeometry(0.5, 1), new THREE.MeshBasicMaterial({ color: 0xbdbdbd, transparent: true, opacity: 0.8 }));
         nuage.position.copy(p.objet.position);
         p.objet = nuage;
-        scene.add(nuage);
       }
+      scene.add(p.objet);
     },
     aPortee(id, oui) {
       const p = poses.get(id);
@@ -525,37 +515,41 @@ export function creerScene(toile: HTMLCanvasElement, lieu: IdLieu, wagons: numbe
     },
     image(dt, d, x, virage) {
       temps += dt;
+      xBarque = x;
       const z = -d;
-      const X = x * DEMI_GALERIE;
-      // Le wagonnet flotte, et penche dans les virages.
-      wagonnet.position.set(X, 0.12 + Math.sin(temps * 3) * 0.05, z);
-      wagonnet.rotation.z = -virage * 0.25;
-      wagonnet.rotation.y = -virage * 0.12;
-      // Les wagons suivent, sur la trace du wagonnet.
-      passe.push({ d, x: X });
-      while (passe.length > 2 && passe[0]!.d < d - 8) passe.shift();
-      trainee.forEach((w, i) => {
-        const cible = d - 1.9 * (i + 1);
+      const X = monde(d, x);
+      const dir = direction(d);
+      // La barque se balance un peu sur l'eau, et penche dans les virages.
+      barque.position.set(X, Math.sin(temps * 3) * 0.04, z);
+      barque.rotation.z = -virage * 0.2 + Math.sin(temps * 2.3) * 0.03;
+      barque.rotation.y = dir - virage * 0.15;
+      // Les petites barques suivent, sur la trace de la nôtre.
+      passe.push({ d, x });
+      while (passe.length > 2 && passe[0]!.d < d - 12) passe.shift();
+      suite.forEach((b, i) => {
+        const cible = d - 2.4 * (i + 1);
         const p = passe.find((q) => q.d >= cible) ?? passe[0]!;
-        w.position.set(p.x, 0.1, -cible);
+        b.position.set(monde(cible, p.x), Math.sin(temps * 3 + i) * 0.04, -cible);
+        b.rotation.y = direction(cible);
       });
-      // La caméra, derrière et au-dessus.
+      // La caméra, derrière et au-dessus, qui regarde où va la rivière.
       const sec = secousse > 0 ? (Math.random() - 0.5) * secousse * 0.6 : 0;
       secousse = Math.max(0, secousse - dt);
-      camera.position.set(X * 0.55 + sec, 4.1, z + 7.8);
-      camera.lookAt(X * 0.75, 1.2, z - 16);
+      const dc = d - 7.8;
+      const dv = d + 16;
+      camera.position.set(riviere.centre(dc) + x * riviere.demi(dc) * 0.55 + sec, 4.1, -dc);
+      camera.lookAt(riviere.centre(dv) + x * riviere.demi(dv) * 0.6, 1.2, -dv);
       camera.rotation.z += -virage * 0.06;
       soleil.position.set(X - 4, 10, z + 6);
       soleil.target.position.set(X, 0, z - 10);
-      // Le sol et les bords suivent ; la texture défile.
-      sol.position.z = z - 100;
-      bords.position.z = z - 100;
-      tex.offset.y = d / 6;
-      texBords.offset.y = d / 6;
-      for (const e of elements) {
-        if (e.distance < d - 12) e.distance += LONGUEUR_DECOR;
-        e.objet.position.z = -e.distance;
-      }
+      // L'eau, les berges, et les formes lointaines suivent.
+      for (const b of bandes) b.suivre(d, riviere);
+      texEau.offset.y -= dt * 0.4;
+      for (const l of lointains)
+        if (l.distance < d - 30) {
+          l.distance += LONGUEUR_LOINTAIN;
+          placer(l);
+        }
       for (const e of [...effets]) {
         const k = (temps - e.depuis) / e.duree;
         (e.objet.material as THREE.LineBasicMaterial).opacity = Math.max(0, 1 - k);
@@ -566,7 +560,7 @@ export function creerScene(toile: HTMLCanvasElement, lieu: IdLieu, wagons: numbe
           effets.splice(effets.indexOf(e), 1);
         }
       }
-      // Les objets posés : les minerais tournent, les attrapés filent vers le golem.
+      // Les minerais en vol, les éclats, les nuages, et les épreuves réussies.
       for (const [id, p] of poses) {
         const age = temps - p.depuis;
         if (p.sorte === 'objet') {
@@ -587,12 +581,11 @@ export function creerScene(toile: HTMLCanvasElement, lieu: IdLieu, wagons: numbe
             if (k >= 1) retirer(id);
             continue;
           }
-          // En vol : il arrive de loin, en haut d'un côté, et descend au-dessus de l'épaule du golem,
-          // à côté du wagonnet. Il tourne vite, comme un objet lancé.
-          const ecart = p.distance - d;
-          const loin = Math.max(0, ecart);
+          // En vol : il arrive de loin, en haut d'un côté, et passe au-dessus de l'épaule du golem.
+          // Il tourne vite, comme un objet lancé.
+          const loin = Math.max(0, p.distance - d);
           const cote = p.objet.userData.cote as number;
-          p.objet.position.set(X + cote * (2.1 + loin * 0.05), 3.1 + loin * 0.06, -p.distance);
+          p.objet.position.set(monde(p.distance, xBarque) + cote * (2.1 + loin * 0.05), 3.1 + loin * 0.06, -p.distance);
           p.objet.rotation.x += dt * 5;
           p.objet.rotation.y += dt * 7;
           const s = p.objet.userData.aPortee ? 1.15 + Math.sin(temps * 12) * 0.06 : 1;
@@ -601,7 +594,7 @@ export function creerScene(toile: HTMLCanvasElement, lieu: IdLieu, wagons: numbe
           const k = Math.min(1, age / 0.5);
           p.objet.scale.setScalar(1 + k * 0.25);
         }
-        if (p.distance < d - 10) retirer(id);
+        if (p.distance < d - 12) retirer(id);
       }
       rendu.render(scene, camera);
     },
