@@ -69,19 +69,40 @@ function visuel(v: Visuel): SVGSVGElement {
   return v.sorte === 'parts' ? dessinParts(v.forme, v.n, v.colorees) : dessinFigure(v.figure, v.tourne);
 }
 
-/** Une question ; se résout avec vrai si trouvée (au 1er ou au 2e essai). */
-function poser(carte: HTMLElement, q: Question, n: number): Promise<boolean> {
-  return new Promise((fini) => {
+/** Ce qu'a donné une question : pour le bilan, et pour le journal (les statistiques). */
+export interface ResultatQuestion {
+  /** Trouvée, au 1er ou au 2e essai. */
+  trouve: boolean;
+  /** Juste au premier essai. */
+  premierCoup: boolean;
+  /** L'aide a été montrée (deux essais faux). */
+  aide: boolean;
+  /** La première réponse donnée. */
+  reponse: string;
+  /** Le temps jusqu'à la première réponse, en millisecondes. */
+  duree: number;
+}
+
+/** Une question ; se résout avec son résultat. */
+function poser(carte: HTMLElement, q: Question, n: number, total: number): Promise<ResultatQuestion> {
+  return new Promise((resoudre) => {
     const retour = creer('div', 'essai-retour');
     const zone = creer('div', 'essai-reponse');
+    const debut = performance.now();
     let essais = 0;
     let saisie = '';
     let fait = false;
     let valider: HTMLButtonElement | null = null;
+    let premiere: { reponse: string; duree: number } | null = null;
+    const fini = (trouve: boolean): void => {
+      const p = premiere ?? { reponse: '', duree: 0 };
+      resoudre({ trouve, premierCoup: trouve && essais === 0, aide: !trouve, reponse: p.reponse, duree: p.duree });
+    };
 
     // Juste, ou faux : au 2e essai faux, l'aide, puis « Suivant ».
-    const juger = (juste: boolean): void => {
+    const juger = (juste: boolean, reponse: string): void => {
       if (fait) return;
+      premiere ??= { reponse, duree: Math.round(performance.now() - debut) };
       if (juste) {
         fait = true;
         bruitage.reussite();
@@ -120,7 +141,7 @@ function poser(carte: HTMLElement, q: Question, n: number): Promise<boolean> {
         else if (t === 'valider') {
           const ok = Number(saisie) === q.reponse;
           if (ok) caseR.className = 'case juste';
-          juger(ok);
+          juger(ok, saisie);
           if (!ok) saisie = '';
         } else if (saisie.length < 5) saisie = (saisie + t).replace(/^0+(?=\d)/, '');
         maj();
@@ -138,7 +159,7 @@ function poser(carte: HTMLElement, q: Question, n: number): Promise<boolean> {
           const ok = c === q.reponse;
           b.classList.add(ok ? 'juste' : 'faux');
           if (!ok) b.disabled = true;
-          juger(ok);
+          juger(ok, c);
         });
         choix.append(b);
       }
@@ -173,7 +194,10 @@ function poser(carte: HTMLElement, q: Question, n: number): Promise<boolean> {
         caisse.append(b);
       }
       valider = bouton('bouton-principal', T.commun.valider);
-      valider.addEventListener('click', () => juger(donnes.reduce((a, b) => a + b, 0) === q.montant));
+      valider.addEventListener('click', () => {
+        const s = donnes.reduce((a, b) => a + b, 0);
+        juger(s === q.montant, String(s));
+      });
       zone.append(plateau, somme, caisse, valider);
       maj();
     } else {
@@ -185,12 +209,12 @@ function poser(carte: HTMLElement, q: Question, n: number): Promise<boolean> {
       });
       valider = bouton('bouton-principal', T.commun.valider);
       valider.disabled = true;
-      valider.addEventListener('click', () => juger(colorees.size === q.k));
+      valider.addEventListener('click', () => juger(colorees.size === q.k, `${colorees.size}/${q.n}`));
       zone.append(dessin, valider);
     }
 
     carte.replaceChildren(
-      creer('p', 'essai-compte', remplir(T.commun.questionN, { n, total: 6 })),
+      creer('p', 'essai-compte', remplir(T.commun.questionN, { n, total })),
       texteALire(q.enonce),
       ...('visuel' in q && q.visuel ? [visuel(q.visuel)] : []),
       zone,
@@ -210,7 +234,7 @@ export async function jouerStand(f: HTMLElement, stand: StandEssai): Promise<voi
     for (const [i, q] of qs.entries()) {
       const corps = creer('div', 'essai-corps');
       carte.replaceChildren(creer('p', 'exercice-titre', stand.titre), corps);
-      if (await poser(corps, q, i + 1)) trouves++;
+      if ((await poser(corps, q, i + 1, qs.length)).trouve) trouves++;
     }
     brouillonDisponible(false);
     bruitage.finDeManche();
@@ -226,4 +250,43 @@ export async function jouerStand(f: HTMLElement, stand: StandEssai): Promise<voi
     });
     if (!rejouer) return;
   }
+}
+
+export interface PartieAtelier {
+  /** Le titre en haut (« Le stand des mesures de Lucien »). */
+  titre: string;
+  /** Le nombre de questions. */
+  n: number;
+  /** Les compétences sur lesquelles insister (choisies par le rêve). */
+  focus: readonly string[];
+  /** Chaque réponse, pour le journal. */
+  noter(q: Question, r: ResultatQuestion): void;
+  /** Le texte du bouton de sortie. */
+  sortie: string;
+}
+
+/** Une partie d'atelier de n questions, puis le bilan ; se résout avec le nombre de questions
+ *  trouvées quand l'enfant sort. */
+export async function jouerAtelier(f: HTMLElement, stand: StandEssai, p: PartieAtelier): Promise<number> {
+  const carte = creer('section', 'exercice essai-stand');
+  f.replaceChildren(carte);
+  brouillonDisponible(stand.brouillon);
+  let trouves = 0;
+  const qs = stand.questions(Math.random, p.n, p.focus);
+  for (const [i, q] of qs.entries()) {
+    const corps = creer('div', 'essai-corps');
+    carte.replaceChildren(creer('p', 'exercice-titre', p.titre), corps);
+    const r = await poser(corps, q, i + 1, qs.length);
+    p.noter(q, r);
+    if (r.trouve) trouves++;
+  }
+  brouillonDisponible(false);
+  bruitage.finDeManche();
+  if (trouves >= Math.ceil((qs.length * 2) / 3)) confettis();
+  const sortir = bouton('bouton-principal', p.sortie);
+  const actions = creer('div', 'exercice-actions');
+  actions.append(sortir);
+  carte.replaceChildren(creer('p', 'exercice-titre', p.titre), texteALire(remplir(trouves <= 1 ? T.commun.bilanUn : T.commun.bilan, { n: trouves, total: qs.length })), actions);
+  await new Promise<void>((ok) => sortir.addEventListener('click', () => ok()));
+  return trouves;
 }

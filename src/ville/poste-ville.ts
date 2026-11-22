@@ -14,6 +14,7 @@ import type { PointInteret } from './dictee-ville.ts';
 import type { EtatVille } from './etat.ts';
 import { bouton, carte, creer, icone, piece, remplir, texteALire } from './interface.ts';
 import { casiers, courrierDuJour, dansLOrdre, initiale, livraisonAPayer, peutTrier } from './poste.ts';
+import { noter } from '../stats/noter.ts';
 
 export interface ContextePoste {
   points: PointInteret[];
@@ -55,6 +56,7 @@ function trier(f: HTMLElement, courrier: string[], lettres: string[]): Promise<v
     s.append(creer('p', 'exercice-titre', T.nom), texteALire(T.consigneTri), tas, rangee, remarque);
     f.replaceChildren(s);
     let choisie: { nom: string; b: HTMLButtonElement } | null = null;
+    const notees = new Set<string>();
     let restantes = courrier.length;
     for (const nom of courrier) {
       const b = enveloppe(nom);
@@ -72,6 +74,11 @@ function trier(f: HTMLElement, courrier: string[], lettres: string[]): Promise<v
       casier.append(creer('span', 'casier-lettre', l), compte);
       casier.addEventListener('click', () => {
         if (!choisie) return;
+        // Le premier casier touché pour cette lettre compte pour les statistiques.
+        if (!notees.has(choisie.nom)) {
+          notees.add(choisie.nom);
+          noter({ stand: 'poste', competence: 'alphabet.initiale', element: choisie.nom, reponse: l, reussi: initiale(choisie.nom) === l, aide: false, duree: 0 });
+        }
         if (initiale(choisie.nom) !== l) {
           bruitage.erreur();
           remarque.replaceChildren(texteALire(remplir(T.casierFaux, { famille: choisie.nom.split(' ').slice(-1)[0] ?? choisie.nom, initiale: initiale(choisie.nom) }), 'texte-a-lire'));
@@ -102,10 +109,15 @@ function ranger(f: HTMLElement, noms: string[]): Promise<void> {
     s.append(creer('p', 'exercice-titre', T.nom), texteALire(T.consigneOrdre), tas, creer('p', 'legende', 'De A à Z'), file, remarque);
     f.replaceChildren(s);
     let suivant = 0;
+    const notees = new Set<number>();
     // Mélangées autrement que dans l'ordre, pour qu'il y ait quelque chose à faire.
     for (const nom of [...noms].reverse()) {
       const b = enveloppe(nom);
       b.addEventListener('click', () => {
+        if (!notees.has(suivant)) {
+          notees.add(suivant);
+          noter({ stand: 'poste', competence: 'alphabet.ordre', element: ordre[suivant] ?? '', reponse: nom, reussi: nom === ordre[suivant], aide: false, duree: 0 });
+        }
         if (nom !== ordre[suivant]) {
           bruitage.erreur();
           remarque.replaceChildren(texteALire(T.ordreFaux, 'texte-a-lire'));

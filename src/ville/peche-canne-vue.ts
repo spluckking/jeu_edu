@@ -10,6 +10,7 @@ import { confettis } from '../ui/confettis.ts';
 import { brouillonDisponible } from './brouillon.ts';
 import { bouton, creer, icone, majuscule, remplir, texteALire } from './interface.ts';
 import { curseur, LANCERS, PORTEE_MAX, poissonQuiMord, total, verifierRelache, zoneVerte, type Poisson } from './peche-canne.ts';
+import { chrono, noter } from '../stats/noter.ts';
 
 const T = riviere.canne;
 
@@ -194,6 +195,7 @@ function demanderTotal(f: HTMLElement, poissons: readonly Poisson[]): Promise<vo
     let saisie = '';
     let essais = 0;
     let fini = false;
+    const temps = chrono();
     const montrer = (): void => {
       reponse.textContent = saisie || '?';
       const v = clavier.querySelector<HTMLButtonElement>('.valider');
@@ -204,6 +206,7 @@ function demanderTotal(f: HTMLElement, poissons: readonly Poisson[]): Promise<vo
       bruitage.touche();
       if (t === 'effacer') saisie = saisie.slice(0, -1);
       else if (t === 'valider') {
+        if (essais === 0) noter({ stand: 'peche-canne', competence: 'mesures.masse.additionner', element: poissons.map((p) => p.poids).join('+'), reponse: saisie, reussi: Number(saisie) === juste, aide: false, duree: temps() });
         if (Number(saisie) === juste) {
           fini = true;
           reponse.className = 'case juste';
@@ -240,8 +243,13 @@ function choisirRelache(f: HTMLElement, poissons: readonly Poisson[]): Promise<n
       valider.disabled = relaches.size === 0;
       retour.replaceChildren();
     };
+    let note = false;
     valider.addEventListener('click', () => {
       const r = verifierRelache(poissons, relaches);
+      if (!note) {
+        note = true;
+        noter({ stand: 'peche-canne', competence: 'mesures.masse.comparer', element: poissons.map((p) => p.poids).join('+'), reponse: String(r.garde), reussi: !r.tropLourd, aide: false, duree: 0 });
+      }
       if (r.tropLourd) {
         bruitage.erreur();
         retour.replaceChildren(texteALire(remplir(T.encoreTrop, { garde: r.garde })));

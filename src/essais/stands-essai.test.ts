@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { enPieces, euros, grandNombre, lettres, nomFraction, STANDS_ESSAI, conversion } from './stands-essai.ts';
+import { conversion, enPieces, euros, grandNombre, lettres, nomFraction, planDePartie, STANDS_ESSAI } from './stands-essai.ts';
 
 describe('les essais de stands', () => {
   it('écrit les nombres en lettres', () => {
@@ -77,6 +77,26 @@ describe('les essais de stands', () => {
         if (q.enonce.startsWith('«')) for (const g of q.choix) expect(q.enonce).toContain(g);
       }
     }
+  });
+
+  it('chaque question dit sa compétence, qui commence par son atelier', () => {
+    for (const s of STANDS_ESSAI) {
+      for (const q of s.questions(Math.random, 12)) expect(q.competence).toMatch(new RegExp(`^${s.id}\\.[a-zA-Z]+(\\.[a-zA-Z0-9-]+)?$`));
+    }
+    const m = STANDS_ESSAI.find((s) => s.id === 'mesures')!.questions(Math.random, 30);
+    expect(m.some((q) => /^mesures\.convertir\.(m-cm|km-m|kg-g|mcm-cm|cm-m|kmm-m|dm-cm|cm-mm|mm-cm)$/.test(q.competence))).toBe(true);
+  });
+
+  it('le focus du rêve : une question sur deux porte sur la compétence visée', () => {
+    const M = STANDS_ESSAI.find((s) => s.id === 'mesures')!;
+    for (let k = 0; k < 20; k++) {
+      const qs = M.questions(Math.random, 8, ['mesures.pas']);
+      expect(qs.filter((q) => q.competence === 'mesures.pas').length).toBeGreaterThanOrEqual(4);
+    }
+    // Un focus précis (une conversion) vise la sorte « convertir ».
+    expect(M.questions(Math.random, 6, ['mesures.convertir.km-m']).filter((q) => q.competence.startsWith('mesures.convertir')).length).toBeGreaterThanOrEqual(3);
+    // Un focus d'un autre atelier ne change rien.
+    expect(planDePartie('mesures', Object.keys(M.sortes), M.melange, () => 0, 6, ['monnaie.rendre']).sort()).toEqual([...M.melange].sort());
   });
 
   it('le plus grand nombre est bien le plus grand', () => {

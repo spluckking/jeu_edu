@@ -17,6 +17,7 @@ import { bouton, carte, creer, icone, majuscule, piece, remplir, texteALire } fr
 import { brouillonDisponible } from './brouillon.ts';
 import { CASES, casesPrises } from './sac.ts';
 import { voirSac } from './sac-vue.ts';
+import { chrono, noter } from '../stats/noter.ts';
 
 export interface ContexteEpicerie {
   points: PointInteret[];
@@ -149,8 +150,15 @@ function poserLesPieces(f: HTMLElement, c: ContexteEpicerie, p: Produit): Promis
       payer.disabled = donne.length === 0;
     };
     dessiner();
+    let note = false;
+    const temps = chrono();
     payer.addEventListener('click', () => {
       const j = juger(donne, p.prix);
+      // Le premier paiement compte : assez (juste, ou trop avec de la monnaie à rendre), sans pièce en trop.
+      if (!note) {
+        note = true;
+        noter({ stand: 'epicerie', competence: 'monnaie.payer', element: p.id, reponse: String(somme(donne)), reussi: j.etat !== 'pas-assez' && j.etat !== 'trop', aide: false, duree: temps() });
+      }
       if (j.etat === 'pas-assez') {
         bruitage.erreur();
         remarque.replaceChildren(texteALire(T.pasAssez, 'texte-a-lire'));
@@ -206,11 +214,13 @@ function rendreLaMonnaie(f: HTMLElement, p: Produit, donne: number[]): Promise<n
     };
     dessiner();
     let aide = false;
+    const temps = chrono();
     valider.addEventListener('click', () => {
       if (aide) {
         ok(decomposer(rendu));
         return;
       }
+      if (essais === 0) noter({ stand: 'epicerie', competence: 'monnaie.rendre', element: p.id, reponse: String(somme(pris)), reussi: somme(pris) === rendu, aide: false, duree: temps() });
       if (somme(pris) === rendu) {
         bruitage.reussite();
         ok([...pris]);

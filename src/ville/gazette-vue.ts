@@ -27,6 +27,8 @@ export interface VueGazette {
   primeOuverte: boolean;
   /** Le questionnaire commence (pour ne donner la prime qu'au premier essai). */
   commence(): void;
+  /** La première réponse à chaque question (pour les statistiques). */
+  noter?(q: Question, juste: boolean, reponse: string, duree: number): void;
 }
 
 /** Le questionnaire réussi : combien de réponses justes du premier coup, et la prime gagnée. */
@@ -161,10 +163,16 @@ export function lireLaGazette(v: VueGazette): Promise<Resultat | null> {
       }
       const retour = creer('p', 'gazette-retour', autre ? T.textes.autre : '');
       let erreurs = 0;
+      let notee = false;
+      const debut = performance.now();
       const boutons = choix.map(({ c, juste }) => {
         const b = creer('button', 'choix gazette-choix', c);
         b.type = 'button';
         b.addEventListener('click', () => {
+          if (!notee) {
+            notee = true;
+            v.noter?.(q, juste, c, Math.round(performance.now() - debut));
+          }
           if (juste) {
             bruitage.reussite();
             b.classList.add('juste');

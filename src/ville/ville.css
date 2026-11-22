@@ -1987,3 +1987,38 @@ button.produit {
   border-radius: 12px;
   background: #fffaf0;
 }
+
+/* Les statistiques de l'espace parent. */
+.stats {
+  max-width: 980px;
+}
+.stats-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+.stats-table th,
+.stats-table td {
+  padding: 6px 8px;
+  border-bottom: 1px solid #eadfcf;
+  text-align: right;
+}
+.stats-table th:first-child,
+.stats-table td:first-child {
+  text-align: left;
+}
+.stats-domaine {
+  cursor: pointer;
+  font-weight: 600;
+}
+.stats-detail td:first-child {
+  padding-left: 22px;
+  color: #6b5a48;
+}
+.stats-detail.niveau-3 td:first-child {
+  padding-left: 40px;
+}
+.stats-liste {
+  margin: 4px 0 12px;
+  padding-left: 22px;
+}

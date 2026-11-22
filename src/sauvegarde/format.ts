@@ -45,13 +45,18 @@ export interface ListeRapide {
 export interface EntreeJournal {
   /** Instant de la réponse (ISO). */
   instant: string;
+  /** Le stand de la fête, ou le lieu de la ville (« gazette », « poste », « epicerie »…). */
   stand: string;
-  manche: 'semaine' | 'memoire' | 'libre' | 'defis';
+  /** programme : l'atelier du jour d'un stand ; ville : une activité de la ville. */
+  manche: 'semaine' | 'memoire' | 'libre' | 'defis' | 'programme' | 'ville';
   element: string;
   reponse: string;
+  /** Juste au premier essai. */
   reussi: boolean;
   aide: boolean;
   duree: number;
+  /** La compétence travaillée (« mesures.convertir.m-cm ») ; déduite pour les anciens stands. */
+  competence?: string;
 }
 
 /** Ce que l'enfant a fait d'une histoire, pour l'espace parent. */

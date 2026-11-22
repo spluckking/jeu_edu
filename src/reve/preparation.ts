@@ -7,6 +7,12 @@ import type { Jour } from '../memoire/jours.ts';
 
 export type StandRegle = 'defis' | 'horloge' | 'peche';
 
+/** Les ateliers que peut prendre un stand de la fête (voir src/ville/programme.ts). */
+export const ATELIERS = ['monnaie', 'mesures', 'fractions', 'nombres', 'formes', 'phrases'] as const;
+export type IdAtelier = (typeof ATELIERS)[number];
+const STANDS = ['chamboule', 'confiserie', 'chantier', 'horloge', 'peche'] as const;
+const COMPETENCE = /^[a-zA-Z0-9-]{1,30}(.[a-zA-Z0-9àâäçéèêëîïôöùûüÿ'-]{1,30}){0,3}$/;
+
 export interface Preparation {
   /** Le jour pour lequel elle a été préparée. */
   jour: Jour;
@@ -27,6 +33,10 @@ export interface Preparation {
    *  validées par le parent). */
   quetes?: unknown[];
   demandes?: unknown[];
+  /** Les compétences sur lesquelles insister ce jour-là (d'après les statistiques). */
+  competences?: string[];
+  /** Pour ce jour-là, l'atelier des stands que le programme de la semaine laisse libres. */
+  ateliers?: Partial<Record<(typeof STANDS)[number], IdAtelier>>;
 }
 
 const JOUR = /^\d{4}-\d{2}-\d{2}$/;
@@ -56,6 +66,14 @@ export function lirePreparation(brut: unknown): Preparation | null {
   }
   const quetes = Array.isArray(o.quetes) ? o.quetes.slice(0, 2) : [];
   const demandes = Array.isArray(o.demandes) ? o.demandes.slice(0, 8) : [];
+  const competences = Array.isArray(o.competences) ? o.competences.filter((x): x is string => typeof x === 'string' && COMPETENCE.test(x)).slice(0, 12) : [];
+  const ateliers: Partial<Record<(typeof STANDS)[number], IdAtelier>> = {};
+  if (typeof o.ateliers === 'object' && o.ateliers !== null) {
+    for (const s of STANDS) {
+      const a = (o.ateliers as Record<string, unknown>)[s];
+      if (typeof a === 'string' && (ATELIERS as readonly string[]).includes(a)) ateliers[s] = a as IdAtelier;
+    }
+  }
   return {
     jour: o.jour,
     resume,
@@ -65,6 +83,8 @@ export function lirePreparation(brut: unknown): Preparation | null {
     ...(Object.keys(recompenses).length > 0 ? { recompenses } : {}),
     ...(quetes.length ? { quetes } : {}),
     ...(demandes.length ? { demandes } : {}),
+    ...(competences.length ? { competences } : {}),
+    ...(Object.keys(ateliers).length ? { ateliers } : {}),
   };
 }
 

@@ -1,0 +1,28 @@
+{
+  "_lisez-moi": "L'écran des statistiques de l'espace parent (src/ville/stats-vue.ts). Pour le parent seulement : l'enfant ne le voit pas. domaines : le nom de chaque grand domaine de compétences.",
+  "titre": "Les statistiques",
+  "aide": "Juste du premier coup, sans aide. « 7 derniers jours » et « avant » permettent de voir les progrès. Touche un domaine pour voir le détail.",
+  "programme": "Le programme de la semaine",
+  "pasDeProgramme": "Pas de programme validé cette semaine : les stands font leur travail habituel.",
+  "pointsFaibles": "Points faibles (moins de 7 sur 10 ces 7 derniers jours)",
+  "aucunPointFaible": "Aucun point faible ces 7 derniers jours.",
+  "rien": "Pas encore de réponses.",
+  "colonnes": ["Compétence", "Réponses", "7 derniers jours", "Avant", "Temps", "Dernière fois"],
+  "fermer": "Fermer",
+  "domaines": {
+    "tables": "Les tables",
+    "calcul": "Le calcul",
+    "heure": "L’heure",
+    "homophones": "Les homophones",
+    "mots": "Les mots de la semaine",
+    "monnaie": "La monnaie",
+    "mesures": "Les mesures",
+    "fractions": "Les fractions",
+    "nombres": "Les grands nombres",
+    "formes": "Les formes",
+    "phrases": "Les phrases",
+    "lecons": "Les leçons de la semaine",
+    "lecture": "La lecture (Gazette)",
+    "alphabet": "L’alphabet (poste)"
+  }
+}

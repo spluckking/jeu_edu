@@ -39,6 +39,8 @@ export interface Journee {
   histoire?: string;
   /** Canards pêchés juste aujourd'hui. */
   peches?: number;
+  /** Questions d'atelier faites aujourd'hui, par stand (programme de la semaine). */
+  ateliers?: Record<string, number>;
   /** Secondes de jeu aujourd'hui (écran ouvert et visible), et la pause proposée. */
   secondes?: number;
   pauseProposee?: boolean;

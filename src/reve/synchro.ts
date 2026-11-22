@@ -6,6 +6,7 @@ import { ajouterJours, jourDe, type Jour } from '../memoire/jours.ts';
 import { memoire } from '../app/essai.ts';
 import type { Sauvegarde } from '../sauvegarde/format.ts';
 import { lirePreparation, type Preparation } from './preparation.ts';
+import { pointsFaibles, statistiques } from '../stats/stats.ts';
 
 export interface Acces {
   /** « propriétaire/nom » du dépôt privé. */
@@ -77,6 +78,10 @@ export function envoisAPreparer(s: Sauvegarde, aujourdhui: Jour, jours = 3): Env
   envois.push({ chemin: 'validations.json', contenu: s.validations });
   // L'état de la mémoire, pour que le rêve voie les éléments qui résistent.
   envois.push({ chemin: 'etats.json', contenu: s.etats });
+  // Les statistiques de toutes les compétences, et les points faibles : le rêve s'en sert pour
+  // choisir les exercices du lendemain (preparation.competences, preparation.ateliers).
+  const stats = statistiques(s.journal, aujourdhui);
+  envois.push({ chemin: 'stats.json', contenu: { jour: aujourdhui, pointsFaibles: pointsFaibles(stats), competences: stats } });
   return envois;
 }
 
