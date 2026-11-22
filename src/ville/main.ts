@@ -53,7 +53,7 @@ import { ajouterALEchange, echanger, installerParent } from './parent-ville.ts';
 import { apresEnvoi, envoisDictee, lireRetourDictee } from './dictee-reve.ts';
 import { changerEcriture, toutesLesEcritures } from './ecritures.ts';
 import gazetteT from '../../content/ville/gazette.json';
-import { editionDuJour, gazetteNeuve, leconDuJour, lundiDe, questionnaire, quetesDuJour as quetesDeLaGazette, reserve, type Quete } from './gazette.ts';
+import { editionDuJour, leconDuJour, lundiDe, questionnaire, quetesDuJour as quetesDeLaGazette, reserve, type Quete } from './gazette.ts';
 import { lireLaGazette } from './gazette-vue.ts';
 import { lieuxDeLaCarte, ouvrirCarte, photographierLaVille, type Plan, type QueteCarte } from './carte.ts';
 import carteT from '../../content/ville/carte.json';
@@ -1116,32 +1116,24 @@ void feteInstallee.then(() => {
     () => !occupe && !enDialogue,
     [
       { titre: 'Les mots de la semaine', ouvrir: () => dictee.ouvrirLaListe() },
-      { titre: 'Statistiques de la dictée', ouvrir: () => void statistiquesDictee(etat.dictee) },
+      { titre: 'Statistiques de la dictée', ouvrir: () => statistiquesDictee(etat.dictee) },
       {
         titre: 'Les écritures à vérifier',
         ouvrir: () =>
-          void ecrituresDuSoir((x, juste) => {
+          ecrituresDuSoir((x, juste) => {
             etat.dictee = corrigerEssai(etat.dictee, x.mot, x.id, juste, 'parent');
             void sauverEtat(etat);
             // Tes corrections partent au dépôt dès que l'écran se ferme : le rêve de la nuit les voit.
           }).then(() => void echanger()),
       },
-      { titre: 'Tester les voix', ouvrir: () => void testerLesVoix(etat.dictee.mots.map((m) => m.w)) },
-      {
-        titre: 'Recommencer l’arrivée (prénom et Gazette)',
-        // Seulement le prénom et la Gazette : la dictée, l'argent, les quêtes et les photos restent.
-        ouvrir: () => {
-          if (!window.confirm('Effacer le prénom du personnage et la Gazette ? Au prochain lancement, la question du prénom reviendra, et la journée recommencera dans la maison avec la première Gazette. Tout le reste est gardé.')) return;
-          etat.prenom = '';
-          etat.gazette = gazetteNeuve();
-          void sauverEtat(etat).then(() => location.reload());
-        },
-      },
-      { titre: 'Les statistiques', ouvrir: () => void ouvrirStats(sauvegardeDuJeu().journal, aujourdhuiVille(), programme) },
-      { titre: 'Les propositions du rêve (quêtes, demandes)', ouvrir: () => void ouvrirPropositions({ etat: () => etat, sauver: () => void sauverEtat(etat), jour: aujourdhuiVille() }) },
-      { titre: 'Le sujet de la prochaine grande quête', ouvrir: () => void ouvrirSujet({ etat: () => etat, sauver: () => void sauverEtat(etat), jour: aujourdhuiVille() }) },
+      { titre: 'Tester les voix', ouvrir: () => testerLesVoix(etat.dictee.mots.map((m) => m.w)) },
+      { titre: 'Les statistiques', ouvrir: () => ouvrirStats(sauvegardeDuJeu().journal, aujourdhuiVille(), programme) },
+      { titre: 'Les propositions du rêve (quêtes, demandes)', ouvrir: () => ouvrirPropositions({ etat: () => etat, sauver: () => void sauverEtat(etat), jour: aujourdhuiVille() }) },
+      { titre: 'Le sujet de la prochaine grande quête', ouvrir: () => ouvrirSujet({ etat: () => etat, sauver: () => void sauverEtat(etat), jour: aujourdhuiVille() }) },
       { titre: 'La photo de l’enfant', ouvrir: () => void choisirPhoto('enfant').then((b) => b && mettreDansLeCadre('enfant', b)) },
       { titre: 'La photo de famille', ouvrir: () => void choisirPhoto('famille').then((b) => b && mettreDansLeCadre('famille', b)) },
+      // Les jeux en essai (stands, manèges, Golem Express) : une page à part, qui ramène à la ville.
+      { titre: 'Les essais de la fête (Golem Express…)', ouvrir: () => location.assign(`${import.meta.env.BASE_URL}essais-fete.html`) },
     ],
   );
   void echanger();

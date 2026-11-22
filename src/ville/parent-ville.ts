@@ -71,7 +71,7 @@ export async function echanger(): Promise<string> {
 
 /** Le bouton discret de l'espace parent : un appui long l'ouvre (un toucher ne fait rien). */
 /** ville : les réglages de la ville, un bouton chacun dans l'espace parent. */
-export function installerParent(peutOuvrir: () => boolean, ville: Array<{ titre: string; ouvrir(): void }> = []): void {
+export function installerParent(peutOuvrir: () => boolean, ville: Array<{ titre: string; ouvrir(): void | Promise<unknown> }> = []): void {
   const b = document.body.appendChild(Object.assign(document.createElement('button'), { type: 'button', className: 'bouton-parent-ville', ariaLabel: 'Espace parent' }));
   b.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10" width="14" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3" fill="none" stroke="currentColor" stroke-width="2"/></svg>';
   porteParent(b, () => {

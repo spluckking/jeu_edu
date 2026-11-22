@@ -315,7 +315,9 @@ function murDesMots(c: Contexte): void {
 
 // --- La liste de la semaine : ouverte depuis l'espace parent -------------------------------------
 
-function panneauParent(c: Contexte): void {
+function panneauParent(c: Contexte): Promise<void> {
+  let ferme = (): void => {};
+  const fini = new Promise<void>((r) => (ferme = r));
   const f = ouvrirFond(c);
   const e = c.dictee();
   const carte = creer('section', 'exercice parent');
@@ -367,7 +369,10 @@ function panneauParent(c: Contexte): void {
       zone.value = [`# ${importe.titre}`, ...importe.mots.map((m) => (m.phrase ? `${m.w} | ${m.phrase}` : m.w))].join('\n');
     });
   });
-  fermer.addEventListener('click', () => fermerFond(c));
+  fermer.addEventListener('click', () => {
+    fermerFond(c);
+    ferme();
+  });
   const ligneJour = creer('label', 'parent-ligne', 'Jour de la dictée : ');
   ligneJour.append(jour);
   const ligneImport = creer('label', 'parent-ligne', 'Importer Dictée-Blocs : ');
@@ -376,11 +381,12 @@ function panneauParent(c: Contexte): void {
   actions.append(fermer, enregistrer);
   carte.append(creer('p', 'exercice-titre', 'Les mots de la semaine'), zone, ligneJour, ligneImport, etat, actions);
   f.replaceChildren(carte);
+  return fini;
 }
 
 /** Ce que l'espace parent peut ouvrir. */
 export interface Dictee {
-  ouvrirLaListe(): void;
+  ouvrirLaListe(): Promise<void>;
 }
 
 export function installerDictee(c: Contexte): Dictee {
