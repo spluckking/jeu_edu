@@ -24,6 +24,8 @@ import { aUneQuete, donneursDuJour, installerDemandes, majSeance, nomDe, parlerA
 import { aventureAujourdhui, aventurePourLaGazette, demandesVenues } from './aventure-ville.ts';
 import posteT from '../../content/ville/poste.json';
 import { envoisAventure, ouvrirPropositions, ouvrirSujet } from './propositions-ville.ts';
+import { ouvrirStats } from './stats-vue.ts';
+import { programme } from './programme.ts';
 import { saluerHabitant } from './salut-habitants.ts';
 import sacT from '../../content/ville/sac.json';
 import type { Panier } from './commerce.ts';
@@ -31,9 +33,10 @@ import { remplir } from './interface.ts';
 import { CASES, casesPrises, nouveauJour, ranger } from './sac.ts';
 import { installerEpicerie, rafraichirHud } from './epicerie-ville.ts';
 import { ajouter as ajouterArgent } from './argent.ts';
+import { noter as noterReponse } from '../stats/noter.ts';
 import { installerJardin } from './jardin-ville.ts';
 import { installerPoste } from './poste-ville.ts';
-import { appliquerReglagesDuJeu, essaiGrandDefi, installerFete, PRENOMS_ATTRACTION, toutFini, ouvrirStand, standFini } from './fete-ville.ts';
+import { appliquerReglagesDuJeu, essaiGrandDefi, installerFete, PRENOMS_ATTRACTION, sauvegardeDuJeu, toutFini, ouvrirStand, standFini } from './fete-ville.ts';
 import { chantierOuvert, ETAPES, etapesVisibles } from './attraction.ts';
 import attractions from '../../content/ville/attractions.json';
 import { jourDe } from '../memoire/jours.ts';
@@ -1134,6 +1137,7 @@ void feteInstallee.then(() => {
           void sauverEtat(etat).then(() => location.reload());
         },
       },
+      { titre: 'Les statistiques', ouvrir: () => void ouvrirStats(sauvegardeDuJeu().journal, aujourdhuiVille(), programme) },
       { titre: 'Les propositions du rêve (quêtes, demandes)', ouvrir: () => void ouvrirPropositions({ etat: () => etat, sauver: () => void sauverEtat(etat), jour: aujourdhuiVille() }) },
       { titre: 'Le sujet de la prochaine grande quête', ouvrir: () => void ouvrirSujet({ etat: () => etat, sauver: () => void sauverEtat(etat), jour: aujourdhuiVille() }) },
       { titre: 'La photo de l’enfant', ouvrir: () => void choisirPhoto('enfant').then((b) => b && mettreDansLeCadre('enfant', b)) },
@@ -1676,6 +1680,19 @@ async function ouvrirLaGazette(): Promise<void> {
     date: new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }),
     semaine,
     visiter: () => ouvrirLaCarte(true),
+    // Les statistiques : la compétence de chaque question (leçon, aventure, histoire, quêtes).
+    noter: (q, juste, reponse, duree) => {
+      const sansAccent = (t: string): string => t.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-');
+      const competence =
+        lecon && lecon.questions.includes(q)
+          ? `lecons.${sansAccent(lecon.matiere)}.${lecon.id}`
+          : aventure?.questions.includes(q)
+            ? 'lecture.aventure'
+            : edition.type === 'histoire' && edition.histoire.questions.includes(q)
+              ? 'lecture.histoire'
+              : 'lecture.quetes';
+      noterReponse({ stand: 'gazette', competence, element: q.question.slice(0, 80), reponse, reussi: juste, aide: false, duree });
+    },
     // La prime du reporter : seulement au premier questionnaire du jour.
     primeOuverte: etat.gazette.essaiLe !== jour,
     commence: () => {

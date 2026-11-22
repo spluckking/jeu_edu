@@ -17,7 +17,7 @@ describe('échange avec le dépôt privé', () => {
   it('un fichier de journal par jour joué, puis les validations et la mémoire', () => {
     const s = { ...sauvegardeNeuve(), forains: { chamboule: 'Léon' }, journal: [reponse('2026-11-16T10:00:00')] };
     const envois = envoisAPreparer(s, '2026-11-16');
-    expect(envois.map((e) => e.chemin)).toEqual(['journal/2026-11-16.json', 'validations.json', 'etats.json']);
+    expect(envois.map((e) => e.chemin)).toEqual(['journal/2026-11-16.json', 'validations.json', 'etats.json', 'stats.json']);
     // Les prénoms (et donc aucun prénom) ne partent pas.
     expect(JSON.stringify(envois)).not.toContain('Léon');
   });
@@ -37,7 +37,7 @@ describe('échange avec le dépôt privé', () => {
     const s = { ...sauvegardeNeuve(), journal: [reponse('2026-11-16T10:00:00')] };
     const r = await synchroniser(s, { depot: 'parent/reve', cle: 'cle-essai' }, '2026-11-16', faux);
     expect(r.preparation).toMatchObject({ jour: '2026-11-17', focus: ['x-6-7'] });
-    expect(appels.filter((a) => a.methode === 'PUT')).toHaveLength(3);
+    expect(appels.filter((a) => a.methode === 'PUT')).toHaveLength(4);
     expect(appels.every((a) => a.url.startsWith('https://api.github.com/repos/parent/reve/contents/'))).toBe(true);
   });
 

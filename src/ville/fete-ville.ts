@@ -37,6 +37,9 @@ import { carte, creer } from './interface.ts';
 import { fichierForain } from './voix-forains.ts';
 import { avecPrenom } from './prenom-ecrit.ts';
 import { brouillonDisponible } from './brouillon.ts';
+import { jouerAtelier } from '../essais/stand-vue.ts';
+import { atelierDuJour, programme } from './programme.ts';
+import { brancherJournal } from '../stats/noter.ts';
 
 export interface ContexteFete {
   points: PointInteret[];
@@ -153,8 +156,62 @@ function prochaineManche(j: JeuDeStand = jeu): TypeManche {
 }
 const elementsDuStand = (): string[] => [...elements.values()].filter((e) => e.type === jeu.type).map((e) => e.id);
 
+/** L'atelier du stand aujourd'hui (programme de la semaine, ou choix du rêve), ou null. */
+const atelierDe = (id: IdStand): ReturnType<typeof atelierDuJour> => (sauvegarde ? atelierDuJour(id, aujourdhui(), programme, sauvegarde.preparation ?? null) : null);
+const atelierFait = (id: IdStand): number => journee().ateliers?.[id] ?? 0;
+
 /** Ce forain a-t-il fini son travail du jour ? */
-export const standFini = (id: IdStand): boolean => Boolean(jeux) && prochaineManche(jeux[id]) === 'libre';
+export const standFini = (id: IdStand): boolean => {
+  if (!jeux) return false;
+  const a = atelierDe(id);
+  return a ? atelierFait(id) >= a.n : prochaineManche(jeux[id]) === 'libre';
+};
+/** Le nom d'un stand aujourd'hui (son atelier, s'il en a un). */
+const titreDuStand = (id: IdStand): string => `${atelierDe(id)?.atelier.titre ?? jeux[id].titre} de ${nom(id)}`;
+
+/** Un stand qui a un atelier aujourd'hui : ses questions du jour, puis « pour le plaisir ». */
+async function ouvrirAtelier(id: IdStand): Promise<void> {
+  const a = atelierDe(id)!;
+  ctx.occupe(true);
+  bruitage.ouverture();
+  const f = creer('div', 'exercice-fond');
+  document.body.append(f);
+  const reste = Math.max(0, a.n - atelierFait(id));
+  const titre = titreDuStand(id);
+  const texte = reste ? avecPrenom(fete.atelier.replace('{n}', String(reste)).replace('{consigne}', a.atelier.consigne)) : avecPrenom(fete.finiAujourdhui);
+  // Pas de voix enregistrée pour la phrase de l'atelier : le forain salue, simplement.
+  if (reste) saluer(id);
+  else parlerForain(id, fete.finiAujourdhui);
+  const choix = await carte(f, titre, texte, reste ? [fete.atelierPartir, fete.atelierPlusTard] : [fete.atelierPlaisir, fete.atelierRetour]);
+  if (choix === 0) {
+    musique.demarrer(id);
+    const typeManche = reste ? 'programme' : 'libre';
+    await jouerAtelier(f, a.atelier, {
+      titre,
+      n: reste || a.n,
+      focus: a.focus,
+      sortie: fete.atelierRetour,
+      noter: (question, r) => {
+        sauvegarde.journal.push({ instant: new Date().toISOString(), stand: id, manche: typeManche, element: a.atelier.id, reponse: r.reponse, reussi: r.premierCoup, aide: r.aide, duree: r.duree, competence: question.competence });
+        if (reste) {
+          const j = journee();
+          j.ateliers = { ...j.ateliers, [id]: (j.ateliers?.[id] ?? 0) + 1 };
+        }
+        sauver();
+      },
+    });
+    musique.arreter();
+    // Le travail du jour fini : le merci du forain, qui part aider à l'attraction.
+    if (reste) {
+      parlerForain(id, fete.apresUneManche);
+      await carte(f, 'Bravo !', avecPrenom(fete.apresUneManche), [fete.atelierRetour]);
+      verifierLaJournee();
+      ctx.majFete();
+    }
+  }
+  f.remove();
+  ctx.occupe(false);
+}
 /** Les cinq forains ont-ils fini ? (les manèges ouvrent, le chantier avance) */
 export const toutFini = (): boolean => Boolean(jeux) && (Object.keys(jeux) as IdStand[]).every(standFini);
 
@@ -499,6 +556,10 @@ function ouvrirEpreuve(): void {
 }
 
 export function ouvrirStand(id: IdStand): void {
+  if (atelierDe(id)) {
+    void ouvrirAtelier(id);
+    return;
+  }
   jeu = jeux[id];
   ouvert = true;
   ctx.occupe(true);
@@ -557,6 +618,11 @@ async function monterSurLeManege(id: IdManege): Promise<void> {
 export async function installerFete(c: ContexteFete): Promise<void> {
   ctx = c;
   sauvegarde = await lireSauvegarde();
+  // Les réponses de la ville (Gazette, poste, épicerie, pêche) vont dans le même journal.
+  brancherJournal((r) => {
+    sauvegarde.journal.push({ ...r, manche: 'ville' });
+    sauver();
+  });
   const listes = sauvegarde.listesRapides.flatMap((l) => {
     const lu = lireContenu({ id: l.id, titre: l.titre, type: 'mots', elements: l.mots.map((mot) => ({ mot })) }, l.titre);
     return Array.isArray(lu) ? [] : [lu];
@@ -644,7 +710,16 @@ export async function installerFete(c: ContexteFete): Promise<void> {
     const p = c.stands[id];
     // Le forain du chamboule-tout a son propre bouton « Parler » (accueil, demandes, lettres).
     if (id === 'chamboule') continue;
-    c.points.push({ verbe: 'Jouer', nom: `${jeux[id].titre} de ${nom(id)}`, x: p.x, z: p.z, action: () => ouvrirStand(id) });
+    c.points.push({
+      verbe: 'Jouer',
+      // Le nom change avec l'atelier du jour.
+      get nom() {
+        return titreDuStand(id);
+      },
+      x: p.x,
+      z: p.z,
+      action: () => ouvrirStand(id),
+    });
   }
   for (const id of Object.keys(c.maneges) as IdManege[]) {
     const p = c.maneges[id];
