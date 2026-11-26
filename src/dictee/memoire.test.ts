@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { chances, difficulteDuMot, ficheNeuve, motsDuJour, noterEssai, recuperabilite, reviser, rythme, suPourToujours, type Essai, type FicheMot } from './memoire.ts';
+import { chances, difficulteDuMot, ficheNeuve, motsDuJour, MOTS_PAR_JOUR, noterEssai, recuperabilite, reviser, rythme, suPourToujours, type Essai, type FicheMot } from './memoire.ts';
 
 const essai = (jour: string, juste: boolean, note: Essai['note'], ms = 4000): Essai => ({ jour, note, juste, ms, lettres: 6, indice: false, hesite: false, juge: 'enfant' });
 
@@ -65,6 +65,17 @@ describe('la mémoire des mots (modèle FSRS)', () => {
     const jour = motsDuJour({ semaine, anciens: [], fiches, jour: '2026-11-03', joursAvantDictee: 3 });
     expect(jour[0]).toBe('bateau');
     expect(jour).toHaveLength(3);
+  });
+
+  it('jamais plus de 8 mots par jour, même le premier jour : les autres arrivent le lendemain', () => {
+    const semaine = Array.from({ length: 12 }, (_, i) => 'mot' + String(i));
+    const premier = motsDuJour({ semaine, anciens: [], fiches: {}, jour: '2026-11-02', joursAvantDictee: 4 });
+    expect(premier).toEqual(semaine.slice(0, MOTS_PAR_JOUR));
+    const fiches: Record<string, FicheMot> = {};
+    for (const m of premier) fiches[m] = { ...ficheNeuve(m), s: 0.6, dernier: '2026-11-02' };
+    const second = motsDuJour({ semaine, anciens: [], fiches, jour: '2026-11-03', joursAvantDictee: 3 });
+    expect(second).toHaveLength(MOTS_PAR_JOUR);
+    expect(second.slice(0, 4).sort()).toEqual(semaine.slice(8).sort());
   });
 
   it('un mot raté la veille revient, et les mots prioritaires du rêve passent devant', () => {

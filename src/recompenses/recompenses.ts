@@ -41,8 +41,6 @@ export interface Journee {
   peches?: number;
   /** Questions d'atelier faites aujourd'hui, par stand (programme de la semaine). */
   ateliers?: Record<string, number>;
-  /** Les mots de la confiserie travaillés aujourd'hui (5 au plus par jour). */
-  mots?: string[];
   /** Les 3 exercices de la fête aujourd'hui (choisis à la première visite du jour). */
   exercices?: Array<{ exercice: string; stand: string; raison: string }>;
   /** Secondes de jeu aujourd'hui (écran ouvert et visible), et la pause proposée. */
