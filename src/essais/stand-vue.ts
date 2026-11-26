@@ -65,8 +65,41 @@ export function dessinFigure(figure: string, tourne: number): SVGSVGElement {
   return s;
 }
 
-function visuel(v: Visuel): SVGSVGElement {
-  return v.sorte === 'parts' ? dessinParts(v.forme, v.n, v.colorees) : dessinFigure(v.figure, v.tourne);
+/** Des bonbons de toutes les couleurs, par rangées de 10 et par groupes de 5 (faciles à compter). */
+function dessinBonbons(n: number): SVGSVGElement {
+  const colonnes = Math.min(10, n);
+  const rangees = Math.ceil(n / 10);
+  const s = svg('svg', { viewBox: `0 0 ${colonnes * 44 + 16} ${rangees * 44 + 8}`, class: 'essai-bonbons' });
+  const couleurs = ['#e0443a', '#f6c945', '#35c47a', '#6aa8ef', '#c58ce8'];
+  for (let i = 0; i < n; i++) {
+    const x = 26 + (i % 10) * 44 + (i % 10 >= 5 ? 8 : 0);
+    const y = 26 + Math.floor(i / 10) * 44;
+    const g = svg('g', { transform: `translate(${x} ${y})` });
+    const c = couleurs[Math.floor(i / 5) % couleurs.length]!;
+    g.append(svg('path', { d: 'M-12 0 L-21 -8 L-21 8 Z M12 0 L21 -8 L21 8 Z', fill: c, stroke: '#3b2b2b', 'stroke-width': 1.5 }), svg('circle', { r: 12, fill: c, stroke: '#3b2b2b', 'stroke-width': 2 }));
+    s.append(g);
+  }
+  return s;
+}
+
+function visuel(v: Visuel): SVGSVGElement | HTMLElement {
+  if (v.sorte === 'parts') {
+    const d = dessinParts(v.forme, v.n, v.colorees);
+    if (v.theme) d.classList.add(v.theme);
+    return d;
+  }
+  if (v.sorte === 'deux') {
+    // Deux tartes pareilles, côte à côte, chacune avec sa part.
+    const r = creer('div', 'essai-deux');
+    for (const p of [v.a, v.b]) {
+      const c = creer('div', 'essai-deux-part');
+      c.append(dessinParts(v.forme, p.n, p.k), creer('p', 'essai-deux-nom', `${p.k}/${p.n}`));
+      r.append(c);
+    }
+    return r;
+  }
+  if (v.sorte === 'collection') return dessinBonbons(v.n);
+  return dessinFigure(v.figure, v.tourne);
 }
 
 /** Ce qu'a donné une question : pour le bilan, et pour le journal (les statistiques). */

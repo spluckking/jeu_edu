@@ -126,11 +126,34 @@
   },
   "fractions": {
     "titre": "Le stand des parts",
-    "consigne": "Les gâteaux et les tablettes coupés en parts égales.",
+    "consigne": "Les pizzas, les tartes, le chocolat et les bonbons partagés en parts égales.",
     "nommer": "Quelle part est coloriée ?",
     "aideNommer": "{k} part(s) coloriée(s) sur {n} parts égales : {nom}.",
     "colorier": "Colorie {fraction} de la figure.",
     "aideColorier": "{fraction} : la figure a {n} parts égales, on en colorie {k}.",
+    "pizza": {
+      "enonce": "La pizza est coupée en {n} parts égales. Tu manges {k} {parts}. Quelle part de la pizza as-tu mangée ?",
+      "part": "part",
+      "parts": "parts"
+    },
+    "chocolat": {
+      "enonce": "La tablette de chocolat a {n} carrés égaux. Tu en manges {k}. Quelle part de la tablette as-tu mangée ?",
+      "part": "carré",
+      "parts": "carrés"
+    },
+    "aideManger": "{k} {parts} mangé(s) sur {n} : c’est {fraction}, {nom}.",
+    "comparer": "Les deux tartes sont pareilles. Quelle part est la plus grande ?",
+    "aideComparer": "Plus on coupe la tarte en parts, plus chaque part est petite : {grande} ({nomGrande}) est plus grand que {petite} ({nomPetite}).",
+    "aideComparerMemes": "Les parts ont la même taille : {grande}, c’est plus de parts que {petite}.",
+    "collection": "Il y a {total} bonbons. Combien font {nom} ({fraction}) des bonbons ?",
+    "aideCollection": "On fait {n} paquets égaux avec les {total} bonbons : il y a {reponse} bonbons dans chaque paquet. {Nom} de {total}, c’est {reponse}.",
+    "partDe": {
+      "2": "la moitié",
+      "3": "le tiers",
+      "4": "le quart",
+      "5": "le cinquième",
+      "10": "le dixième"
+    },
     "noms": {
       "2": [
         "un demi",

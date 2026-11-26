@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { COLONNES, conversion, enPieces, euros, grandNombre, lettres, nomFraction, planDePartie, STANDS_ESSAI } from './stands-essai.ts';
+import { COLONNES, conversion, niveauApres, NIVEAU_ATELIER_MAX, enPieces, euros, grandNombre, lettres, nomFraction, planDePartie, STANDS_ESSAI } from './stands-essai.ts';
 
 describe('les essais de stands', () => {
   it('écrit les nombres en lettres', () => {
@@ -48,10 +48,10 @@ describe('les essais de stands', () => {
     }
   });
 
-  it('chaque stand pose 6 questions bien formées', () => {
+  it('chaque stand pose 6 questions bien formées, à chaque niveau', () => {
     for (const s of STANDS_ESSAI) {
-      for (let k = 0; k < 30; k++) {
-        const qs = s.questions(Math.random);
+      for (let k = 0; k < 90; k++) {
+        const qs = s.questions(Math.random, 6, [], 1 + (k % NIVEAU_ATELIER_MAX));
         expect(qs).toHaveLength(6);
         for (const q of qs) {
           expect(q.enonce).not.toMatch(/\{\w+\}/);
@@ -59,7 +59,7 @@ describe('les essais de stands', () => {
           if (q.type === 'choix') {
             expect(q.choix).toContain(q.reponse);
             expect(new Set(q.choix).size).toBe(q.choix.length);
-            expect(q.choix.length).toBeGreaterThanOrEqual(s.id === 'fractions' ? 4 : 2);
+            expect(q.choix.length).toBeGreaterThanOrEqual(s.id === 'fractions' && !q.competence.startsWith('fractions.comparer') ? 4 : 2);
           }
           if (q.type === 'nombre') expect(Number.isInteger(q.reponse) && q.reponse >= 0).toBe(true);
           if (q.type === 'colorier') expect(q.k).toBeLessThan(q.n);
@@ -119,6 +119,35 @@ describe('les essais de stands', () => {
         for (const u of q.tableau!.unites) expect(colonnes).toContain(u);
         if (q.type === 'nombre' && q.unite) expect(q.tableau!.unites).toContain(q.unite);
         if (q.competence.includes('kg-g') || q.competence.endsWith('masse')) expect(q.tableau!.grandeur).toBe('masse');
+      }
+  });
+
+  it('le niveau d’un atelier monte, descend, et reste dans le CE2', () => {
+    expect(niveauApres(2, 5, 6)).toBe(3);
+    expect(niveauApres(3, 6, 6)).toBe(NIVEAU_ATELIER_MAX);
+    expect(niveauApres(2, 3, 6)).toBe(1);
+    expect(niveauApres(1, 0, 6)).toBe(1);
+    expect(niveauApres(2, 4, 6)).toBe(2);
+  });
+
+  it('les fractions en images : la pizza mangée, la plus grande part, les bonbons partagés', () => {
+    const f = STANDS_ESSAI.find((a) => a.id === 'fractions')!;
+    for (let k = 0; k < 200; k++)
+      for (const q of f.questions(Math.random, 6, [], 1 + (k % 3))) {
+        if (q.competence.startsWith('fractions.collection')) {
+          expect(q.type).toBe('nombre');
+          if (q.type === 'nombre' && q.visuel?.sorte === 'collection') {
+            const n = Number(q.competence.split('-')[1]);
+            expect(q.visuel.n).toBe(q.reponse * n);
+            expect(q.visuel.n).toBeLessThanOrEqual(40);
+          }
+        }
+        if (q.competence.startsWith('fractions.comparer') && q.type === 'choix' && q.visuel?.sorte === 'deux') {
+          const [a, b] = [q.visuel.a, q.visuel.b];
+          const grande = a.k / a.n > b.k / b.n ? a : b;
+          expect(q.reponse).toBe(String(grande.k) + '/' + String(grande.n));
+          expect(a.k / a.n).not.toBe(b.k / b.n);
+        }
       }
   });
 });
