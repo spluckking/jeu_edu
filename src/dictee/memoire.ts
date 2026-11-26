@@ -10,7 +10,8 @@
 // l'aide (indice, « j'hésite ») et la vitesse, comparée au rythme de l'enfant lui-même (jamais
 // à une norme, et jamais montrée à l'enfant).
 // Chaque jour, on révise les mots dont R passe sous un seuil (90 %, 95 % juste avant la dictée),
-// du plus fragile au plus solide, entre 3 et 12 mots ; le premier jour d'une liste, tous les mots.
+// du plus fragile au plus solide, entre 3 et 8 mots (MOTS_PAR_JOUR, demandé par le parent) ; le
+// premier jour d'une liste, ses 8 premiers mots, les suivants arrivent les jours d'après.
 // Pur, sans navigateur ; testé dans memoire.test.ts. Paramètres : ceux de FSRS-4.5 par défaut
 // (ils pourront être ajustés sur les données de l'enfant par le rêve).
 
@@ -160,13 +161,17 @@ export interface Choix {
   max?: number;
 }
 
+/** Jamais plus de mots de dictée par jour, même le premier jour d'une liste. */
+export const MOTS_PAR_JOUR = 8;
+
 /** Les mots à revoir aujourd'hui, du plus fragile au plus solide. */
 export function motsDuJour(c: Choix): string[] {
   const min = c.min ?? 3;
-  const max = c.max ?? 12;
+  const max = c.max ?? MOTS_PAR_JOUR;
   const fiche = (m: string): FicheMot | undefined => c.fiches[m];
-  // Le premier jour d'une liste (aucun mot de la semaine revu) : tous les mots de la semaine.
-  if (c.semaine.length && c.semaine.every((m) => !fiche(m)?.dernier)) return [...c.semaine];
+  // Le premier jour d'une liste (aucun mot de la semaine revu) : ses premiers mots ; les autres,
+  // jamais vus, passent en tête les jours suivants.
+  if (c.semaine.length && c.semaine.every((m) => !fiche(m)?.dernier)) return c.semaine.slice(0, max);
   const hier = (m: string): boolean => {
     const derniers = fiche(m)?.essais ?? [];
     const dernier = derniers[derniers.length - 1];

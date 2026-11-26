@@ -83,7 +83,8 @@ export const estJourDeConcours = (e: EtatDictee, jour: Jour): boolean => e.mots.
 export const jamaisVu = (e: EtatDictee, w: string): boolean => !e.memoire[w] && !e.progres[w]?.vu;
 
 /** La révision du jour (créée le premier jour où l'on en parle) : le premier jour d'une liste,
- *  tous ses mots ; ensuite, ceux dont la mémoire faiblit (voir memoire.ts). */
+ *  ses 8 premiers mots ; ensuite, les mots pas encore vus et ceux dont la mémoire faiblit, 8 au
+ *  plus (voir memoire.ts). */
 export function revisionDuJour(e: EtatDictee, jour: Jour): EtatDictee {
   if (e.quotidien.jour === jour) return e;
   const mots = motsDuJour({
