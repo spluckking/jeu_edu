@@ -3,6 +3,7 @@
   "valide": true,
   "apresUneManche": "Merci pour ton aide ! Grâce à toi, j’ai fini mon travail plus tôt. Je vais aller aider à construire la nouvelle attraction !",
   "finiAujourdhui": "Merci, j’ai fini pour aujourd’hui ! Veux-tu encore m’aider ?",
+  "repos": "Aujourd’hui, je me repose ! Tu peux quand même jouer à mon stand, pour le plaisir.",
   "atelier": "Aujourd’hui, {n} questions t’attendent à mon stand. {consigne}",
   "atelierPartir": "C’est parti !",
   "atelierPlusTard": "Plus tard",

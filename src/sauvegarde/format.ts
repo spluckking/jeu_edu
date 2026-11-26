@@ -99,6 +99,8 @@ export interface Sauvegarde {
   codeParent?: string;
   /** La dernière préparation reçue du rêve (donnée vérifiée). */
   preparation?: Preparation;
+  /** Le niveau de chaque atelier de la fête (1 à 3, tout dans le CE2 ; absent : le niveau de départ). */
+  niveauxAteliers?: Record<string, number>;
   /** Décisions du parent sur les textes proposés : identifiant → validé ou refusé. */
   validations: Record<string, 'validee' | 'refusee'>;
   listesRapides: ListeRapide[];

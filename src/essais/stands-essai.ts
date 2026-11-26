@@ -343,7 +343,8 @@ export const fractions: StandEssai = atelier({
     // demi, un tiers, un quart… (plus on coupe, plus la part est petite) ; niveau 3 : aussi deux
     // fractions qui ont les mêmes parts (3/8 et 5/8).
     comparer(hasard, _rang, niveau) {
-      const forme = hasard() < 0.5 ? 'disque' : 'barre';
+      // Deux tartes rondes : l'énoncé parle de tartes.
+      const forme = 'disque';
       const memesParts = niveau >= 3 && hasard() < 0.5;
       let a: { n: number; k: number };
       let b: { n: number; k: number };
