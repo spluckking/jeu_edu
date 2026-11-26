@@ -23,6 +23,7 @@ Principes retenus :
   2. **2 demandes du jour** ;
   3. la **pause calme** au milieu, proposée par une habitante (respiration, retour au calme), jamais notée.
 - Les autres demandes et les stands allumés de la fête foraine restent proposés, mais hors de la séance obligatoire. Le journal mesure les durées réelles et le rêve ajuste le nombre de demandes.
+- **Fête foraine : 3 exercices par jour, pas plus.** Priorité aux devoirs de la semaine, puis aux points faibles d'après l'historique des réponses ; les exercices bien réussis reviennent aussi, un cran plus difficiles, sans sortir du niveau CE2.
 - Fin nette : un petit moment de fête en ville, puis le choix d'un **lot** (vêtement ou meuble), puis le **jeu libre** sans limite (le contrôle parental de la tablette fixe le temps).
 
 ## Les lieux

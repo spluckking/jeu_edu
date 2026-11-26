@@ -14,10 +14,22 @@ export type Visuel =
   | { sorte: 'parts'; forme: 'disque' | 'barre'; n: number; colorees: number }
   | { sorte: 'figure'; figure: Figure; tourne: number };
 
+/** Le tableau de conversion à montrer dans le brouillon : la grandeur (ses colonnes), et les
+ *  unités de la question, mises en couleur. */
+export interface Tableau {
+  grandeur: 'longueur' | 'masse';
+  unites: string[];
+}
+/** Les colonnes du tableau de conversion, de la plus grande unité à la plus petite. */
+export const COLONNES: Record<Tableau['grandeur'], readonly string[]> = {
+  longueur: ['km', 'hm', 'dam', 'm', 'dm', 'cm', 'mm'],
+  masse: ['kg', 'hg', 'dag', 'g'],
+};
+
 /** Ce que fabrique chaque sorte de question (sans la compétence). */
 export type QuestionBrute =
-  | { type: 'nombre'; enonce: string; reponse: number; unite?: string; aide: string; visuel?: Visuel }
-  | { type: 'choix'; enonce: string; choix: string[]; reponse: string; aide: string; visuel?: Visuel }
+  | { type: 'nombre'; enonce: string; reponse: number; unite?: string; aide: string; visuel?: Visuel; tableau?: Tableau }
+  | { type: 'choix'; enonce: string; choix: string[]; reponse: string; aide: string; visuel?: Visuel; tableau?: Tableau }
   | { type: 'argent'; enonce: string; montant: number; pieces: number[]; aide: string }
   | { type: 'colorier'; enonce: string; forme: 'disque' | 'barre'; n: number; k: number; aide: string };
 
@@ -141,6 +153,7 @@ export const monnaie: StandEssai = atelier({
 interface Conversion {
   de: string;
   vers: string;
+  grandeur: Tableau['grandeur'];
   reponse: number;
   /** Ce qui est converti, pour les statistiques : « m-cm », « km-m »… */
   sorte: string;
@@ -151,43 +164,43 @@ export function conversion(hasard: Hasard): Conversion {
   switch (entier(hasard, 0, 8)) {
     case 0: {
       const m = entier(hasard, 1, 9);
-      return { de: `${m} m`, vers: 'cm', reponse: m * 100, sorte: 'm-cm' };
+      return { de: `${m} m`, vers: 'cm', grandeur: 'longueur', reponse: m * 100, sorte: 'm-cm' };
     }
     case 1: {
       // 136 cm = 1 m 36 cm : la mesure mixte, en centimètres.
       const m = entier(hasard, 1, 5);
       const cm = entier(hasard, 1, 99);
-      return { de: `${m} m ${cm} cm`, vers: 'cm', reponse: m * 100 + cm, sorte: 'mcm-cm' };
+      return { de: `${m} m ${cm} cm`, vers: 'cm', grandeur: 'longueur', reponse: m * 100 + cm, sorte: 'mcm-cm' };
     }
     case 2: {
       const m = entier(hasard, 2, 9);
-      return { de: `${m * 100} cm`, vers: 'm', reponse: m, sorte: 'cm-m' };
+      return { de: `${m * 100} cm`, vers: 'm', grandeur: 'longueur', reponse: m, sorte: 'cm-m' };
     }
     case 3: {
       const km = entier(hasard, 1, 5);
-      return { de: `${km} km`, vers: 'm', reponse: km * 1000, sorte: 'km-m' };
+      return { de: `${km} km`, vers: 'm', grandeur: 'longueur', reponse: km * 1000, sorte: 'km-m' };
     }
     case 4: {
       // 1 km 500 m = 1 500 m.
       const km = entier(hasard, 1, 4);
       const m = entier(hasard, 1, 9) * 50;
-      return { de: `${km} km ${m} m`, vers: 'm', reponse: km * 1000 + m, sorte: 'kmm-m' };
+      return { de: `${km} km ${m} m`, vers: 'm', grandeur: 'longueur', reponse: km * 1000 + m, sorte: 'kmm-m' };
     }
     case 5: {
       const dm = entier(hasard, 1, 9);
-      return { de: `${dm} dm`, vers: 'cm', reponse: dm * 10, sorte: 'dm-cm' };
+      return { de: `${dm} dm`, vers: 'cm', grandeur: 'longueur', reponse: dm * 10, sorte: 'dm-cm' };
     }
     case 6: {
       const cm = entier(hasard, 1, 9);
-      return { de: `${cm} cm`, vers: 'mm', reponse: cm * 10, sorte: 'cm-mm' };
+      return { de: `${cm} cm`, vers: 'mm', grandeur: 'longueur', reponse: cm * 10, sorte: 'cm-mm' };
     }
     case 7: {
       const cm = entier(hasard, 2, 9);
-      return { de: `${cm * 10} mm`, vers: 'cm', reponse: cm, sorte: 'mm-cm' };
+      return { de: `${cm * 10} mm`, vers: 'cm', grandeur: 'longueur', reponse: cm, sorte: 'mm-cm' };
     }
     default: {
       const kg = entier(hasard, 1, 5);
-      return { de: `${kg} kg`, vers: 'g', reponse: kg * 1000, sorte: 'kg-g' };
+      return { de: `${kg} kg`, vers: 'g', grandeur: 'masse', reponse: kg * 1000, sorte: 'kg-g' };
     }
   }
 }
@@ -211,19 +224,21 @@ export const mesures: StandEssai = atelier({
         reponse: c.reponse,
         unite: c.vers,
         aide: remplir(T.mesures.aideConvertir, { ...c, reponse: ecrire(c.reponse) }),
+        tableau: { grandeur: c.grandeur, unites: [...new Set([...(c.de.match(/[a-z]+/g) ?? []), c.vers])] },
         detail: c.sorte,
       };
     },
     unite(hasard) {
       const p = parmi(hasard, T.mesures.phrases);
       const choix = p.sorte === 'longueur' ? ['mm', 'cm', 'dm', 'm', 'km'] : ['g', 'kg'];
-      return { type: 'choix', enonce: remplir(T.mesures.unite, p), choix, reponse: p.reponse, aide: remplir(T.mesures.aideUnite, p), detail: p.sorte };
+      const grandeur = p.sorte === 'longueur' ? 'longueur' : 'masse';
+      return { type: 'choix', enonce: remplir(T.mesures.unite, p), choix, reponse: p.reponse, aide: remplir(T.mesures.aideUnite, p), tableau: { grandeur, unites: [] }, detail: p.sorte };
     },
     pas(hasard) {
       const pas = parmi(hasard, PAS);
       const reponse = 100 / pas;
       const v = { pas, reponse, addition: Array.from({ length: reponse }, () => pas).join(' + ') };
-      return { type: 'nombre', enonce: remplir(T.mesures.pas, v), reponse, aide: remplir(T.mesures.aidePas, v) };
+      return { type: 'nombre', enonce: remplir(T.mesures.pas, v), reponse, aide: remplir(T.mesures.aidePas, v), tableau: { grandeur: 'longueur', unites: ['m', 'cm'] } };
     },
   },
 });

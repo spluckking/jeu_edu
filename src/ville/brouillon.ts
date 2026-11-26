@@ -1,14 +1,18 @@
 // Le brouillon : une feuille à petits carreaux, au stylet, pour poser ses calculs pendant un
-// exercice de calcul (stands de la fête, épicerie, demandes, chantier, pêche). Un onglet
+// exercice de calcul (stands de la fête, épicerie, demandes, chantier, pêche). Pour une question
+// de mesures, la feuille montre le tableau de conversion qui va avec la phrase (longueurs ou
+// masses), les unités de la question en couleur. Un onglet
 // « Brouillon » sur le bord gauche l'ouvre et le ferme ; ce qu'il y écrit reste tant que
 // l'exercice est ouvert, et s'efface ensuite. Rien n'est gardé ni envoyé : c'est son brouillon.
 
 import { bruitage } from '../son/bruitages.ts';
+import { COLONNES, type Tableau } from '../essais/stands-essai.ts';
 import { zoneEcriture, type ZoneEcriture } from './ecriture.ts';
 
 let onglet: HTMLButtonElement | null = null;
 let panneau: HTMLElement | null = null;
 let zone: ZoneEcriture | null = null;
+let tableau: HTMLElement | null = null;
 
 function construire(): void {
   if (onglet) return;
@@ -35,6 +39,9 @@ function construire(): void {
   });
   fermer.addEventListener('click', () => basculer(false));
   outils.append(gomme, effacer, fermer);
+  tableau = Object.assign(document.createElement('div'), { className: 'brouillon-tableau' });
+  tableau.hidden = true;
+  zone.element.append(tableau);
   panneau.append(outils, zone.element);
   onglet.addEventListener('click', () => basculer(Boolean(panneau?.hidden)));
   document.body.append(onglet, panneau);
@@ -56,5 +63,23 @@ export function brouillonDisponible(oui: boolean): void {
     panneau.hidden = true;
     onglet.classList.remove('ouvert');
     zone?.effacer();
+    tableauBrouillon(null);
   }
+}
+
+/** Le tableau de conversion de la question (null : la feuille à carreaux seule). */
+export function tableauBrouillon(t: Tableau | null): void {
+  construire();
+  if (!tableau) return;
+  tableau.hidden = !t;
+  if (!t) return;
+  const colonnes = COLONNES[t.grandeur];
+  tableau.style.gridTemplateColumns = `repeat(${colonnes.length}, 1fr)`;
+  tableau.replaceChildren(
+    ...colonnes.map((u) => {
+      const c = Object.assign(document.createElement('div'), { className: `brouillon-colonne${t.unites.includes(u) ? ' choisie' : ''}` });
+      c.append(Object.assign(document.createElement('span'), { className: 'brouillon-unite', textContent: u }));
+      return c;
+    }),
+  );
 }

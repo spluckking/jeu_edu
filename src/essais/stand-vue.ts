@@ -5,7 +5,7 @@ import T from '../../content/fete/essais.json';
 import { bruitage } from '../son/bruitages.ts';
 import { bouton as touche } from '../stands/stand.ts';
 import { confettis } from '../ui/confettis.ts';
-import { brouillonDisponible } from '../ville/brouillon.ts';
+import { brouillonDisponible, tableauBrouillon } from '../ville/brouillon.ts';
 import { bouton, creer, remplir, texteALire } from '../ville/interface.ts';
 import { euros, type Question, type StandEssai, type Visuel } from './stands-essai.ts';
 
@@ -213,6 +213,8 @@ function poser(carte: HTMLElement, q: Question, n: number, total: number): Promi
       zone.append(dessin, valider);
     }
 
+    // Le tableau de conversion qui va avec la question, dans le brouillon.
+    tableauBrouillon('tableau' in q && q.tableau ? q.tableau : null);
     carte.replaceChildren(
       creer('p', 'essai-compte', remplir(T.commun.questionN, { n, total })),
       texteALire(q.enonce),

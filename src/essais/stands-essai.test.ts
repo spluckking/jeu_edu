@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { conversion, enPieces, euros, grandNombre, lettres, nomFraction, planDePartie, STANDS_ESSAI } from './stands-essai.ts';
+import { COLONNES, conversion, enPieces, euros, grandNombre, lettres, nomFraction, planDePartie, STANDS_ESSAI } from './stands-essai.ts';
 
 describe('les essais de stands', () => {
   it('écrit les nombres en lettres', () => {
@@ -107,5 +107,18 @@ describe('les essais de stands', () => {
         expect(Number(q.reponse.replace(/\D/g, ''))).toBe(Math.max(...valeurs));
       }
     }
+  });
+
+  it('les mesures : le tableau du brouillon va avec la phrase, et montre ses unités', () => {
+    const mesures = STANDS_ESSAI.find((a) => a.id === 'mesures')!;
+    for (let i = 0; i < 300; i++)
+      for (const q of mesures.questions(Math.random)) {
+        if (q.type !== 'nombre' && q.type !== 'choix') continue;
+        expect(q.tableau).toBeDefined();
+        const colonnes = COLONNES[q.tableau!.grandeur];
+        for (const u of q.tableau!.unites) expect(colonnes).toContain(u);
+        if (q.type === 'nombre' && q.unite) expect(q.tableau!.unites).toContain(q.unite);
+        if (q.competence.includes('kg-g') || q.competence.endsWith('masse')) expect(q.tableau!.grandeur).toBe('masse');
+      }
   });
 });
