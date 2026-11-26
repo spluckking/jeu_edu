@@ -225,6 +225,52 @@ svg.essai-figure {
   touch-action: none;
 }
 
+/* Les parts en images : la pizza (les parts mangées, vides) et la tablette de chocolat. */
+.essai-parts.pizza .part {
+  fill: #f2b84b;
+  stroke: #b5651d;
+}
+.essai-parts.pizza .part.coloree {
+  fill: #fff8ee;
+  stroke-dasharray: 6 5;
+}
+.essai-parts.chocolat .part {
+  fill: #7b4a2a;
+  stroke: #4a2a16;
+}
+.essai-parts.chocolat .part.coloree {
+  fill: #fff8ee;
+  stroke-dasharray: 6 5;
+}
+
+/* Deux tartes côte à côte, pour comparer. */
+.essai-deux {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 24px;
+}
+.essai-deux-part {
+  display: grid;
+  justify-items: center;
+}
+.essai-deux svg.essai-parts {
+  width: min(200px, 38vw);
+}
+.essai-deux-nom {
+  margin: 4px 0 0;
+  font-size: 1.6rem;
+  font-weight: 700;
+}
+
+/* Des bonbons à partager. */
+svg.essai-bonbons {
+  flex: none;
+  width: min(460px, 86vw);
+  height: auto;
+  max-height: 200px;
+}
+
 /* La barre (tablette de chocolat) : plus large que le disque. */
 svg.essai-parts[viewBox^='0 0'] {
   width: min(440px, 80vw);

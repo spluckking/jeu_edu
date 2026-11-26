@@ -5,7 +5,7 @@ import T from '../../content/fete/essais.json';
 import { bruitage } from '../son/bruitages.ts';
 import { bouton as touche } from '../stands/stand.ts';
 import { confettis } from '../ui/confettis.ts';
-import { brouillonDisponible } from '../ville/brouillon.ts';
+import { brouillonDisponible, tableauBrouillon } from '../ville/brouillon.ts';
 import { bouton, creer, remplir, texteALire } from '../ville/interface.ts';
 import { euros, type Question, type StandEssai, type Visuel } from './stands-essai.ts';
 
@@ -65,8 +65,41 @@ export function dessinFigure(figure: string, tourne: number): SVGSVGElement {
   return s;
 }
 
-function visuel(v: Visuel): SVGSVGElement {
-  return v.sorte === 'parts' ? dessinParts(v.forme, v.n, v.colorees) : dessinFigure(v.figure, v.tourne);
+/** Des bonbons de toutes les couleurs, par rangées de 10 et par groupes de 5 (faciles à compter). */
+function dessinBonbons(n: number): SVGSVGElement {
+  const colonnes = Math.min(10, n);
+  const rangees = Math.ceil(n / 10);
+  const s = svg('svg', { viewBox: `0 0 ${colonnes * 54 + 16} ${rangees * 46 + 8}`, class: 'essai-bonbons' });
+  const couleurs = ['#e0443a', '#f6c945', '#35c47a', '#6aa8ef', '#c58ce8'];
+  for (let i = 0; i < n; i++) {
+    const x = 28 + (i % 10) * 54 + (i % 10 >= 5 ? 8 : 0);
+    const y = 27 + Math.floor(i / 10) * 46;
+    const g = svg('g', { transform: `translate(${x} ${y})` });
+    const c = couleurs[Math.floor(i / 5) % couleurs.length]!;
+    g.append(svg('path', { d: 'M-11 0 L-20 -8 L-20 8 Z M11 0 L20 -8 L20 8 Z', fill: c, stroke: '#3b2b2b', 'stroke-width': 1.5 }), svg('circle', { r: 12, fill: c, stroke: '#3b2b2b', 'stroke-width': 2 }));
+    s.append(g);
+  }
+  return s;
+}
+
+function visuel(v: Visuel): SVGSVGElement | HTMLElement {
+  if (v.sorte === 'parts') {
+    const d = dessinParts(v.forme, v.n, v.colorees);
+    if (v.theme) d.classList.add(v.theme);
+    return d;
+  }
+  if (v.sorte === 'deux') {
+    // Deux tartes pareilles, côte à côte, chacune avec sa part.
+    const r = creer('div', 'essai-deux');
+    for (const p of [v.a, v.b]) {
+      const c = creer('div', 'essai-deux-part');
+      c.append(dessinParts(v.forme, p.n, p.k), creer('p', 'essai-deux-nom', `${p.k}/${p.n}`));
+      r.append(c);
+    }
+    return r;
+  }
+  if (v.sorte === 'collection') return dessinBonbons(v.n);
+  return dessinFigure(v.figure, v.tourne);
 }
 
 /** Ce qu'a donné une question : pour le bilan, et pour le journal (les statistiques). */
@@ -213,6 +246,8 @@ function poser(carte: HTMLElement, q: Question, n: number, total: number): Promi
       zone.append(dessin, valider);
     }
 
+    // Le tableau de conversion qui va avec la question, dans le brouillon.
+    tableauBrouillon('tableau' in q && q.tableau ? q.tableau : null);
     carte.replaceChildren(
       creer('p', 'essai-compte', remplir(T.commun.questionN, { n, total })),
       texteALire(q.enonce),
@@ -259,6 +294,8 @@ export interface PartieAtelier {
   n: number;
   /** Les compétences sur lesquelles insister (choisies par le rêve). */
   focus: readonly string[];
+  /** Le niveau de l'atelier (1 à 3). */
+  niveau?: number;
   /** Chaque réponse, pour le journal. */
   noter(q: Question, r: ResultatQuestion): void;
   /** Le texte du bouton de sortie. */
@@ -272,7 +309,7 @@ export async function jouerAtelier(f: HTMLElement, stand: StandEssai, p: PartieA
   f.replaceChildren(carte);
   brouillonDisponible(stand.brouillon);
   let trouves = 0;
-  const qs = stand.questions(Math.random, p.n, p.focus);
+  const qs = stand.questions(Math.random, p.n, p.focus, p.niveau);
   for (const [i, q] of qs.entries()) {
     const corps = creer('div', 'essai-corps');
     carte.replaceChildren(creer('p', 'exercice-titre', p.titre), corps);

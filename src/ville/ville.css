@@ -1740,6 +1740,39 @@ button.produit {
     repeating-linear-gradient(180deg, rgba(70, 90, 180, 0.38) 0 1px, transparent 1px 100px);
 }
 
+/* Le tableau de conversion, par-dessus les carreaux : une colonne par unité, l'unité en haut. Il
+   laisse passer le stylet (on écrit dans les colonnes). */
+.brouillon-tableau {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  pointer-events: none;
+}
+.brouillon-tableau[hidden] {
+  display: none;
+}
+.brouillon-colonne {
+  border-left: 2px solid rgba(60, 70, 150, 0.55);
+}
+.brouillon-colonne:first-child {
+  border-left: 0;
+}
+.brouillon-colonne.choisie {
+  background: rgba(255, 210, 80, 0.22);
+}
+.brouillon-unite {
+  display: block;
+  padding: 4px 0;
+  border-bottom: 2px solid rgba(60, 70, 150, 0.55);
+  background: rgba(255, 253, 246, 0.9);
+  color: var(--encre);
+  font: 700 1.1rem var(--police);
+  text-align: center;
+}
+.brouillon-colonne.choisie .brouillon-unite {
+  background: #ffe39a;
+}
+
 /* --- Le sac à dos : 8 cases ------------------------------------------------------------------- */
 .sac-grille {
   display: grid;

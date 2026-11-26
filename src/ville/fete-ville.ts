@@ -1,5 +1,7 @@
 // La fête foraine dans la ville : les cinq stands de révision et les trois manèges du jeu
-// d'avant, au même endroit (à l'est, après le pont). Les stands gardent exactement leur
+// d'avant, au même endroit (à l'est, après le pont). Chaque jour, seulement 3 exercices (voir
+// fete-du-jour.ts) : devoirs d'abord, puis un point faible, puis un exercice réussi qui revient
+// plus difficile ; les forains sans exercice se reposent (on peut jouer chez eux pour le plaisir). Les stands gardent exactement leur
 // déroulé (cartes de manche, mémoire des révisions, journal pour le rêve) et écrivent dans la
 // sauvegarde du jeu d'avant : rien de ce que l'enfant a appris n'est perdu, et le rêve continue
 // de lire le même journal. Pas d'euros à la fête : chaque forain a son travail du jour ; fini, il
@@ -40,6 +42,11 @@ import { brouillonDisponible } from './brouillon.ts';
 import { jouerAtelier } from '../essais/stand-vue.ts';
 import { atelierDuJour, programme } from './programme.ts';
 import { brancherJournal } from '../stats/noter.ts';
+import { statistiques } from '../stats/stats.ts';
+import { NIVEAU_ATELIER_DEPART, niveauApres, STANDS_ESSAI } from '../essais/stands-essai.ts';
+import { ATELIERS } from '../reve/preparation.ts';
+import { lundiDe } from './gazette.ts';
+import { estHabituel, exercicesDuJour, type ExerciceDuJour, type IdExercice } from './fete-du-jour.ts';
 
 export interface ContexteFete {
   points: PointInteret[];
@@ -91,6 +98,9 @@ function suivis(type: TypeContenu): ElementSuivi[] {
 }
 const revisions = (jeu: JeuDeStand): Revisions => revisionsDuJour(aujourdhui(), suivis(jeu.type), sauvegarde.etats);
 const journee = (): Journee => (sauvegarde.journees[aujourdhui()] ??= journeeNeuve());
+/** Les mots de la confiserie : 5 au plus par jour (les autres attendent le lendemain). */
+export const MOTS_PAR_JOUR = 5;
+const motsRestants = (): number => Math.max(0, MOTS_PAR_JOUR - (journee().mots?.length ?? 0));
 function restants(j: JeuDeStand): number | null {
   if (j.type === 'defi') return Math.max(0, DEFIS_PAR_SEANCE - journee().defis);
   if (j.type === 'heure') return Math.max(0, HEURES_PAR_SEANCE - (journee().heures ?? 0));
@@ -147,6 +157,8 @@ let ouvert = false;
 const q = <T extends HTMLElement>(sel: string): T => ui.stand.querySelector(sel) as T;
 
 function prochaineManche(j: JeuDeStand = jeu): TypeManche {
+  if (auRepos(j.id)) return 'libre';
+  if (j.type === 'mots' && motsRestants() === 0) return 'libre';
   const reste = restants(j);
   if (reste !== null) return reste > 0 ? 'defis' : 'libre';
   const r = revisions(j);
@@ -156,13 +168,66 @@ function prochaineManche(j: JeuDeStand = jeu): TypeManche {
 }
 const elementsDuStand = (): string[] => [...elements.values()].filter((e) => e.type === jeu.type).map((e) => e.id);
 
-/** L'atelier du stand aujourd'hui (programme de la semaine, ou choix du rêve), ou null. */
-const atelierDe = (id: IdStand): ReturnType<typeof atelierDuJour> => (sauvegarde ? atelierDuJour(id, aujourdhui(), programme, sauvegarde.preparation ?? null) : null);
-const atelierFait = (id: IdStand): number => journee().ateliers?.[id] ?? 0;
+/** Les 3 exercices du jour : choisis à la première visite du jour, puis gardés pour la journée. */
+function exercicesFete(): ExerciceDuJour[] {
+  const j = journee();
+  if (j.exercices) return j.exercices as ExerciceDuJour[];
+  const jour = aujourdhui();
+  const semaine = programme.semaines.find((s) => s.valide && s.lundi === lundiDe(jour));
+  const ontDuTravail = (id: IdStand): boolean => {
+    const r = revisions(jeux[id]);
+    return r.semaine.length + r.memoire.length > 0;
+  };
+  // Les devoirs : les mots ou les calculs arrivés cette semaine, et les ateliers du programme.
+  const devoirs: IdExercice[] = [];
+  if (revisions(jeux.confiserie).semaine.length) devoirs.push('mots');
+  if (revisions(jeux.chamboule).semaine.length) devoirs.push('tables');
+  for (const a of Object.values(semaine?.ateliers ?? {})) if (a) devoirs.push(a);
+  const possibles: IdExercice[] = [
+    ...(ontDuTravail('chamboule') ? (['tables'] as const) : []),
+    ...(ontDuTravail('confiserie') ? (['mots'] as const) : []),
+    'calcul',
+    'heure',
+    'homophones',
+    ...ATELIERS,
+  ];
+  const stats = statistiques(sauvegarde.journal, jour);
+  const historique: Partial<Record<IdExercice, { recents: { total: number; justes: number }; dernier: Jour }>> = {};
+  for (const x of possibles) {
+    const s = stats[x];
+    if (s) historique[x] = { recents: s.recents, dernier: s.dernier };
+  }
+  const prep = sauvegarde.preparation;
+  const duReve = prep?.jour === jour ? (Object.values(prep.ateliers ?? {}) as IdExercice[]) : [];
+  j.exercices = exercicesDuJour({ devoirs, possibles, historique, duReve, hasard: Math.random });
+  sauver();
+  return j.exercices as ExerciceDuJour[];
+}
+/** L'exercice de ce forain aujourd'hui (undefined : il se repose). */
+const exerciceDe = (id: IdStand): ExerciceDuJour | undefined => (sauvegarde && jeux ? exercicesFete().find((e) => e.stand === id) : undefined);
+/** Ce forain se repose aujourd'hui (pas d'exercice pour lui). */
+const auRepos = (id: IdStand): boolean => Boolean(sauvegarde && jeux) && !exerciceDe(id);
 
-/** Ce forain a-t-il fini son travail du jour ? */
+/** L'atelier du stand aujourd'hui (un des 3 exercices du jour), ou null. */
+const atelierDe = (id: IdStand): ReturnType<typeof atelierDuJour> => {
+  const e = exerciceDe(id);
+  if (!e || estHabituel(e.exercice)) return null;
+  const atelier = STANDS_ESSAI.find((a) => a.id === e.exercice);
+  if (!atelier) return null;
+  // Les compétences sur lesquelles insister : celles des devoirs, et celles du rêve.
+  const jour = aujourdhui();
+  const semaine = programme.semaines.find((s) => s.valide && s.lundi === lundiDe(jour));
+  const prep = sauvegarde.preparation;
+  const focus = [...(semaine?.focus ?? []), ...(prep?.jour === jour ? (prep.competences ?? []) : [])];
+  return { atelier, n: programme.questionsParStand, focus, source: e.raison === 'devoirs' ? 'devoirs' : 'reve' };
+};
+const atelierFait = (id: IdStand): number => journee().ateliers?.[id] ?? 0;
+const niveauAtelier = (id: string): number => sauvegarde.niveauxAteliers?.[id] ?? NIVEAU_ATELIER_DEPART;
+
+/** Ce forain a-t-il fini son travail du jour ? (un forain au repos n'en a pas) */
 export const standFini = (id: IdStand): boolean => {
   if (!jeux) return false;
+  if (auRepos(id)) return true;
   const a = atelierDe(id);
   return a ? atelierFait(id) >= a.n : prochaineManche(jeux[id]) === 'libre';
 };
@@ -186,13 +251,18 @@ async function ouvrirAtelier(id: IdStand): Promise<void> {
   if (choix === 0) {
     musique.demarrer(id);
     const typeManche = reste ? 'programme' : 'libre';
+    let reussies = 0;
+    let posees = 0;
     await jouerAtelier(f, a.atelier, {
       titre,
       n: reste || a.n,
       focus: a.focus,
+      niveau: niveauAtelier(a.atelier.id),
       sortie: fete.atelierRetour,
       noter: (question, r) => {
         sauvegarde.journal.push({ instant: new Date().toISOString(), stand: id, manche: typeManche, element: a.atelier.id, reponse: r.reponse, reussi: r.premierCoup, aide: r.aide, duree: r.duree, competence: question.competence });
+        posees++;
+        if (r.premierCoup) reussies++;
         if (reste) {
           const j = journee();
           j.ateliers = { ...j.ateliers, [id]: (j.ateliers?.[id] ?? 0) + 1 };
@@ -201,6 +271,11 @@ async function ouvrirAtelier(id: IdStand): Promise<void> {
       },
     });
     musique.arreter();
+    // Le niveau de l'atelier : plus dur quand c'est réussi, plus facile sinon (dans le CE2).
+    if (reste && posees) {
+      sauvegarde.niveauxAteliers = { ...sauvegarde.niveauxAteliers, [a.atelier.id]: niveauApres(niveauAtelier(a.atelier.id), reussies, posees) };
+      sauver();
+    }
     // Le travail du jour fini : le merci du forain, qui part aider à l'attraction.
     if (reste) {
       parlerForain(id, fete.apresUneManche);
@@ -234,12 +309,13 @@ function verifierLaJournee(): void {
 /** La carte d'un forain qui a fini sa journée (merci : il vient juste de finir). */
 function carteFini(merci: boolean): void {
   typeManche = 'libre';
+  const repos = !merci && auRepos(jeu.id);
   q('.exercice').hidden = true;
   q('.carte-manche').hidden = false;
   q('.progres').replaceChildren();
   q('.manche-nom').textContent = '';
   q('.carte-titre').textContent = merci ? 'Bravo !' : `${jeu.titre} de ${nom(jeu.id)}`;
-  const texte = merci ? fete.apresUneManche : fete.finiAujourdhui;
+  const texte = merci ? fete.apresUneManche : repos ? fete.repos : fete.finiAujourdhui;
   q('.carte-texte').textContent = avecPrenom(texte);
   parlerForain(jeu.id, texte);
   q('.carte-bouton').textContent = 'Jouer';
@@ -258,7 +334,8 @@ function montrerCarte(type: TypeManche, apresUneManche: boolean): void {
   q('.progres').replaceChildren();
   q('.manche-nom').textContent = '';
   const r = revisions(jeu);
-  const nombre = type === 'defis' ? (restants(jeu) ?? 0) : Math.min(type === 'semaine' ? r.semaine.length : type === 'memoire' ? r.memoire.length : 8, 8);
+  const plafond = jeu.type === 'mots' ? motsRestants() : 8;
+  const nombre = type === 'defis' ? (restants(jeu) ?? 0) : Math.min(type === 'semaine' ? r.semaine.length : type === 'memoire' ? r.memoire.length : 8, plafond);
   q('.carte-titre').textContent = apresUneManche ? 'Bravo !' : `${jeu.titre} de ${nom(jeu.id)}`;
   const texte =
     type === 'libre'
@@ -292,7 +369,9 @@ function lancerManche(): void {
   totalEpreuve = ids.length;
   musique.demarrer(typeManche === 'epreuve' ? 'chantier' : jeu.id);
   const focus = sauvegarde.preparation?.focus ?? [];
-  const choisis = focus.length && typeManche !== 'epreuve' ? ordonner(melanger(ids, Math.random), focus).slice(0, 8) : ids;
+  const tous = focus.length && typeManche !== 'epreuve' ? ordonner(melanger(ids, Math.random), focus).slice(0, 8) : ids;
+  // Les mots : pas plus de 5 par jour.
+  const choisis = jeu.type === 'mots' && (typeManche === 'semaine' || typeManche === 'memoire') ? tous.slice(0, motsRestants()) : tous;
   manche = nouvelleManche(choisis, Math.random);
   q('.carte-manche').hidden = true;
   q('.exercice').hidden = false;
@@ -369,6 +448,10 @@ function valider(): void {
     sauvegarde.niveauPeche = ajusterNiveau(sauvegarde.niveauPeche, reussi);
     if (reussi && typeManche === 'defis') journee().peches = (journee().peches ?? 0) + 1;
   } else if (typeManche !== 'libre') {
+    if (jeu.type === 'mots') {
+      const j = journee();
+      if (!j.mots?.includes(e.id)) j.mots = [...(j.mots ?? []), e.id];
+    }
     sauvegarde.etats[e.id] = enregistrer(sauvegarde.etats[e.id] ?? etatNeuf(), {
       jour: aujourdhui(),
       reussi,
