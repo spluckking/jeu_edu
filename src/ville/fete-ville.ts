@@ -98,6 +98,9 @@ function suivis(type: TypeContenu): ElementSuivi[] {
 }
 const revisions = (jeu: JeuDeStand): Revisions => revisionsDuJour(aujourdhui(), suivis(jeu.type), sauvegarde.etats);
 const journee = (): Journee => (sauvegarde.journees[aujourdhui()] ??= journeeNeuve());
+/** Les mots de la confiserie : 5 au plus par jour (les autres attendent le lendemain). */
+export const MOTS_PAR_JOUR = 5;
+const motsRestants = (): number => Math.max(0, MOTS_PAR_JOUR - (journee().mots?.length ?? 0));
 function restants(j: JeuDeStand): number | null {
   if (j.type === 'defi') return Math.max(0, DEFIS_PAR_SEANCE - journee().defis);
   if (j.type === 'heure') return Math.max(0, HEURES_PAR_SEANCE - (journee().heures ?? 0));
@@ -155,6 +158,7 @@ const q = <T extends HTMLElement>(sel: string): T => ui.stand.querySelector(sel)
 
 function prochaineManche(j: JeuDeStand = jeu): TypeManche {
   if (auRepos(j.id)) return 'libre';
+  if (j.type === 'mots' && motsRestants() === 0) return 'libre';
   const reste = restants(j);
   if (reste !== null) return reste > 0 ? 'defis' : 'libre';
   const r = revisions(j);
@@ -330,7 +334,8 @@ function montrerCarte(type: TypeManche, apresUneManche: boolean): void {
   q('.progres').replaceChildren();
   q('.manche-nom').textContent = '';
   const r = revisions(jeu);
-  const nombre = type === 'defis' ? (restants(jeu) ?? 0) : Math.min(type === 'semaine' ? r.semaine.length : type === 'memoire' ? r.memoire.length : 8, 8);
+  const plafond = jeu.type === 'mots' ? motsRestants() : 8;
+  const nombre = type === 'defis' ? (restants(jeu) ?? 0) : Math.min(type === 'semaine' ? r.semaine.length : type === 'memoire' ? r.memoire.length : 8, plafond);
   q('.carte-titre').textContent = apresUneManche ? 'Bravo !' : `${jeu.titre} de ${nom(jeu.id)}`;
   const texte =
     type === 'libre'
@@ -364,7 +369,9 @@ function lancerManche(): void {
   totalEpreuve = ids.length;
   musique.demarrer(typeManche === 'epreuve' ? 'chantier' : jeu.id);
   const focus = sauvegarde.preparation?.focus ?? [];
-  const choisis = focus.length && typeManche !== 'epreuve' ? ordonner(melanger(ids, Math.random), focus).slice(0, 8) : ids;
+  const tous = focus.length && typeManche !== 'epreuve' ? ordonner(melanger(ids, Math.random), focus).slice(0, 8) : ids;
+  // Les mots : pas plus de 5 par jour.
+  const choisis = jeu.type === 'mots' && (typeManche === 'semaine' || typeManche === 'memoire') ? tous.slice(0, motsRestants()) : tous;
   manche = nouvelleManche(choisis, Math.random);
   q('.carte-manche').hidden = true;
   q('.exercice').hidden = false;
@@ -441,6 +448,10 @@ function valider(): void {
     sauvegarde.niveauPeche = ajusterNiveau(sauvegarde.niveauPeche, reussi);
     if (reussi && typeManche === 'defis') journee().peches = (journee().peches ?? 0) + 1;
   } else if (typeManche !== 'libre') {
+    if (jeu.type === 'mots') {
+      const j = journee();
+      if (!j.mots?.includes(e.id)) j.mots = [...(j.mots ?? []), e.id];
+    }
     sauvegarde.etats[e.id] = enregistrer(sauvegarde.etats[e.id] ?? etatNeuf(), {
       jour: aujourdhui(),
       reussi,
